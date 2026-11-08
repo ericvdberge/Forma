@@ -4,6 +4,18 @@ export type ClientOptions = {
     baseUrl: `${string}://${string}` | (string & {});
 };
 
+export type PageDto = {
+    id: string;
+    websiteId: string;
+    title: string;
+    slug: string;
+    status: PageStatus;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type PageStatus = 'draft' | 'published';
+
 export type WebsiteDto = {
     id: string;
     name: string;
@@ -31,3 +43,21 @@ export type GetWebsitesResponses = {
 };
 
 export type GetWebsitesResponse = GetWebsitesResponses[keyof GetWebsitesResponses];
+
+export type GetPagesData = {
+    body?: never;
+    path?: never;
+    query: {
+        websiteId: string;
+    };
+    url: '/pages';
+};
+
+export type GetPagesResponses = {
+    /**
+     * OK
+     */
+    200: Array<PageDto>;
+};
+
+export type GetPagesResponse = GetPagesResponses[keyof GetPagesResponses];

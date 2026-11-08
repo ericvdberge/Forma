@@ -1,4 +1,4 @@
-import type { Activity, Page, Stat, Website } from './types'
+import type { Activity, Stat, Website } from './types'
 
 /**
  * Seed content for the CMS until `src/api` exists.
@@ -42,19 +42,6 @@ export const websites: Website[] = [
     collaborators: ['Alex Morgan'],
     updatedAt: now - 2 * day,
   },
-]
-
-export const pages: Page[] = [
-  { id: 'home', websiteId: 'studio', title: 'Home', path: '/', status: 'live', author: 'Alex Morgan', updatedAt: now - 2 * min },
-  { id: 'about', websiteId: 'studio', title: 'About', path: '/about', status: 'live', author: 'Sam Lee', updatedAt: now - 5 * hour },
-  { id: 'work', websiteId: 'studio', title: 'Work', path: '/work', status: 'live', author: 'Alex Morgan', updatedAt: now - day },
-  { id: 'journal', websiteId: 'studio', title: 'Journal', path: '/journal', status: 'scheduled', author: 'Jo Park', updatedAt: now - 2 * day },
-  { id: 'contact', websiteId: 'studio', title: 'Contact', path: '/contact', status: 'draft', author: 'Alex Morgan', updatedAt: now - 3 * day },
-  { id: 'spring', websiteId: 'studio', title: 'Spring launch', path: '/spring', status: 'archived', author: 'Rin Ota', updatedAt: now - 40 * day },
-  { id: 'agency-home', websiteId: 'agency', title: 'Home', path: '/', status: 'draft', author: 'Sam Lee', updatedAt: now - 3 * hour },
-  { id: 'agency-services', websiteId: 'agency', title: 'Services', path: '/services', status: 'draft', author: 'Sam Lee', updatedAt: now - 6 * hour },
-  { id: 'agency-cases', websiteId: 'agency', title: 'Case studies', path: '/work', status: 'draft', author: 'Alex Morgan', updatedAt: now - day },
-  { id: 'portfolio-home', websiteId: 'portfolio', title: 'Home', path: '/', status: 'draft', author: 'Alex Morgan', updatedAt: now - 2 * day },
 ]
 
 export const activity: Activity[] = [

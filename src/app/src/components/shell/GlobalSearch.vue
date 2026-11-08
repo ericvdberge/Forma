@@ -12,10 +12,14 @@ const { getWebsites } = useWebsites()
 const { websites } = getWebsites()
 const { activeWebsiteId, setActiveWebsite } = useActiveWebsite()
 const { getPages } = usePages()
-const { pages } = getPages()
 const router = useRouter()
 
 const query = ref('')
+// Pages of the active website only, loaded once the user starts searching (shares the Pages view's cache).
+const searchWebsiteId = computed(
+  () => (websites.value.find((w) => w.id === activeWebsiteId.value) ?? websites.value[0])?.id ?? '',
+)
+const { pages } = getPages(searchWebsiteId, { enabled: () => !!query.value.trim() && !!searchWebsiteId.value })
 const open = ref(false)
 const highlighted = ref(0)
 const root = ref<HTMLElement | null>(null)

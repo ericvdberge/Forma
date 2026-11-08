@@ -7,15 +7,12 @@ import PageHeader from '@/components/PageHeader.vue'
 import LinkButton from '@/components/LinkButton.vue'
 import { useWebsites } from '@/composables/useWebsites'
 import { useActiveWebsite } from '@/composables/useActiveWebsite'
-import { usePages } from '@/composables/usePages'
 import { shortAgo } from '@/utils/time'
 
 const { getWebsites, updateWebsite, createWebsite } = useWebsites()
 const { websites } = getWebsites()
 const { getActiveWebsite, setActiveWebsite } = useActiveWebsite()
 const activeWebsite = getActiveWebsite()
-const { getPages } = usePages()
-const { pagesOf } = getPages()
 const route = useRoute()
 const router = useRouter()
 
@@ -23,7 +20,6 @@ const selected = computed(() => {
   const id = typeof route.params.id === 'string' ? route.params.id : activeWebsite.value.id
   return websites.value.find((w) => w.id === id) ?? activeWebsite.value
 })
-const pageCount = (id: string) => pagesOf(id).length
 
 /* Edit form, reset whenever the selection changes */
 const form = reactive({ name: '', domain: '', description: '', published: false })
@@ -112,7 +108,7 @@ function create() {
               >
             </span>
             <span class="block truncate text-sm text-muted">{{ site.domain }}</span>
-            <span class="mt-1 block text-xs text-subtle">{{ pageCount(site.id) }} {{ pageCount(site.id) === 1 ? 'page' : 'pages' }} · updated {{ shortAgo(site.updatedAt) }}</span>
+            <span class="mt-1 block text-xs text-subtle">Updated {{ shortAgo(site.updatedAt) }}</span>
           </span>
           <FStatus :status="site.status" class="shrink-0 pr-2" />
         </RouterLink>
