@@ -30,6 +30,18 @@
         "--strictPort"
       ],
       "port": 5174
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": [
+        "run",
+        "--project",
+        "src/api/Forma.Api",
+        "--launch-profile",
+        "http"
+      ],
+      "port": 5134
     }
   ]
 }
