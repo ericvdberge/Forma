@@ -7,15 +7,18 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "type-check": "vue-tsc --noEmit"
+    "type-check": "vue-tsc --noEmit",
+    "generate:api": "openapi-ts"
   },
   "dependencies": {
     "@forma/design-system": "*",
+    "@tanstack/vue-query": "^5.107.1",
     "lucide-vue-next": "^1.0.0",
     "vue": "^3.5.45",
     "vue-router": "^5.4.0"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "^0.99.0",
     "@tailwindcss/vite": "^4.3.5",
     "@types/node": "^26.6.6",
     "@vitejs/plugin-vue": "^6.0.10",

@@ -11,6 +11,7 @@
     "dev:app": "npm run dev -w forma-app",
     "build:landing": "npm run build -w forma-landing",
     "build:app": "npm run build -w forma-app",
-    "type-check": "npm run type-check --workspaces --if-present"
+    "type-check": "npm run type-check --workspaces --if-present",
+    "generate:api": "dotnet build src/api/Forma.Api && npm run generate:api -w forma-app"
   }
 }

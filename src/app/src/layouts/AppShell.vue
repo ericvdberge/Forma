@@ -1,13 +1,29 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch, type Component } from 'vue'
 import { useRoute } from 'vue-router'
-import { Check } from 'lucide-vue-next'
+import { Check, TriangleAlert } from 'lucide-vue-next'
+import { FButton } from '@forma/design-system'
 import AppSidebar from '@/components/shell/AppSidebar.vue'
 import AppTopbar from '@/components/shell/AppTopbar.vue'
-import { useCms } from '@/stores/cms'
+import DashboardSkeleton from '@/components/skeletons/DashboardSkeleton.vue'
+import PagesSkeleton from '@/components/skeletons/PagesSkeleton.vue'
+import WebsitesSkeleton from '@/components/skeletons/WebsitesSkeleton.vue'
+import { useWebsites } from '@/composables/useWebsites'
+import { useToast } from '@/composables/useToast'
 
-const { state } = useCms()
+const { getWebsites } = useWebsites()
+const { websites, isPending, isError, isFetching, refetch } = getWebsites()
+const { toast } = useToast()
 const route = useRoute()
+
+/** Views that need websites, with the skeleton to show while they load. Others render right away. */
+const skeletons: Record<string, Component> = {
+  dashboard: DashboardSkeleton,
+  pages: PagesSkeleton,
+  websites: WebsitesSkeleton,
+  website: WebsitesSkeleton,
+}
+const skeleton = computed(() => skeletons[String(route.name)])
 
 const COLLAPSED_KEY = 'forma.sidebarCollapsed'
 const collapsed = ref(false)
@@ -50,7 +66,24 @@ watch(() => route.fullPath, () => (drawerOpen.value = false))
     <div class="relative flex min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
       <AppTopbar @menu="drawerOpen = true" />
       <main class="flex-1 px-4 pb-10 sm:px-8">
-        <RouterView />
+        <!-- Views assume an active website, so hold them back until websites have loaded. -->
+        <RouterView v-if="!skeleton" />
+        <div v-else-if="isPending" role="status" aria-busy="true">
+          <span class="sr-only">Loading your websites…</span>
+          <component :is="skeleton" />
+        </div>
+        <div v-else-if="isError" role="alert" class="flex min-h-80 flex-col items-center justify-center gap-4 text-center">
+          <TriangleAlert class="size-6 text-danger" aria-hidden="true" />
+          <div>
+            <p class="font-medium">We couldn't load your websites</p>
+            <p class="mt-1 text-sm text-muted">Check that the Forma API is running, then try again.</p>
+          </div>
+          <FButton size="sm" variant="secondary" :disabled="isFetching" @click="refetch()">Try again</FButton>
+        </div>
+        <div v-else-if="!websites.length" class="flex min-h-80 items-center justify-center text-sm text-muted">
+          You don't have any websites yet.
+        </div>
+        <RouterView v-else />
       </main>
     </div>
 
@@ -61,13 +94,13 @@ watch(() => route.fullPath, () => (drawerOpen.value = false))
       leave-active-class="transition duration-200"
     >
       <div
-        v-if="state.toast"
-        :key="state.toast.id"
+        v-if="toast"
+        :key="toast.id"
         role="status"
         class="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2.5 rounded-full bg-charcoal px-5 py-3 text-sm font-medium text-warm-white shadow-float"
       >
         <Check class="size-4 text-sage" aria-hidden="true" />
-        {{ state.toast.message }}
+        {{ toast.message }}
       </div>
     </Transition>
   </div>

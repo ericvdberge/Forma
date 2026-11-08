@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { ArrowRight, ChevronRight, FilePlus2, Grid2x2Plus, LayoutGrid, Lightbulb, MonitorSmartphone } from 'lucide-vue-next'
 import { FArchitectureArt, FStatus, cn } from '@forma/design-system'
-import { useCms } from '@/stores/cms'
+import { useWebsites } from '@/composables/useWebsites'
+import { useActiveWebsite } from '@/composables/useActiveWebsite'
 
-const { state, activeWebsite, setActiveWebsite } = useCms()
+const { getWebsites } = useWebsites()
+const { websites } = getWebsites()
+const { getActiveWebsite, setActiveWebsite } = useActiveWebsite()
+const activeWebsite = getActiveWebsite()
 
 const quickActions = [
   { label: 'Create a new page', icon: FilePlus2, to: { path: '/pages', query: { new: '1' } } },
@@ -26,7 +30,7 @@ const quickActions = [
     </div>
 
     <ul class="flex flex-col gap-1">
-      <li v-for="site in state.websites.slice(0, 3)" :key="site.id">
+      <li v-for="site in websites.slice(0, 3)" :key="site.id">
         <button
           type="button"
           :aria-pressed="site.id === activeWebsite.id"

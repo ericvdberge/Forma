@@ -3,10 +3,16 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { FileText, Globe, Search } from 'lucide-vue-next'
 import { cn } from '@forma/design-system'
-import { useCms } from '@/stores/cms'
+import { useWebsites } from '@/composables/useWebsites'
+import { useActiveWebsite } from '@/composables/useActiveWebsite'
+import { usePages } from '@/composables/usePages'
 import { useDismiss } from '@/composables/useDismiss'
 
-const { state, setActiveWebsite } = useCms()
+const { getWebsites } = useWebsites()
+const { websites } = getWebsites()
+const { activeWebsiteId, setActiveWebsite } = useActiveWebsite()
+const { getPages } = usePages()
+const { pages } = getPages()
 const router = useRouter()
 
 const query = ref('')
@@ -23,25 +29,25 @@ type Result = { id: string; label: string; hint: string; kind: 'website' | 'page
 const results = computed<Result[]>(() => {
   const q = query.value.trim().toLowerCase()
   if (!q) return []
-  const sites: Result[] = state.websites
+  const sites: Result[] = websites.value
     .filter((w) => `${w.name} ${w.domain}`.toLowerCase().includes(q))
     .map((w) => ({ id: w.id, label: w.name, hint: w.domain, kind: 'website', run: () => router.push(`/websites/${w.id}`) }))
-  const pages: Result[] = state.pages
+  const pageResults: Result[] = pages.value
     .filter((p) => `${p.title} ${p.path}`.toLowerCase().includes(q))
     .map((p) => {
-      const site = state.websites.find((w) => w.id === p.websiteId)
+      const site = websites.value.find((w) => w.id === p.websiteId)
       return {
         id: p.id,
         label: p.title,
         hint: `${site?.name ?? ''} · ${p.path}`,
         kind: 'page',
         run: () => {
-          if (site && site.id !== state.activeWebsiteId) setActiveWebsite(site.id)
+          if (site && site.id !== activeWebsiteId.value) setActiveWebsite(site.id)
           router.push({ path: '/pages', query: { q: p.title } })
         },
       }
     })
-  return [...sites, ...pages].slice(0, 8)
+  return [...sites, ...pageResults].slice(0, 8)
 })
 
 function choose(r: Result | undefined) {

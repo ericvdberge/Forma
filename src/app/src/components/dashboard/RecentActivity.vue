@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ArrowRight, Settings } from 'lucide-vue-next'
 import { FArchitectureArt } from '@forma/design-system'
-import { useCms } from '@/stores/cms'
+import { useActivity } from '@/composables/useActivity'
 import { timeAgo } from '@/utils/time'
 
-const { state } = useCms()
+const { getActivity } = useActivity()
+const { activity } = getActivity()
 </script>
 
 <template>
@@ -18,7 +19,7 @@ const { state } = useCms()
 
     <ol class="relative mt-3">
       <span class="absolute bottom-4 left-[5px] top-4 w-px bg-charcoal/10" aria-hidden="true" />
-      <li v-for="a in state.activity.slice(0, 3)" :key="a.id" class="relative flex items-center gap-5 py-2.5 pl-8">
+      <li v-for="a in activity.slice(0, 3)" :key="a.id" class="relative flex items-center gap-5 py-2.5 pl-8">
         <span class="absolute left-0 top-1/2 size-[11px] -translate-y-1/2 rounded-full bg-charcoal ring-4 ring-white" aria-hidden="true" />
         <div class="min-w-0 flex-1">
           <p class="truncate text-[0.9375rem]">{{ a.message }}</p>

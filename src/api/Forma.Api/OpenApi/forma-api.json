@@ -1,0 +1,85 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Forma.Api | v1",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/websites": {
+      "get": {
+        "tags": [
+          "Websites"
+        ],
+        "operationId": "GetWebsites",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WebsiteDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "WebsiteDto": {
+        "required": [
+          "id",
+          "name",
+          "domain",
+          "description",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WebsiteStatus"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WebsiteStatus": {
+        "enum": [
+          "draft",
+          "live"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Websites"
+    }
+  ]
+}

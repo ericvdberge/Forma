@@ -4,21 +4,27 @@ import { useRoute, useRouter } from 'vue-router'
 import { Archive, ArchiveRestore, Ellipsis, FileText, Plus, Search, Trash2, Upload, Undo2, X } from 'lucide-vue-next'
 import { FAvatar, FButton, FCard, FIconButton, FInput, FSelect, FStatus, cn } from '@forma/design-system'
 import PageHeader from '@/components/PageHeader.vue'
-import { useCms } from '@/stores/cms'
+import { useWebsites } from '@/composables/useWebsites'
+import { useActiveWebsite } from '@/composables/useActiveWebsite'
+import { usePages } from '@/composables/usePages'
 import type { PublishStatus } from '@/data/types'
 import { timeAgo } from '@/utils/time'
 
-const cms = useCms()
-const { state, activeWebsite } = cms
+const { getWebsites } = useWebsites()
+const { websites } = getWebsites()
+const { getActiveWebsite, setActiveWebsite } = useActiveWebsite()
+const activeWebsite = getActiveWebsite()
+const { getPages, createPage, setPageStatus, deletePage } = usePages()
+const { pages, pagesOf } = getPages()
 const route = useRoute()
 const router = useRouter()
 
 /* Website switcher */
 const websiteId = computed({
   get: () => activeWebsite.value.id,
-  set: (id: string) => cms.setActiveWebsite(id),
+  set: (id: string) => setActiveWebsite(id),
 })
-const websiteOptions = computed(() => state.websites.map((w) => ({ label: w.name, value: w.id })))
+const websiteOptions = computed(() => websites.value.map((w) => ({ label: w.name, value: w.id })))
 
 /* Filters */
 type Filter = 'all' | PublishStatus
@@ -31,7 +37,7 @@ watch(
   },
 )
 
-const sitePages = computed(() => cms.pagesFor(activeWebsite.value.id))
+const sitePages = computed(() => pagesOf(activeWebsite.value.id))
 const tabs = computed(() =>
   (['all', 'live', 'draft', 'scheduled', 'archived'] as const).map((value) => ({
     value,
@@ -65,7 +71,7 @@ function closeCreate() {
 }
 function submitCreate() {
   if (!newTitle.value.trim()) return
-  cms.createPage(activeWebsite.value.id, newTitle.value.trim(), newPath.value)
+  createPage(activeWebsite.value.id, newTitle.value.trim(), newPath.value)
   filter.value = 'all'
   closeCreate()
 }
@@ -105,12 +111,12 @@ onBeforeUnmount(() => {
 function act(id: string, action: 'publish' | 'unpublish' | 'archive' | 'restore' | 'delete') {
   menuFor.value = null
   if (action === 'delete') {
-    const page = state.pages.find((p) => p.id === id)
-    if (page && window.confirm(`Delete “${page.title}”? This can’t be undone.`)) cms.deletePage(id)
+    const page = pages.value.find((p) => p.id === id)
+    if (page && window.confirm(`Delete “${page.title}”? This can’t be undone.`)) deletePage(id)
     return
   }
   const next: Record<typeof action, PublishStatus> = { publish: 'live', unpublish: 'draft', archive: 'archived', restore: 'draft' }
-  cms.setPageStatus(id, next[action])
+  setPageStatus(id, next[action])
 }
 </script>
 
