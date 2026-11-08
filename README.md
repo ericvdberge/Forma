@@ -1,0 +1,179 @@
+<div align="center">
+
+<img src=".github/assets/banner.svg" alt="forma. — Build. Design. Grow." width="100%" />
+
+<br />
+<br />
+
+**Forma is an open-source website builder for everyone who wants to build something beautiful on the web.**
+<br />
+Design freely, build with reusable blocks, and publish polished, responsive sites — no code required.
+
+<br />
+
+[![Vue](https://img.shields.io/badge/Vue-3.5-0B0B0F?style=flat-square&logo=vuedotjs&logoColor=4FC08D)](https://vuejs.org)
+[![Vite](https://img.shields.io/badge/Vite-8-0B0B0F?style=flat-square&logo=vite&logoColor=white)](https://vite.dev)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-0B0B0F?style=flat-square&logo=tailwindcss&logoColor=38BDF8)](https://tailwindcss.com)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-0B0B0F?style=flat-square&logo=typescript&logoColor=3178C6)](https://www.typescriptlang.org)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-3B82F6?style=flat-square)](#contributing)
+
+[Getting started](#getting-started) · [Design system](#design-system) · [Project structure](#project-structure) · [Roadmap](#roadmap) · [Contributing](#contributing)
+
+</div>
+
+<br />
+
+<img src=".github/assets/brand-and-landing.webp" alt="Forma brand guide alongside the Forma landing page" width="100%" />
+
+<br />
+
+## Why Forma
+
+Building a website should feel like shaping an idea, not fighting a tool. Forma gives designers, freelancers, agencies and ambitious businesses a calm, considered workspace to go **from idea to online**.
+
+<table>
+  <tr>
+    <td width="25%" valign="top">
+      <h3>⚡ Drag & drop</h3>
+      Design freely with visual controls and thoughtful defaults. No code.
+    </td>
+    <td width="25%" valign="top">
+      <h3>▦ Templates</h3>
+      Start from beautiful, fully responsive starting points and make them yours.
+    </td>
+    <td width="25%" valign="top">
+      <h3>◈ Components</h3>
+      Combine reusable blocks, sections and components. Build without limits.
+    </td>
+    <td width="25%" valign="top">
+      <h3>↗ Built to grow</h3>
+      Open source and self-hostable. Your server, your data, your rules.
+    </td>
+  </tr>
+</table>
+
+## A look inside
+
+The Forma dashboard is where creative work starts: your websites, quick actions, recent activity and the Design Studio, one click away.
+
+<img src=".github/assets/dashboard.webp" alt="Concept design of the Forma dashboard" width="100%" />
+
+<p align="center"><sub>Dashboard concept: the app in <code>src/app</code> is in development.</sub></p>
+
+## Getting started
+
+Forma is an npm workspaces monorepo. You'll need **Node.js 20+** and npm.
+
+```bash
+git clone https://github.com/ericvdberge/Forma.git
+cd Forma
+npm install
+npm run dev:landing
+```
+
+Then open **http://localhost:5173**, or **http://localhost:5173/#/design-system** for the living brand guide.
+
+| Script                  | What it does                                   |
+| ----------------------- | ---------------------------------------------- |
+| `npm run dev:landing`   | Start the landing page with hot reload         |
+| `npm run build:landing` | Type-check and build the landing page          |
+| `npm run type-check`    | Type-check every workspace                     |
+
+## Project structure
+
+```text
+Forma/
+├── src/
+│   ├── design-system/   @forma/design-system: brand tokens + Vue components
+│   ├── landing/         Marketing site (Vue 3 + Vite)
+│   ├── app/             The Forma builder & dashboard (in development)
+│   └── api/             Backend services (planned)
+└── package.json         npm workspaces root
+```
+
+## Design system
+
+Everything Forma ships is built on [`@forma/design-system`](src/design-system), a shared package of brand tokens (as a Tailwind CSS v4 `@theme`) and accessible, `F`-prefixed Vue components.
+
+```ts
+import '@forma/design-system/styles.css'
+import { FButton, FCard, FLogo } from '@forma/design-system'
+```
+
+```vue
+<FButton href="/start" arrow>Start for free</FButton>
+```
+
+### Colour
+
+<table>
+  <tr>
+    <td align="center" width="25%"><img src=".github/assets/swatch-charcoal.svg" width="48" alt="" /><br /><b>Charcoal</b><br /><code>#0B0B0F</code></td>
+    <td align="center" width="25%"><img src=".github/assets/swatch-accent.svg" width="48" alt="" /><br /><b>Accent Blue</b><br /><code>#3B82F6</code></td>
+    <td align="center" width="25%"><img src=".github/assets/swatch-soft-gray.svg" width="48" alt="" /><br /><b>Soft Gray</b><br /><code>#E5E7EB</code></td>
+    <td align="center" width="25%"><img src=".github/assets/swatch-warm-white.svg" width="48" alt="" /><br /><b>Warm White</b><br /><code>#FAFAF8</code></td>
+  </tr>
+  <tr>
+    <td align="center"><img src=".github/assets/swatch-ink.svg" width="32" alt="" /><br /><sub>Ink <code>#171717</code></sub></td>
+    <td align="center"><img src=".github/assets/swatch-canvas.svg" width="32" alt="" /><br /><sub>Canvas <code>#F5F4F0</code></sub></td>
+    <td align="center"><img src=".github/assets/swatch-stone.svg" width="32" alt="" /><br /><sub>Stone <code>#D8D2C8</code></sub></td>
+    <td align="center"><img src=".github/assets/swatch-sage.svg" width="32" alt="" /><br /><sub>Sage <code>#A8B5A0</code></sub></td>
+  </tr>
+</table>
+
+Warm neutrals create a calm canvas. Charcoal brings clarity; a restrained blue accent signals interaction and momentum.
+
+### Typography
+
+One typeface, three voices: **[Satoshi](https://www.fontshare.com/fonts/satoshi)**.
+
+| Role        | Weight  | Usage                                   |
+| ----------- | ------- | --------------------------------------- |
+| Headlines   | Bold    | Tight tracking, generous size           |
+| Subheadings | Medium  | Section titles, cards, navigation       |
+| Body        | Regular | Long-form copy, descriptions, UI labels |
+
+The wordmark is always lowercase with tight tracking and a distinctive full stop: **forma.**
+
+### Principles
+
+|                | |
+| -------------- | --- |
+| **Whitespace** | Give content room to breathe. Use generous spacing and clear hierarchy. |
+| **Structure**  | Use grids, alignment and consistent spacing to create visual order. |
+| **Restraint**  | Prefer fine borders and subtle depth over heavy shadows and decoration. |
+| **Clarity**    | Make controls, actions and product benefits immediately understandable. |
+
+### Voice
+
+Forma speaks with clarity and quiet confidence. No hype, no jargon, no exaggerated promises.
+
+> **Give your ideas form.** · **Design. Build. Publish.** · **Beautiful websites. Less friction.**
+
+## Roadmap
+
+- [x] Brand guide & design tokens
+- [x] Shared design system package
+- [x] Landing page
+- [ ] Dashboard & website management
+- [ ] Design Studio: drag & drop editor
+- [ ] Templates, blocks & global styles
+- [ ] Publishing & custom domains
+- [ ] Self-hosting guide
+
+## Contributing
+
+Contributions of every size are welcome: bug reports, ideas, docs and code.
+
+1. Fork the repo and create a branch: `git checkout -b feat/my-idea`
+2. Install and run: `npm install && npm run dev:landing`
+3. Make sure it builds: `npm run build:landing`
+4. Open a pull request against `main`
+
+Found a bug or have a suggestion? [Open an issue](https://github.com/ericvdberge/Forma/issues).
+
+<br />
+
+<div align="center">
+  <sub><b>forma.</b> &nbsp;·&nbsp; Modern. Minimal. Powerful.</sub>
+</div>
