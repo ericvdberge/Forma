@@ -1,4 +1,4 @@
-namespace Forma.Application.Filters.Pages;
+namespace Forma.Application.Repositories.Pages;
 
 /// <summary>
 /// Criteria for querying pages. Every property is optional: a property that is

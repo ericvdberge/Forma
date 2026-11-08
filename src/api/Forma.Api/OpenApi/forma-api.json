@@ -36,25 +36,12 @@
         "operationId": "GetPages",
         "parameters": [
           {
-            "name": "WebsiteId",
+            "name": "websiteId",
             "in": "query",
+            "required": true,
             "schema": {
               "type": "string",
               "format": "uuid"
-            }
-          },
-          {
-            "name": "Title",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "Slug",
-            "in": "query",
-            "schema": {
-              "type": "string"
             }
           }
         ],

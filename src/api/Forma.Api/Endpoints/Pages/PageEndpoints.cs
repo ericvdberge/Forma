@@ -1,7 +1,6 @@
 using Forma.Api.Abstractions;
 using Forma.Api.Dtos.Pages;
 using Forma.Api.Mappers.Pages;
-using Forma.Application.Filters.Pages;
 using Forma.Application.Services.Pages;
 using Microsoft.AspNetCore.Http.HttpResults;
 
@@ -16,13 +15,12 @@ public class PageEndpoints : IEndpoints
         group.MapGet("/", GetPagesAsync).WithName("GetPages");
     }
 
-    /// <summary>Lists pages. Every query parameter is optional and narrows the result when set.</summary>
     private static async Task<Ok<IReadOnlyList<PageDto>>> GetPagesAsync(
-        [AsParameters] PageFilter filter,
+        Guid websiteId,
         IPageCoreService pageCoreService,
         CancellationToken cancellationToken)
     {
-        var pages = await pageCoreService.GetPagesAsync(filter, cancellationToken);
+        var pages = await pageCoreService.GetPagesAsync(websiteId, cancellationToken);
         return TypedResults.Ok(pages.ToDtos());
     }
 }

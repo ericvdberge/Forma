@@ -5,12 +5,6 @@ Accept: application/json
 
 ###
 
-GET {{Forma.Api_HostAddress}}/pages
-Accept: application/json
-
-###
-
-# Filter by website (optionally combined with title and/or slug)
 GET {{Forma.Api_HostAddress}}/pages?websiteId=00000000-0000-0000-0000-000000000000
 Accept: application/json
 

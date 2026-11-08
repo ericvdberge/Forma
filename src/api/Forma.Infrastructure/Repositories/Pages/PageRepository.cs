@@ -1,5 +1,4 @@
 using Forma.Application.Entities.Pages;
-using Forma.Application.Filters.Pages;
 using Forma.Application.Repositories.Pages;
 using Forma.Infrastructure.Mappers.Pages;
 using Forma.Infrastructure.Persistence;
