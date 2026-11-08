@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetWebsitesData, GetWebsitesResponses } from './types.gen';
+import type { GetPagesData, GetPagesResponses, GetWebsitesData, GetWebsitesResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -19,3 +19,5 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 export const getWebsites = <ThrowOnError extends boolean = false>(options?: Options<GetWebsitesData, ThrowOnError>): RequestResult<GetWebsitesResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetWebsitesResponses, unknown, ThrowOnError>({ url: '/websites', ...options });
+
+export const getPages = <ThrowOnError extends boolean = false>(options: Options<GetPagesData, ThrowOnError>): RequestResult<GetPagesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetPagesResponses, unknown, ThrowOnError>({ url: '/pages', ...options });

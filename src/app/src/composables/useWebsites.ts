@@ -17,17 +17,15 @@ import { slugify } from '@/utils/slugify'
 export function useWebsites() {
   const queryClient = useQueryClient()
   const querier = useWebsitesQuerier()
-  const { getPages, addPage } = usePages()
+  const { addPage } = usePages()
   const { logActivity } = useActivity()
   const { notify } = useToast()
 
   function getWebsites() {
     const query = querier.getWebsites()
-    const { pagesOf } = getPages()
 
     const websites = computed<Website[]>(() =>
       (query.data.value ?? []).map((dto, index) => {
-        const authors = [...new Set(pagesOf(dto.id).map((p) => p.author))]
         return {
           id: dto.id,
           name: dto.name,
@@ -36,7 +34,7 @@ export function useWebsites() {
           status: dto.status,
           // Presentation-only fields the API doesn't model (yet).
           tone: index % 2 ? 'dark' : 'light',
-          collaborators: authors.length ? authors : [currentUser.name],
+          collaborators: [currentUser.name],
           updatedAt: Date.parse(dto.updatedAt),
         }
       }),
@@ -76,15 +74,7 @@ export function useWebsites() {
       createdAt: now,
       updatedAt: now,
     }
-    addPage({
-      id: crypto.randomUUID(),
-      websiteId: dto.id,
-      title: 'Home',
-      path: '/',
-      status: 'draft',
-      author: currentUser.name,
-      updatedAt: Date.now(),
-    })
+    addPage(dto.id, 'Home', 'home')
     updateCache((dtos) => [...dtos, dto])
     logActivity(`You created ${name}`, 'website')
     notify(`${name} created`)

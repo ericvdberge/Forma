@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions } from '@tanstack/vue-query';
 
 import { client } from '../client.gen';
-import { getWebsites, type Options } from '../sdk.gen';
-import type { GetWebsitesData, GetWebsitesResponse } from '../types.gen';
+import { getPages, getWebsites, type Options } from '../sdk.gen';
+import type { GetPagesData, GetPagesResponse, GetWebsitesData, GetWebsitesResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -52,4 +52,19 @@ export const getWebsitesOptions = (options?: Options<GetWebsitesData>) => queryO
         return data;
     },
     queryKey: getWebsitesQueryKey(options)
+});
+
+export const getPagesQueryKey = (options: Options<GetPagesData>) => createQueryKey('getPages', options);
+
+export const getPagesOptions = (options: Options<GetPagesData>) => queryOptions<GetPagesResponse, DefaultError, GetPagesResponse, ReturnType<typeof getPagesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPages({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPagesQueryKey(options)
 });

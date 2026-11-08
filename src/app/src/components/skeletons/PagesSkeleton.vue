@@ -34,7 +34,6 @@ import PageHeader from '@/components/PageHeader.vue'
           </div>
         </div>
         <FSkeleton class="h-4 w-14" />
-        <FSkeleton class="hidden h-4 w-28 md:block" />
         <FSkeleton class="h-4 w-20" />
         <FSkeleton class="size-8" rounded="full" />
       </div>

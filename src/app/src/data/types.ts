@@ -1,5 +1,8 @@
 export type PublishStatus = 'live' | 'draft' | 'scheduled' | 'archived'
 
+/** The statuses the pages API knows: `published` maps to `live`. */
+export type PageStatus = Extract<PublishStatus, 'live' | 'draft'>
+
 export interface Website {
   id: string
   name: string
@@ -15,9 +18,10 @@ export interface Page {
   id: string
   websiteId: string
   title: string
+  slug: string
+  /** `/` + slug, for display. */
   path: string
-  status: PublishStatus
-  author: string
+  status: PageStatus
   updatedAt: number
 }
 

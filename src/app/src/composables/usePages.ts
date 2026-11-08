@@ -1,60 +1,73 @@
-import { computed } from 'vue'
+import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
-import { getWebsitesQueryKey } from '@/api/generated/@tanstack/vue-query.gen'
-import type { WebsiteDto } from '@/api/generated'
-import * as seed from '@/data/seed'
-import type { Page, PublishStatus } from '@/data/types'
-import { pagesQueryKey, usePagesQuerier } from '@/queriers/usePagesQuerier'
-import { useWebsitesQuerier } from '@/queriers/useWebsitesQuerier'
+import { getPagesQueryKey, getWebsitesQueryKey } from '@/api/generated/@tanstack/vue-query.gen'
+import type { PageDto, WebsiteDto } from '@/api/generated'
+import type { Page, PageStatus } from '@/data/types'
+import { allPagesQueryKey, usePagesQuerier, type GetPagesOptions } from '@/queriers/usePagesQuerier'
 import { useActivity } from '@/composables/useActivity'
 import { useToast } from '@/composables/useToast'
 import { slugify } from '@/utils/slugify'
 
-/**
- * Seed pages point at the old seed website ids ('studio', …). Re-point them at the API websites
- * with the same domain. Temporary bridge until pages come from the API.
- */
-function linkSeedPages(pages: Page[], websites: WebsiteDto[]): Page[] {
-  const apiIdBySeedId = new Map<string, string>()
-  for (const s of seed.websites) {
-    const dto = websites.find((d) => d.domain === s.domain)
-    if (dto) apiIdBySeedId.set(s.id, dto.id)
+function toPage(dto: PageDto): Page {
+  return {
+    id: dto.id,
+    websiteId: dto.websiteId,
+    title: dto.title,
+    slug: dto.slug,
+    path: `/${dto.slug}`,
+    status: dto.status === 'published' ? 'live' : 'draft',
+    updatedAt: Date.parse(dto.updatedAt),
   }
-  return pages.map((p) => {
-    const apiId = apiIdBySeedId.get(p.websiteId)
-    return apiId ? { ...p, websiteId: apiId } : p
-  })
+}
+
+/** Optional client-side filters on a website's pages. Empty values are ignored. */
+export interface PageFilters {
+  /** Title contains this text (case-insensitive). */
+  title?: string
+  /** Slug is exactly this. */
+  slug?: string
+  status?: PageStatus
+}
+
+export function filterPages(pages: Page[], { title, slug, status }: PageFilters) {
+  const t = title?.trim().toLowerCase()
+  const s = slug?.trim().replace(/^\//, '')
+  return pages.filter(
+    (p) => (!t || p.title.toLowerCase().includes(t)) && (!s || p.slug === s) && (!status || p.status === status),
+  )
 }
 
 /**
- * Pages. Nothing is fetched until a page calls `getPages()`.
- * Changes only write to the query cache until the API has a pages endpoint.
+ * Pages, read from GET /pages. Nothing is fetched until a page calls `getPages()`.
+ * Changes only write to the query cache until the API has write endpoints, so they reset on reload.
  */
 export function usePages() {
   const queryClient = useQueryClient()
-  const pagesQuerier = usePagesQuerier()
-  const websitesQuerier = useWebsitesQuerier()
+  const querier = usePagesQuerier()
   const { logActivity } = useActivity()
   const { notify } = useToast()
 
-  function getPages() {
-    const query = pagesQuerier.getPages()
-    const { data: websiteDtos } = websitesQuerier.getWebsites()
-    const pages = computed(() => linkSeedPages(query.data.value ?? [], websiteDtos.value ?? []))
-    const pagesOf = (websiteId: string) => pages.value.filter((p) => p.websiteId === websiteId)
-    return { ...query, pages, pagesOf }
-  }
-
-  /** Current pages from the cache, without subscribing. */
-  function cachedPages() {
-    return linkSeedPages(
-      queryClient.getQueryData<Page[]>(pagesQueryKey) ?? [],
-      queryClient.getQueryData<WebsiteDto[]>(getWebsitesQueryKey()) ?? [],
+  /** Pages of one website, newest first. */
+  function getPages(websiteId: MaybeRefOrGetter<string>, options?: GetPagesOptions) {
+    const query = querier.getPages(websiteId, options)
+    const pages = computed(() =>
+      (query.data.value ?? [])
+        .filter((d) => d.websiteId === toValue(websiteId))
+        .map(toPage)
+        .sort((a, b) => b.updatedAt - a.updatedAt),
     )
+    return { ...query, pages }
   }
 
-  function updatePages(update: (pages: Page[]) => Page[]) {
-    queryClient.setQueryData<Page[]>(pagesQueryKey, (old) => update(old ?? []))
+  function updateCachedPages(websiteId: string, update: (dtos: PageDto[]) => PageDto[]) {
+    queryClient.setQueryData<PageDto[]>(getPagesQueryKey({ query: { websiteId } }), (old) => update(old ?? []))
+  }
+
+  function findCached(id: string) {
+    for (const [, dtos] of queryClient.getQueriesData<PageDto[]>({ queryKey: allPagesQueryKey })) {
+      const dto = dtos?.find((d) => d.id === id)
+      if (dto) return dto
+    }
   }
 
   /** Bump the website's "updated" time in the websites cache when one of its pages changes. */
@@ -64,43 +77,40 @@ export function usePages() {
     )
   }
 
-  /** Adds a page without logging or notifying, e.g. the Home page of a new website. */
-  function addPage(page: Page) {
-    updatePages((all) => [...all, page])
+  /** Adds a draft page without logging or notifying, e.g. the Home page of a new website. */
+  function addPage(websiteId: string, title: string, slug: string) {
+    const now = new Date().toISOString()
+    const dto: PageDto = { id: crypto.randomUUID(), websiteId, title, slug, status: 'draft', createdAt: now, updatedAt: now }
+    updateCachedPages(websiteId, (dtos) => [dto, ...dtos])
+    return toPage(dto)
   }
 
   function createPage(websiteId: string, title: string, path?: string) {
-    const page: Page = {
-      id: crypto.randomUUID(),
-      websiteId,
-      title,
-      path: path?.trim() || `/${slugify(title)}`,
-      status: 'draft',
-      author: seed.currentUser.name,
-      updatedAt: Date.now(),
-    }
-    updatePages((all) => [page, ...all])
+    const page = addPage(websiteId, title, slugify(path?.trim() || title) || 'page')
     touchWebsite(websiteId)
     logActivity(`You created the page ‘${title}’`, 'page')
     notify(`Page ‘${title}’ created`)
     return page
   }
 
-  function setPageStatus(id: string, status: PublishStatus) {
-    const page = cachedPages().find((p) => p.id === id)
-    if (!page) return
-    updatePages((all) => all.map((p) => (p.id === id ? { ...p, status, updatedAt: Date.now() } : p)))
-    touchWebsite(page.websiteId)
-    const verb = { live: 'published', draft: 'unpublished', scheduled: 'scheduled', archived: 'archived' }[status]
-    logActivity(`You ${verb} ‘${page.title}’`, 'page')
-    notify(`‘${page.title}’ ${verb}`)
+  function setPageStatus(id: string, status: PageStatus) {
+    const dto = findCached(id)
+    if (!dto) return
+    const now = new Date().toISOString()
+    updateCachedPages(dto.websiteId, (dtos) =>
+      dtos.map((d) => (d.id === id ? { ...d, status: status === 'live' ? 'published' : 'draft', updatedAt: now } : d)),
+    )
+    touchWebsite(dto.websiteId)
+    const verb = status === 'live' ? 'published' : 'unpublished'
+    logActivity(`You ${verb} ‘${dto.title}’`, 'page')
+    notify(`‘${dto.title}’ ${verb}`)
   }
 
   function deletePage(id: string) {
-    const page = cachedPages().find((p) => p.id === id)
-    if (!page) return
-    updatePages((all) => all.filter((p) => p.id !== id))
-    notify(`‘${page.title}’ deleted`)
+    const dto = findCached(id)
+    if (!dto) return
+    updateCachedPages(dto.websiteId, (dtos) => dtos.filter((d) => d.id !== id))
+    notify(`‘${dto.title}’ deleted`)
   }
 
   return {
