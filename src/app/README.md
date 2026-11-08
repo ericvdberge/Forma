@@ -38,9 +38,9 @@ src/
   components/dashboard/  dashboard sections
   components/skeletons/  loading placeholders per view
   data/                  types + seed content
-  queriers/              TanStack Query per resource, e.g. useWebsitesQuerier().getWebsites() (pages/activity serve seed data for now)
+  queriers/              TanStack Query per resource, e.g. useWebsitesQuerier().getWebsites() (activity serves seed data for now)
   composables/           view-facing composables on top of the queriers: useWebsites, usePages, useActivity, useActiveWebsite, useToast
   views/                 routed pages
 ```
 
-Websites are loaded from the API. Pages and activity are seed data served through Vue Query, and all edits only update the query cache until write endpoints exist, so they reset on reload. The active website and sidebar state are remembered per browser.
+Websites and pages are loaded from the API. Activity is seed data served through Vue Query. All edits only update the query cache until write endpoints exist, so they reset on reload. The active website and sidebar state are remembered per browser.
