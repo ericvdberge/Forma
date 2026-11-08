@@ -1,4 +1,3 @@
-using Forma.Application.Entities.Websites;
 using Forma.Infrastructure.DataAccessObjects.Websites;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,7 +21,7 @@ internal static class WebsiteSeeder
                 Name = "Forma Studio",
                 Domain = "studio.forma.dev",
                 Description = "A modern website built with Forma.",
-                Status = WebsiteStatus.Live,
+                Status = WebsiteDaoStatus.Live,
                 CreatedAt = now.AddDays(-30),
                 UpdatedAt = now.AddMinutes(-2),
             },
@@ -32,7 +31,7 @@ internal static class WebsiteSeeder
                 Name = "Agency Pro",
                 Domain = "agency.forma.dev",
                 Description = "Case studies and services for a small design agency.",
-                Status = WebsiteStatus.Draft,
+                Status = WebsiteDaoStatus.Draft,
                 CreatedAt = now.AddDays(-14),
                 UpdatedAt = now.AddHours(-3),
             },
@@ -42,7 +41,7 @@ internal static class WebsiteSeeder
                 Name = "Portfolio",
                 Domain = "portfolio.forma.dev",
                 Description = "Selected work, 2019 – today.",
-                Status = WebsiteStatus.Draft,
+                Status = WebsiteDaoStatus.Draft,
                 CreatedAt = now.AddDays(-7),
                 UpdatedAt = now.AddDays(-2),
             });
