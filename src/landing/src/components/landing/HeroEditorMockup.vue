@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Columns2, Image, Plus, RectangleHorizontal, Type } from 'lucide-vue-next'
-import { FLogo, FToolbar } from '@forma/design-system'
-import ArchitectureArt from './ArchitectureArt.vue'
+import { FArchitectureArt, FLogo, FToolbar } from '@forma/design-system'
 
 const tools = [
   { icon: Plus, label: 'Add block' },
@@ -44,7 +43,7 @@ const tools = [
     <div
       class="absolute left-[16%] right-[-4%] top-[22%] z-10 aspect-[16/11] overflow-hidden rounded-[1.5rem] shadow-float ring-1 ring-white/10 [transform:perspective(1600px)_rotateY(-14deg)_rotateX(6deg)_rotateZ(3deg)] sm:left-[18%] lg:right-[-10%]"
     >
-      <ArchitectureArt id="hero-arch" />
+      <FArchitectureArt id="hero-arch" />
       <div class="absolute inset-0 flex flex-col justify-between p-6 sm:p-8">
         <FLogo tone="light" size="sm" />
         <div>

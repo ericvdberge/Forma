@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { FArrowLink, FBrowserWindow, FCard, FContainer, FEyebrow, FHeading, FText } from '@forma/design-system'
-import ArchitectureArt from './ArchitectureArt.vue'
+import { FArchitectureArt, FArrowLink, FBrowserWindow, FCard, FContainer, FEyebrow, FHeading, FText } from '@forma/design-system'
 
 const templates = [
   { name: 'Studio', category: 'Portfolio', headline: 'Quiet work, loud ideas.', tone: 'light' as const },
@@ -33,7 +32,7 @@ const templates = [
                 t.tone === 'accent' && 'bg-gradient-to-br from-accent-100 to-accent-300',
               ]"
             >
-              <ArchitectureArt v-if="t.tone === 'dark'" :id="`tpl-${t.name}`" class="absolute inset-0" />
+              <FArchitectureArt v-if="t.tone === 'dark'" :id="`tpl-${t.name}`" class="absolute inset-0" />
               <template v-if="t.tone === 'light'">
                 <span class="absolute right-5 top-5 size-16 rounded-full bg-charcoal" aria-hidden="true" />
                 <span

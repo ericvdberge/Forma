@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Image, Plus, Type } from 'lucide-vue-next'
-import { FArrowLink, FContainer, FEyebrow, FHeading, FText } from '@forma/design-system'
-import ArchitectureArt from './ArchitectureArt.vue'
+import { FArchitectureArt, FArrowLink, FContainer, FEyebrow, FHeading, FText } from '@forma/design-system'
 </script>
 
 <template>
@@ -30,7 +29,7 @@ import ArchitectureArt from './ArchitectureArt.vue'
                   <span class="mt-3 inline-block h-3 w-12 rounded-full bg-charcoal" />
                 </div>
                 <div class="h-[80%] w-[48%] overflow-hidden rounded-md">
-                  <ArchitectureArt id="laptop-arch" />
+                  <FArchitectureArt id="laptop-arch" />
                 </div>
               </div>
             </div>

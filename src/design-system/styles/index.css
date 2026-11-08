@@ -24,6 +24,10 @@
   --color-muted: #6b6a66;
   --color-subtle: #8f8d87;
 
+  /* Feedback */
+  --color-positive: #5c8a57;
+  --color-danger: #c2410c;
+
   /* Accent scale */
   --color-accent-50: #eff5ff;
   --color-accent-100: #dbe7fe;

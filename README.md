@@ -71,12 +71,14 @@ npm install
 npm run dev:landing
 ```
 
-Then open **http://localhost:5173**, or **http://localhost:5173/#/design-system** for the living brand guide.
+Then open **http://localhost:5173**, or **http://localhost:5173/#/design-system** for the living brand guide. Run `npm run dev:app` for the CMS app.
 
 | Script                  | What it does                                   |
 | ----------------------- | ---------------------------------------------- |
 | `npm run dev:landing`   | Start the landing page with hot reload         |
+| `npm run dev:app`       | Start the CMS app with hot reload              |
 | `npm run build:landing` | Type-check and build the landing page          |
+| `npm run build:app`     | Type-check and build the CMS app               |
 | `npm run type-check`    | Type-check every workspace                     |
 
 ## Project structure
@@ -86,7 +88,7 @@ Forma/
 ├── src/
 │   ├── design-system/   @forma/design-system: brand tokens + Vue components
 │   ├── landing/         Marketing site (Vue 3 + Vite)
-│   ├── app/             The Forma builder & dashboard (in development)
+│   ├── app/             The Forma CMS: dashboard, websites & pages (Vue 3 + Vue Router)
 │   └── api/             Backend services (planned)
 └── package.json         npm workspaces root
 ```
@@ -155,7 +157,8 @@ Forma speaks with clarity and quiet confidence. No hype, no jargon, no exaggerat
 - [x] Brand guide & design tokens
 - [x] Shared design system package
 - [x] Landing page
-- [ ] Dashboard & website management
+- [x] Dashboard & website management
+- [x] Pages list
 - [ ] Design Studio: drag & drop editor
 - [ ] Templates, blocks & global styles
 - [ ] Publishing & custom domains
