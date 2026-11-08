@@ -1,0 +1,13 @@
+{
+  "name": "forma",
+  "private": true,
+  "workspaces": [
+    "src/design-system",
+    "src/landing"
+  ],
+  "scripts": {
+    "dev:landing": "npm run dev -w forma-landing",
+    "build:landing": "npm run build -w forma-landing",
+    "type-check": "npm run type-check --workspaces --if-present"
+  }
+}
