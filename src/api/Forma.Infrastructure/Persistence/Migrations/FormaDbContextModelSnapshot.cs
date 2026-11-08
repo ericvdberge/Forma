@@ -17,6 +17,44 @@ namespace Forma.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
+            modelBuilder.Entity("Forma.Infrastructure.DataAccessObjects.Pages.PageDao", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("WebsiteId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WebsiteId", "Slug")
+                        .IsUnique();
+
+                    b.ToTable("Pages", (string)null);
+                });
+
             modelBuilder.Entity("Forma.Infrastructure.DataAccessObjects.Websites.WebsiteDao", b =>
                 {
                     b.Property<Guid>("Id")
@@ -55,6 +93,17 @@ namespace Forma.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Websites", (string)null);
+                });
+
+            modelBuilder.Entity("Forma.Infrastructure.DataAccessObjects.Pages.PageDao", b =>
+                {
+                    b.HasOne("Forma.Infrastructure.DataAccessObjects.Websites.WebsiteDao", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Website");
                 });
 #pragma warning restore 612, 618
         }

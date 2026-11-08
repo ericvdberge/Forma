@@ -1,5 +1,7 @@
+using Forma.Application.Repositories.Pages;
 using Forma.Application.Repositories.Websites;
 using Forma.Infrastructure.Persistence;
+using Forma.Infrastructure.Repositories.Pages;
 using Forma.Infrastructure.Repositories.Websites;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -17,6 +19,7 @@ public static class DependencyInjection
         services.AddDbContext<FormaDbContext>(options => options.UseSqlite(connectionString));
 
         services.AddScoped<IWebsiteRepository, WebsiteRepository>();
+        services.AddScoped<IPageRepository, PageRepository>();
 
         return services;
     }

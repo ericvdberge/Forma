@@ -14,5 +14,6 @@ public static class DatabaseInitializer
 
         await db.Database.MigrateAsync(cancellationToken);
         await WebsiteSeeder.SeedAsync(db, cancellationToken);
+        await PageSeeder.SeedAsync(db, cancellationToken);
     }
 }
