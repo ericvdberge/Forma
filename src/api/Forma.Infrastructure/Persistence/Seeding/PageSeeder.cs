@@ -1,4 +1,3 @@
-using Forma.Application.Entities.Pages;
 using Forma.Infrastructure.DataAccessObjects.Pages;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,11 +5,11 @@ namespace Forma.Infrastructure.Persistence.Seeding;
 
 internal static class PageSeeder
 {
-    private static readonly (string Title, string Slug, PageStatus Status)[] DefaultPages =
+    private static readonly (string Title, string Slug, PageDaoStatus Status)[] DefaultPages =
     [
-        ("Home", "home", PageStatus.Published),
-        ("About", "about", PageStatus.Published),
-        ("Contact", "contact", PageStatus.Draft),
+        ("Home", "home", PageDaoStatus.Published),
+        ("About", "about", PageDaoStatus.Published),
+        ("Contact", "contact", PageDaoStatus.Draft),
     ];
 
     public static async Task SeedAsync(FormaDbContext db, CancellationToken cancellationToken = default)

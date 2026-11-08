@@ -1,6 +1,4 @@
-using Forma.Application.Entities.Pages;
-using Forma.Application.Repositories.Pages;
-using Forma.Infrastructure.Mappers.Pages;
+using Forma.Infrastructure.DataAccessObjects.Pages;
 using Forma.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,7 +6,7 @@ namespace Forma.Infrastructure.Repositories.Pages;
 
 public class PageRepository(FormaDbContext db) : IPageRepository
 {
-    public async Task<IReadOnlyList<Page>> GetPagesAsync(PageFilter filter, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<PageDao>> GetPagesAsync(PageFilter filter, CancellationToken cancellationToken = default)
     {
         var query = db.Pages.AsNoTracking();
 
@@ -29,10 +27,8 @@ public class PageRepository(FormaDbContext db) : IPageRepository
             query = query.Where(p => p.Slug == slug);
         }
 
-        var pages = await query
+        return await query
             .OrderByDescending(p => p.UpdatedAt)
             .ToListAsync(cancellationToken);
-
-        return pages.Select(p => p.ToEntity()).ToList();
     }
 }
