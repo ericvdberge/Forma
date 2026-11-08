@@ -1,0 +1,92 @@
+@import 'tailwindcss';
+
+/* Scan this package's components so consuming apps get their utilities generated. */
+@source '../components';
+
+/*
+ * Forma design tokens
+ * Source: Forma Brand Guide v1.0 — "Modern. Minimal. Powerful."
+ * Every token below becomes a Tailwind utility (bg-charcoal, text-accent, font-display, shadow-float, ...).
+ */
+@theme {
+  /* Core palette */
+  --color-charcoal: #0b0b0f;
+  --color-ink: #171717;
+  --color-accent: #3b82f6;
+  --color-soft-gray: #e5e7eb;
+  --color-warm-white: #fafaf8;
+
+  /* Supporting neutrals */
+  --color-canvas: #f5f4f0;
+  --color-stone: #d8d2c8;
+  --color-sage: #a8b5a0;
+  --color-line: #e7e4de;
+  --color-muted: #6b6a66;
+  --color-subtle: #8f8d87;
+
+  /* Accent scale */
+  --color-accent-50: #eff5ff;
+  --color-accent-100: #dbe7fe;
+  --color-accent-200: #bfd5fe;
+  --color-accent-300: #93bbfd;
+  --color-accent-500: #3b82f6;
+  --color-accent-600: #2563eb;
+  --color-accent-700: #1d4ed8;
+
+  /* Typography — Satoshi (Bold headlines, Medium subheads, Regular body) */
+  --font-sans: 'Satoshi', 'Manrope', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Satoshi', 'Manrope', ui-sans-serif, system-ui, sans-serif;
+
+  --tracking-display: -0.045em;
+  --tracking-heading: -0.03em;
+  --tracking-eyebrow: 0.14em;
+
+  /* Radii */
+  --radius-card: 1.25rem;
+  --radius-panel: 1.75rem;
+
+  /* Depth — restraint: fine borders, subtle depth */
+  --shadow-soft: 0 1px 2px rgb(11 11 15 / 0.04), 0 4px 16px rgb(11 11 15 / 0.04);
+  --shadow-card: 0 1px 2px rgb(11 11 15 / 0.04), 0 12px 32px -12px rgb(11 11 15 / 0.12);
+  --shadow-float: 0 30px 80px -20px rgb(11 11 15 / 0.35), 0 12px 24px -12px rgb(11 11 15 / 0.2);
+
+  /* Motion */
+  --animate-float: float 8s ease-in-out infinite;
+  --animate-fade-up: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    @apply bg-warm-white font-sans text-charcoal;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    @apply bg-accent-200 text-charcoal;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,54 @@
+<script setup lang="ts">
+/** Abstract cantilevered architecture illustration used in product mockups. */
+withDefaults(defineProps<{ id?: string }>(), { id: 'arch' })
+</script>
+
+<template>
+  <svg viewBox="0 0 480 320" preserveAspectRatio="xMidYMid slice" class="size-full" aria-hidden="true">
+    <defs>
+      <linearGradient :id="`${id}-sky`" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#4a4a52" />
+        <stop offset="0.55" stop-color="#1d1d22" />
+        <stop offset="1" stop-color="#0b0b0f" />
+      </linearGradient>
+      <linearGradient :id="`${id}-slab`" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#e9e5de" />
+        <stop offset="1" stop-color="#fbfaf7" />
+      </linearGradient>
+      <linearGradient :id="`${id}-glass`" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#2a2c33" />
+        <stop offset="1" stop-color="#121318" />
+      </linearGradient>
+      <radialGradient :id="`${id}-glow`" cx="0.25" cy="0.15" r="0.6">
+        <stop offset="0" stop-color="#ffffff" stop-opacity="0.18" />
+        <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+      </radialGradient>
+    </defs>
+    <rect width="480" height="320" :fill="`url(#${id}-sky)`" />
+    <rect width="480" height="320" :fill="`url(#${id}-glow)`" />
+    <!-- roof slab -->
+    <polygon points="170,128 480,62 480,92 186,152" :fill="`url(#${id}-slab)`" />
+    <polygon points="186,152 480,92 480,104 194,166" fill="#b9b3a9" />
+    <!-- upper glazing -->
+    <polygon points="194,166 480,104 480,176 204,226" :fill="`url(#${id}-glass)`" />
+    <g stroke="#3d4049" stroke-width="2">
+      <line x1="240" y1="156" x2="246" y2="219" />
+      <line x1="290" y1="145" x2="294" y2="210" />
+      <line x1="340" y1="134" x2="343" y2="201" />
+      <line x1="390" y1="123" x2="392" y2="192" />
+      <line x1="440" y1="112" x2="441" y2="183" />
+    </g>
+    <polygon points="250,170 285,163 288,205 252,212" fill="#6e7480" opacity="0.25" />
+    <!-- mid slab -->
+    <polygon points="204,226 480,176 480,196 210,248" :fill="`url(#${id}-slab)`" />
+    <!-- lower volume -->
+    <polygon points="250,248 480,206 480,320 256,320" fill="#d9d4cb" />
+    <polygon points="290,262 450,233 450,320 294,320" fill="#141519" />
+    <g stroke="#2f323a" stroke-width="2">
+      <line x1="340" y1="253" x2="342" y2="320" />
+      <line x1="395" y1="243" x2="396" y2="320" />
+    </g>
+    <!-- ground line -->
+    <polygon points="0,300 480,284 480,320 0,320" fill="#0b0b0f" opacity="0.65" />
+  </svg>
+</template>
