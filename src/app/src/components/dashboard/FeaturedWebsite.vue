@@ -2,10 +2,11 @@
 import { ArrowRight, Ellipsis, ExternalLink } from 'lucide-vue-next'
 import { FArchitectureArt, FAvatar } from '@forma/design-system'
 import LinkButton from '@/components/LinkButton.vue'
-import { useCms } from '@/stores/cms'
+import { useActiveWebsite } from '@/composables/useActiveWebsite'
 import { shortAgo } from '@/utils/time'
 
-const { activeWebsite } = useCms()
+const { getActiveWebsite } = useActiveWebsite()
+const activeWebsite = getActiveWebsite()
 </script>
 
 <template>

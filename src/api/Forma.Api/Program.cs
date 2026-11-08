@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Forma.Api.Abstractions;
@@ -22,7 +23,11 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapScalarApiReference();
 
-    await app.Services.InitializeDatabaseAsync();
+    // Skip migrations/seeding when the build-time OpenAPI generator boots the app.
+    if (Assembly.GetEntryAssembly()?.GetName().Name != "GetDocument.Insider")
+    {
+        await app.Services.InitializeDatabaseAsync();
+    }
 }
 
 app.UseHttpsRedirection();

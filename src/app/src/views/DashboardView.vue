@@ -2,13 +2,12 @@
 import { Eye, Layers, LayoutGrid, Users } from 'lucide-vue-next'
 import { FArchitectureArt } from '@forma/design-system'
 import LinkButton from '@/components/LinkButton.vue'
-import { useCms } from '@/stores/cms'
+import { currentUser, stats } from '@/data/seed'
 import StatCard from '@/components/dashboard/StatCard.vue'
 import WebsitesPanel from '@/components/dashboard/WebsitesPanel.vue'
 import FeaturedWebsite from '@/components/dashboard/FeaturedWebsite.vue'
 import RecentActivity from '@/components/dashboard/RecentActivity.vue'
 
-const { stats, currentUser } = useCms()
 const statIcons = [Eye, LayoutGrid, Layers, Users]
 </script>
 

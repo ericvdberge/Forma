@@ -5,19 +5,25 @@ import { Check, ExternalLink, FileText, Plus, X } from 'lucide-vue-next'
 import { FArchitectureArt, FAvatar, FButton, FCard, FIconButton, FInput, FStatus, FSwitch, cn } from '@forma/design-system'
 import PageHeader from '@/components/PageHeader.vue'
 import LinkButton from '@/components/LinkButton.vue'
-import { useCms } from '@/stores/cms'
+import { useWebsites } from '@/composables/useWebsites'
+import { useActiveWebsite } from '@/composables/useActiveWebsite'
+import { usePages } from '@/composables/usePages'
 import { shortAgo } from '@/utils/time'
 
-const cms = useCms()
-const { state, activeWebsite } = cms
+const { getWebsites, updateWebsite, createWebsite } = useWebsites()
+const { websites } = getWebsites()
+const { getActiveWebsite, setActiveWebsite } = useActiveWebsite()
+const activeWebsite = getActiveWebsite()
+const { getPages } = usePages()
+const { pagesOf } = getPages()
 const route = useRoute()
 const router = useRouter()
 
 const selected = computed(() => {
   const id = typeof route.params.id === 'string' ? route.params.id : activeWebsite.value.id
-  return state.websites.find((w) => w.id === id) ?? activeWebsite.value
+  return websites.value.find((w) => w.id === id) ?? activeWebsite.value
 })
-const pageCount = (id: string) => cms.pagesFor(id).length
+const pageCount = (id: string) => pagesOf(id).length
 
 /* Edit form, reset whenever the selection changes */
 const form = reactive({ name: '', domain: '', description: '', published: false })
@@ -41,7 +47,7 @@ const canSave = computed(() => dirty.value && form.name.trim() !== '' && domainV
 
 function save() {
   if (!canSave.value) return
-  cms.updateWebsite(selected.value.id, {
+  updateWebsite(selected.value.id, {
     name: form.name.trim(),
     domain: form.domain.trim().toLowerCase(),
     description: form.description.trim(),
@@ -54,7 +60,8 @@ const creating = ref(false)
 const newName = ref('')
 function create() {
   if (!newName.value.trim()) return
-  const site = cms.createWebsite(newName.value.trim())
+  const site = createWebsite(newName.value.trim())
+  setActiveWebsite(site.id, { silent: true })
   creating.value = false
   newName.value = ''
   router.push(`/websites/${site.id}`)
@@ -81,7 +88,7 @@ function create() {
       <!-- List -->
       <section aria-label="Your websites" class="flex flex-col gap-3">
         <RouterLink
-          v-for="site in state.websites"
+          v-for="site in websites"
           :key="site.id"
           :to="`/websites/${site.id}`"
           :aria-current="site.id === selected.id ? 'true' : undefined"
@@ -129,7 +136,7 @@ function create() {
         </div>
 
         <div class="flex flex-wrap items-center gap-3 border-b border-charcoal/[0.06] px-5 py-4">
-          <FButton v-if="selected.id !== activeWebsite.id" size="sm" @click="cms.setActiveWebsite(selected.id)">
+          <FButton v-if="selected.id !== activeWebsite.id" size="sm" @click="setActiveWebsite(selected.id)">
             Switch to this website
           </FButton>
           <span v-else class="inline-flex h-9 items-center gap-1.5 text-sm font-medium text-accent-700">
