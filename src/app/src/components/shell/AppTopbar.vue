@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Bell, ChevronDown, Menu, Moon } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { Bell, ChevronDown, LogOut, Menu, Moon } from 'lucide-vue-next'
 import { FAvatar, FIconButton, cn } from '@forma/design-system'
-import { currentUser } from '@/data/seed'
+import { useAuth } from '@/composables/useAuth'
 import { useActivity } from '@/composables/useActivity'
 import { useToast } from '@/composables/useToast'
 import { useDismiss } from '@/composables/useDismiss'
@@ -14,6 +15,15 @@ defineEmits<{ menu: [] }>()
 const { getActivity } = useActivity()
 const { activity } = getActivity()
 const { notify } = useToast()
+const { getCurrentUser, logout } = useAuth()
+const { user } = getCurrentUser()
+const router = useRouter()
+
+async function signOut() {
+  openMenu.value = null
+  await logout().catch(() => {})
+  await router.replace({ name: 'login' })
+}
 
 const openMenu = ref<null | 'notifications' | 'account'>(null)
 const seenAt = ref(0)
@@ -65,7 +75,7 @@ const hasUnread = () => activity.value.some((a) => a.at > seenAt.value)
           aria-label="Account menu"
           @click="toggle('account')"
         >
-          <FAvatar :name="currentUser.name" size="lg" class="!size-10 sm:!size-12" />
+          <FAvatar :name="user?.displayName ?? ''" size="lg" class="!size-10 sm:!size-12" />
           <ChevronDown :class="cn('hidden size-4 transition-transform sm:block', openMenu === 'account' && 'rotate-180')" aria-hidden="true" />
         </button>
         <div
@@ -73,8 +83,8 @@ const hasUnread = () => activity.value.some((a) => a.at > seenAt.value)
           class="absolute right-0 top-full mt-2 w-60 rounded-2xl bg-white p-2 ring-1 ring-charcoal/[0.06] shadow-float"
         >
           <div class="px-3 py-2">
-            <p class="text-sm font-bold">{{ currentUser.name }}</p>
-            <p class="text-xs text-muted">{{ currentUser.email }}</p>
+            <p class="text-sm font-bold">{{ user?.displayName }}</p>
+            <p class="text-xs text-muted">{{ user?.email ?? user?.userName }}</p>
           </div>
           <RouterLink
             to="/settings"
@@ -85,6 +95,14 @@ const hasUnread = () => activity.value.some((a) => a.at > seenAt.value)
           <RouterLink to="/websites" class="block rounded-xl px-3 py-2.5 text-sm hover:bg-canvas" @click="openMenu = null"
             >Your websites</RouterLink
           >
+          <button
+            type="button"
+            class="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm hover:bg-canvas"
+            @click="signOut"
+          >
+            <LogOut class="size-4 text-muted" aria-hidden="true" />
+            Sign out
+          </button>
         </div>
       </div>
     </div>

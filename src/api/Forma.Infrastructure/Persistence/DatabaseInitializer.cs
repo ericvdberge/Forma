@@ -1,5 +1,8 @@
+using Forma.Infrastructure.DataAccessObjects.Users;
 using Forma.Infrastructure.Persistence.Seeding;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Forma.Infrastructure.Persistence;
@@ -15,5 +18,8 @@ public static class DatabaseInitializer
         await db.Database.MigrateAsync(cancellationToken);
         await WebsiteSeeder.SeedAsync(db, cancellationToken);
         await PageSeeder.SeedAsync(db, cancellationToken);
+        await UserSeeder.SeedAsync(
+            scope.ServiceProvider.GetRequiredService<UserManager<UserDao>>(),
+            scope.ServiceProvider.GetRequiredService<IConfiguration>());
     }
 }

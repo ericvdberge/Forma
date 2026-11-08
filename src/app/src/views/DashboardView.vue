@@ -2,13 +2,15 @@
 import { Eye, Layers, LayoutGrid, Users } from 'lucide-vue-next'
 import { FArchitectureArt } from '@forma/design-system'
 import LinkButton from '@/components/LinkButton.vue'
-import { currentUser, stats } from '@/data/seed'
+import { stats } from '@/data/seed'
+import { useAuth } from '@/composables/useAuth'
 import StatCard from '@/components/dashboard/StatCard.vue'
 import WebsitesPanel from '@/components/dashboard/WebsitesPanel.vue'
 import FeaturedWebsite from '@/components/dashboard/FeaturedWebsite.vue'
 import RecentActivity from '@/components/dashboard/RecentActivity.vue'
 
 const statIcons = [Eye, LayoutGrid, Layers, Users]
+const { firstName } = useAuth().getCurrentUser()
 </script>
 
 <template>
@@ -28,7 +30,7 @@ const statIcons = [Eye, LayoutGrid, Layers, Users]
             class="inline-flex items-center gap-2 rounded-full bg-white/80 px-3.5 py-1.5 text-[0.8125rem] font-medium ring-1 ring-charcoal/[0.06] shadow-soft backdrop-blur"
           >
             <span class="size-2.5 rounded-full bg-sage" aria-hidden="true" />
-            Welcome back, {{ currentUser.firstName }}! 👋
+            Welcome back{{ firstName ? `, ${firstName}` : '' }}! 👋
           </span>
           <h1
             class="mt-6 font-display text-[clamp(2.75rem,6vw,4.5rem)] font-bold leading-[0.95] tracking-[-0.05em] text-charcoal"
