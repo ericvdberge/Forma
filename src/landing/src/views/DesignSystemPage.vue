@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ArrowLeft, Layers, Zap } from 'lucide-vue-next'
+import { ArrowLeft, Bell, Layers, Search, Zap } from 'lucide-vue-next'
 import {
+  FArchitectureArt,
   FArrowLink,
+  FAvatar,
   FBadge,
   FBrandShape,
   FButton,
@@ -12,10 +14,15 @@ import {
   FEyebrow,
   FFeature,
   FHeading,
+  FIconButton,
   FInput,
   FLogo,
   FPromoBanner,
+  FSelect,
+  FSparkline,
+  FStatus,
   FSwatch,
+  FSwitch,
   FText,
   brand,
   palette,
@@ -24,6 +31,8 @@ import {
 } from '@forma/design-system'
 
 const demoEmail = ref('')
+const demoSwitch = ref(true)
+const demoRole = ref<'editor' | 'admin'>('editor')
 </script>
 
 <template>
@@ -139,8 +148,39 @@ const demoEmail = ref('')
             <FFeature :icon="Layers" title="Flexible components" description="Build without limits." align="start" />
           </div>
           <FDivider />
-          <div class="max-w-sm">
+          <div class="grid max-w-2xl gap-6 sm:grid-cols-2">
             <FInput v-model="demoEmail" label="Email address" placeholder="you@studio.com" type="email" />
+            <FSelect
+              v-model="demoRole"
+              label="Role"
+              :options="[
+                { label: 'Editor', value: 'editor' },
+                { label: 'Admin', value: 'admin' },
+              ]"
+            />
+          </div>
+          <FDivider />
+          <div class="flex flex-wrap items-center gap-6">
+            <FIconButton :icon="Search" label="Search" />
+            <FIconButton :icon="Bell" label="Notifications" variant="surface" dot />
+            <div class="flex -space-x-2">
+              <FAvatar name="Alex Morgan" ring />
+              <FAvatar name="Sam Lee" ring />
+              <FAvatar name="Jo Park" ring />
+            </div>
+            <FStatus status="live" />
+            <FStatus status="draft" />
+            <FStatus status="scheduled" />
+            <FSwitch v-model="demoSwitch" label="Published" />
+          </div>
+          <FDivider />
+          <div class="grid gap-6 sm:grid-cols-3">
+            <FSparkline :values="[4, 6, 5, 8, 7, 9, 8, 11, 10, 12]" />
+            <FSparkline :values="[6, 5, 6, 4, 5, 6, 5, 7]" tone="neutral" />
+            <div class="grid grid-cols-2 gap-3">
+              <div class="aspect-[4/3] overflow-hidden rounded-xl"><FArchitectureArt /></div>
+              <div class="aspect-[4/3] overflow-hidden rounded-xl"><FArchitectureArt tone="light" /></div>
+            </div>
           </div>
         </FCard>
 
