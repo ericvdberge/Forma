@@ -6,29 +6,10 @@ namespace Forma.Infrastructure.Repositories.Pages;
 
 public class PageRepository(FormaDbContext db) : IPageRepository
 {
-    public async Task<IReadOnlyList<PageDao>> GetPagesAsync(PageFilter filter, CancellationToken cancellationToken = default)
-    {
-        var query = db.Pages.AsNoTracking();
-
-        if (filter.WebsiteId is { } websiteId)
-        {
-            query = query.Where(p => p.WebsiteId == websiteId);
-        }
-
-        if (!string.IsNullOrWhiteSpace(filter.Title))
-        {
-            var pattern = $"%{filter.Title.Trim()}%";
-            query = query.Where(p => EF.Functions.Like(p.Title, pattern));
-        }
-
-        if (!string.IsNullOrWhiteSpace(filter.Slug))
-        {
-            var slug = filter.Slug.Trim();
-            query = query.Where(p => p.Slug == slug);
-        }
-
-        return await query
+    public async Task<IReadOnlyList<PageDao>> GetPagesAsync(PageFilter filter, CancellationToken cancellationToken = default) =>
+        await db.Pages
+            .AsNoTracking()
+            .ApplyFilter(filter)
             .OrderByDescending(p => p.UpdatedAt)
             .ToListAsync(cancellationToken);
-    }
 }
