@@ -4,8 +4,17 @@ import { cn } from '../utils/cn'
 
 const model = defineModel<string>({ default: '' })
 withDefaults(
-  defineProps<{ label: string; hideLabel?: boolean; type?: string; placeholder?: string; tone?: 'light' | 'dark' }>(),
-  { hideLabel: false, type: 'text', tone: 'light' },
+  defineProps<{
+    label: string
+    hideLabel?: boolean
+    type?: string
+    placeholder?: string
+    tone?: 'light' | 'dark'
+    /** Passed to the input so browsers and password managers can autofill it, e.g. `username`. */
+    autocomplete?: string
+    required?: boolean
+  }>(),
+  { hideLabel: false, type: 'text', tone: 'light', required: false },
 )
 const id = useId()
 </script>
@@ -23,6 +32,8 @@ const id = useId()
       v-model="model"
       :type="type"
       :placeholder="placeholder"
+      :autocomplete="autocomplete"
+      :required="required"
       :class="
         cn(
           'h-11 w-full rounded-full px-5 text-[0.9375rem] outline-none transition-shadow',

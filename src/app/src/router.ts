@@ -1,15 +1,19 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import AppShell from '@/layouts/AppShell.vue'
+import { ensureSession, hasSession, onSessionExpired } from '@/auth/session'
 
 declare module 'vue-router' {
   interface RouteMeta {
     title?: string
+    /** Reachable without signing in. */
+    public?: boolean
   }
 }
 
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
+    { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { title: 'Sign in', public: true } },
     {
       path: '/',
       component: AppShell,
@@ -46,6 +50,23 @@ export const router = createRouter({
     },
   ],
   scrollBehavior: () => ({ top: 0 }),
+})
+
+// Every route needs a session unless it's marked public; signed-in users skip the login page.
+router.beforeEach(async (to) => {
+  if (to.meta.public) {
+    return to.name === 'login' && hasSession() && (await ensureSession()) ? { path: '/' } : true
+  }
+  if (await ensureSession()) return true
+  return { name: 'login', query: to.fullPath === '/' ? {} : { redirect: to.fullPath } }
+})
+
+// The API rejected the session mid-use (revoked, or expired while idle): back to the login page.
+onSessionExpired(() => {
+  const current = router.currentRoute.value
+  if (!current.meta.public) {
+    router.replace({ name: 'login', query: { redirect: current.fullPath } })
+  }
 })
 
 router.afterEach((to) => {

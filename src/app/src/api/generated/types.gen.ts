@@ -4,6 +4,25 @@ export type ClientOptions = {
     baseUrl: `${string}://${string}` | (string & {});
 };
 
+export type AccessTokenResponse = {
+    tokenType?: null | string;
+    accessToken: string;
+    expiresIn: number | string;
+    refreshToken: string;
+};
+
+export type CurrentUserDto = {
+    id: string;
+    userName: string;
+    displayName: string;
+    email: null | string;
+};
+
+export type LoginRequestDto = {
+    userName: string;
+    password: string;
+};
+
 export type PageDto = {
     id: string;
     websiteId: string;
@@ -15,6 +34,10 @@ export type PageDto = {
 };
 
 export type PageStatus = 'draft' | 'published';
+
+export type RefreshRequestDto = {
+    refreshToken: string;
+};
 
 export type WebsiteDto = {
     id: string;
@@ -61,3 +84,67 @@ export type GetPagesResponses = {
 };
 
 export type GetPagesResponse = GetPagesResponses[keyof GetPagesResponses];
+
+export type LoginData = {
+    body: LoginRequestDto;
+    path?: never;
+    query?: never;
+    url: '/auth/login';
+};
+
+export type LoginResponses = {
+    /**
+     * OK
+     */
+    200: AccessTokenResponse;
+};
+
+export type LoginResponse = LoginResponses[keyof LoginResponses];
+
+export type RefreshTokenData = {
+    body: RefreshRequestDto;
+    path?: never;
+    query?: never;
+    url: '/auth/refresh';
+};
+
+export type RefreshTokenResponses = {
+    /**
+     * OK
+     */
+    200: AccessTokenResponse;
+};
+
+export type RefreshTokenResponse = RefreshTokenResponses[keyof RefreshTokenResponses];
+
+export type LogoutData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/logout';
+};
+
+export type LogoutResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type LogoutResponse = LogoutResponses[keyof LogoutResponses];
+
+export type GetCurrentUserData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/me';
+};
+
+export type GetCurrentUserResponses = {
+    /**
+     * OK
+     */
+    200: CurrentUserDto;
+};
+
+export type GetCurrentUserResponse = GetCurrentUserResponses[keyof GetCurrentUserResponses];
