@@ -15,9 +15,11 @@ Design freely, build with reusable blocks, and publish polished, responsive site
 [![Vite](https://img.shields.io/badge/Vite-8-0B0B0F?style=flat-square&logo=vite&logoColor=white)](https://vite.dev)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-0B0B0F?style=flat-square&logo=tailwindcss&logoColor=38BDF8)](https://tailwindcss.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-0B0B0F?style=flat-square&logo=typescript&logoColor=3178C6)](https://www.typescriptlang.org)
+[![.NET](https://img.shields.io/badge/.NET-10-0B0B0F?style=flat-square&logo=dotnet&logoColor=A78BFA)](https://dotnet.microsoft.com)
+[![SQLite](https://img.shields.io/badge/SQLite-EF_Core-0B0B0F?style=flat-square&logo=sqlite&logoColor=60A5FA)](https://learn.microsoft.com/ef/core/providers/sqlite/)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-3B82F6?style=flat-square)](#contributing)
 
-[Getting started](#getting-started) · [Design system](#design-system) · [Project structure](#project-structure) · [Roadmap](#roadmap) · [Contributing](#contributing)
+[What's inside](#whats-inside) · [Getting started](#getting-started) · [Design system](#design-system) · [Project structure](#project-structure) · [Roadmap](#roadmap) · [Contributing](#contributing)
 
 </div>
 
@@ -58,28 +60,87 @@ The Forma dashboard is where creative work starts: your websites, quick actions,
 
 <img src=".github/assets/dashboard.webp" alt="Concept design of the Forma dashboard" width="100%" />
 
-<p align="center"><sub>Dashboard concept: the app in <code>src/app</code> is in development.</sub></p>
+<p align="center"><sub>Dashboard concept: the app in <code>src/app</code> is in active development.</sub></p>
+
+## What's inside
+
+Forma is a monorepo with three runnable parts that share one design system.
+
+| Part | Path | Stack | Dev URL |
+| --- | --- | --- | --- |
+| **Landing page** | [`src/landing`](src/landing) | Vue 3 · Vite · Tailwind CSS v4 | http://localhost:5173 |
+| **App** (CMS) | [`src/app`](src/app) | Vue 3 · Vue Router · TanStack Vue Query | http://localhost:5174 |
+| **API** | [`src/api`](src/api) | ASP.NET Core 10 minimal APIs · EF Core · SQLite | http://localhost:5134 |
+
+### Landing page
+
+The public marketing site: hero, features, templates, workflow and the open-source pitch, built entirely from `@forma/design-system` components.
+
+- `/`: landing page
+- `/#/design-system`: the living brand guide and component showcase
+
+More in [`src/landing/README.md`](src/landing/README.md).
+
+### App
+
+The Forma CMS, where you manage your websites and their pages.
+
+| Route            | What it does                                                    |
+| ---------------- | --------------------------------------------------------------- |
+| `/`              | Dashboard: websites, stats, recent activity                     |
+| `/pages`         | Pages of the active website: filter, create, publish, archive   |
+| `/websites/:id?` | Switch the active website and edit its details                  |
+| everything else  | Sections that are designed but not built yet show "coming soon" |
+
+Websites and pages load from the API through a typed client generated from its OpenAPI document (`@hey-api/openapi-ts` + TanStack Vue Query). Recent activity is still seed data. Until write endpoints exist, edits only update the query cache. In development Vite proxies `/api/*` to the API. Set `FORMA_API_URL` to proxy somewhere else, or `VITE_API_URL` to call a different base URL directly.
+
+More in [`src/app/README.md`](src/app/README.md).
+
+### API
+
+A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx)):
+
+| Project                | Responsibility                                                       |
+| ---------------------- | -------------------------------------------------------------------- |
+| `Forma.Api`            | Minimal API endpoints, DTOs and Mapperly mappers, OpenAPI + Scalar   |
+| `Forma.Application`    | Domain entities and core services                                    |
+| `Forma.Infrastructure` | EF Core `DbContext`, SQLite, migrations, seeding and repositories    |
+
+| Endpoint                    | Returns                  |
+| --------------------------- | ------------------------ |
+| `GET /websites`             | All websites             |
+| `GET /pages?websiteId={id}` | The pages of one website |
+
+In development the API applies migrations and seeds sample data on startup into `forma.db`, which is git-ignored. It serves interactive docs at **http://localhost:5134/scalar**. Each `dotnet build` writes the OpenAPI document to `src/api/Forma.Api/OpenApi/forma-api.json`, and the app's client is generated from that file.
 
 ## Getting started
 
-Forma is an npm workspaces monorepo. You'll need **Node.js 20+** and npm.
+You'll need **Node.js 20+** with npm, plus the **.NET 10 SDK** for the API.
 
 ```bash
 git clone https://github.com/ericvdberge/Forma.git
 cd Forma
 npm install
-npm run dev:landing
 ```
 
-Then open **http://localhost:5173**, or **http://localhost:5173/#/design-system** for the living brand guide. Run `npm run dev:app` for the CMS app.
+Then start the part you're working on:
 
-| Script                  | What it does                                   |
-| ----------------------- | ---------------------------------------------- |
-| `npm run dev:landing`   | Start the landing page with hot reload         |
-| `npm run dev:app`       | Start the CMS app with hot reload              |
-| `npm run build:landing` | Type-check and build the landing page          |
-| `npm run build:app`     | Type-check and build the CMS app               |
-| `npm run type-check`    | Type-check every workspace                     |
+```bash
+npm run dev:landing                                            # landing page → :5173
+dotnet run --project src/api/Forma.Api --launch-profile http   # API → :5134
+npm run dev:app -- --port 5174                                 # app → :5174 (needs the API)
+```
+
+| Script                  | What it does                                                 |
+| ----------------------- | ------------------------------------------------------------ |
+| `npm run dev:landing`   | Start the landing page with hot reload                       |
+| `npm run dev:app`       | Start the CMS app with hot reload                            |
+| `npm run build:landing` | Type-check and build the landing page                        |
+| `npm run build:app`     | Type-check and build the CMS app                             |
+| `npm run type-check`    | Type-check every workspace                                   |
+| `npm run generate:api`  | Build the API and regenerate the app's typed client from it  |
+
+After you change an API endpoint or DTO, run `npm run generate:api` and commit the updated OpenAPI document and generated client. Don't edit `src/app/src/api/generated` by hand.
 
 ## Project structure
 
@@ -89,7 +150,10 @@ Forma/
 │   ├── design-system/   @forma/design-system: brand tokens + Vue components
 │   ├── landing/         Marketing site (Vue 3 + Vite)
 │   ├── app/             The Forma CMS: dashboard, websites & pages (Vue 3 + Vue Router)
-│   └── api/             Backend services (planned)
+│   └── api/             .NET 10 backend (Forma.Api.slnx)
+│       ├── Forma.Api/             endpoints, DTOs, OpenAPI document
+│       ├── Forma.Application/     entities + core services
+│       └── Forma.Infrastructure/  EF Core, SQLite, repositories
 └── package.json         npm workspaces root
 ```
 
@@ -159,6 +223,8 @@ Forma speaks with clarity and quiet confidence. No hype, no jargon, no exaggerat
 - [x] Landing page
 - [x] Dashboard & website management
 - [x] Pages list
+- [x] API: read websites & pages
+- [ ] API: create, update & publish
 - [ ] Design Studio: drag & drop editor
 - [ ] Templates, blocks & global styles
 - [ ] Publishing & custom domains
@@ -169,8 +235,8 @@ Forma speaks with clarity and quiet confidence. No hype, no jargon, no exaggerat
 Contributions of every size are welcome: bug reports, ideas, docs and code.
 
 1. Fork the repo and create a branch: `git checkout -b feat/my-idea`
-2. Install and run: `npm install && npm run dev:landing`
-3. Make sure it builds: `npm run build:landing`
+2. Install and run the part you're changing (see [Getting started](#getting-started))
+3. Make sure it builds: `npm run type-check` and the matching `npm run build:*`, plus `dotnet build src/api/Forma.Api.slnx` for API changes
 4. Open a pull request against `main`
 
 Found a bug or have a suggestion? [Open an issue](https://github.com/ericvdberge/Forma/issues).
