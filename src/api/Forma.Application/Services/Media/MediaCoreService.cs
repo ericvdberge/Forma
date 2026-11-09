@@ -9,15 +9,21 @@ namespace Forma.Application.Services.Media;
 
 public interface IMediaCoreService
 {
-    Task<IReadOnlyList<MediaItem>> GetMediaAsync(Guid websiteId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MediaItem>> GetMediaItemsAsync(Guid websiteId, CancellationToken cancellationToken = default);
 
     Task<MediaItem?> GetMediaItemAsync(Guid id, CancellationToken cancellationToken = default);
 
+    /// <summary>Opens the original image, or returns <c>null</c> when the media item does not exist.</summary>
+    Task<MediaFile?> GetImageAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>Opens the WebP thumbnail, or returns <c>null</c> when the media item does not exist.</summary>
+    Task<MediaFile?> GetThumbnailAsync(Guid id, CancellationToken cancellationToken = default);
+
     /// <summary>
-    /// Validates the upload as an image, writes the original and a thumbnail to the assets
-    /// folder and records it in the website's media library.
+    /// Checks that the upload really is a supported image, stores the original and a thumbnail
+    /// and records it in the website's media library. Size and file name are validated by the caller.
     /// </summary>
-    Task<MediaUploadResult> UploadAsync(Guid websiteId, string fileName, long length, Stream content, CancellationToken cancellationToken = default);
+    Task<MediaUploadResult> UploadAsync(Guid websiteId, string fileName, Stream content, CancellationToken cancellationToken = default);
 
     /// <summary>Deletes the media item and its files. Returns <c>false</c> when it does not exist.</summary>
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
@@ -29,15 +35,10 @@ public class MediaCoreService(
     IImageProcessor imageProcessor,
     IAssetStorage assetStorage) : IMediaCoreService
 {
-    /// <summary>Largest accepted upload: 10 MB.</summary>
-    public const long MaxFileSizeInBytes = 10 * 1024 * 1024;
-
-    private const int MaxFileNameLength = 255;
-
-    public async Task<IReadOnlyList<MediaItem>> GetMediaAsync(Guid websiteId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<MediaItem>> GetMediaItemsAsync(Guid websiteId, CancellationToken cancellationToken = default)
     {
         var filter = new MediaFilter { WebsiteId = websiteId };
-        var media = await mediaRepository.GetMediaAsync(filter, cancellationToken);
+        var media = await mediaRepository.GetMediaItemsAsync(filter, cancellationToken);
         return media.ToEntities();
     }
 
@@ -47,34 +48,35 @@ public class MediaCoreService(
         return media?.ToEntity();
     }
 
+    public async Task<MediaFile?> GetImageAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var media = await mediaRepository.GetByIdAsync(id, cancellationToken);
+        return media is null ? null : await OpenAsync(media.ImagePath, cancellationToken);
+    }
+
+    public async Task<MediaFile?> GetThumbnailAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var media = await mediaRepository.GetByIdAsync(id, cancellationToken);
+        return media is null ? null : await OpenAsync(media.ThumbnailPath, cancellationToken);
+    }
+
     public async Task<MediaUploadResult> UploadAsync(
         Guid websiteId,
         string fileName,
-        long length,
         Stream content,
         CancellationToken cancellationToken = default)
     {
-        if (length == 0)
-        {
-            return new MediaUploadResult.Rejected("The file is empty.");
-        }
-
-        if (length > MaxFileSizeInBytes)
-        {
-            return new MediaUploadResult.Rejected($"The file is larger than {MaxFileSizeInBytes / (1024 * 1024)} MB.");
-        }
-
         if (!await websiteRepository.ExistsAsync(websiteId, cancellationToken))
         {
             return new MediaUploadResult.WebsiteNotFound();
         }
 
-        // Buffer the upload once: it is decoded for validation and the thumbnail, then written as-is.
-        using var buffer = new MemoryStream((int)length);
+        // Buffer the upload once: it is decoded for validation and the thumbnail, then stored as-is.
+        using var buffer = new MemoryStream();
         await content.CopyToAsync(buffer, cancellationToken);
+        var bytes = buffer.ToArray();
 
-        buffer.Position = 0;
-        var image = imageProcessor.Process(buffer);
+        var image = imageProcessor.Process(bytes);
         if (image is null)
         {
             return new MediaUploadResult.Rejected("Only JPEG, PNG, GIF and WebP images are allowed.");
@@ -86,29 +88,29 @@ public class MediaCoreService(
         {
             Id = id,
             WebsiteId = websiteId,
-            FileName = SanitizeFileName(fileName, image.FileExtension),
+            FileName = Path.GetFileName(fileName),
             ContentType = image.ContentType,
-            SizeInBytes = buffer.Length,
+            SizeInBytes = bytes.Length,
             Width = image.Width,
             Height = image.Height,
-            FilePath = $"media/{websiteId}/originals/{id}{image.FileExtension}",
-            ThumbnailPath = $"media/{websiteId}/thumbnails/{id}{ProcessedImage.ThumbnailFileExtension}",
+            ImagePath = $"{websiteId}/originals/{id}{image.FileExtension}",
+            ThumbnailPath = $"{websiteId}/thumbnails/{id}{ProcessedImage.ThumbnailFileExtension}",
             CreatedAt = now,
             UpdatedAt = now,
         };
 
         try
         {
-            buffer.Position = 0;
-            await assetStorage.SaveAsync(media.FilePath, buffer, cancellationToken);
+            using var original = new MemoryStream(bytes, writable: false);
+            await assetStorage.SaveAsync(media.ImagePath, original, media.ContentType, cancellationToken);
             using var thumbnail = new MemoryStream(image.Thumbnail, writable: false);
-            await assetStorage.SaveAsync(media.ThumbnailPath, thumbnail, cancellationToken);
+            await assetStorage.SaveAsync(media.ThumbnailPath, thumbnail, ProcessedImage.ThumbnailContentType, cancellationToken);
 
             await mediaRepository.AddAsync(media.ToDao(), cancellationToken);
         }
         catch
         {
-            DeleteFiles(media);
+            await DeleteFilesAsync(media, CancellationToken.None);
             throw;
         }
 
@@ -123,27 +125,19 @@ public class MediaCoreService(
             return false;
         }
 
-        DeleteFiles(media.ToEntity());
+        await DeleteFilesAsync(media.ToEntity(), cancellationToken);
         return true;
     }
 
-    private void DeleteFiles(MediaItem media)
+    private async Task<MediaFile?> OpenAsync(string key, CancellationToken cancellationToken)
     {
-        assetStorage.Delete(media.FilePath);
-        assetStorage.Delete(media.ThumbnailPath);
+        var asset = await assetStorage.OpenReadAsync(key, cancellationToken);
+        return asset is null ? null : new MediaFile(asset.Content, asset.ContentType, asset.Length);
     }
 
-    /// <summary>Keeps only the file name part, without control characters, and falls back to a generic name.</summary>
-    private static string SanitizeFileName(string fileName, string extension)
+    private async Task DeleteFilesAsync(MediaItem media, CancellationToken cancellationToken)
     {
-        var name = Path.GetFileName(fileName.Replace('\\', '/'));
-        name = new string(name.Where(c => !char.IsControl(c)).ToArray()).Trim();
-
-        if (string.IsNullOrEmpty(name))
-        {
-            name = $"image{extension}";
-        }
-
-        return name.Length <= MaxFileNameLength ? name : name[^MaxFileNameLength..];
+        await assetStorage.DeleteAsync(media.ImagePath, cancellationToken);
+        await assetStorage.DeleteAsync(media.ThumbnailPath, cancellationToken);
     }
 }

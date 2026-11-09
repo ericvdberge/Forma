@@ -4,7 +4,7 @@ namespace Forma.Infrastructure.Repositories.Media;
 
 public interface IMediaRepository
 {
-    Task<IReadOnlyList<MediaItemDao>> GetMediaAsync(MediaFilter filter, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MediaItemDao>> GetMediaItemsAsync(MediaFilter filter, CancellationToken cancellationToken = default);
 
     Task<MediaItemDao?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 

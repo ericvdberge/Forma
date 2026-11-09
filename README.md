@@ -104,7 +104,7 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 | ---------------------- | -------------------------------------------------------------------- |
 | `Forma.Api`            | Minimal API endpoints, DTOs and Mapperly mappers, OpenAPI + Scalar   |
 | `Forma.Application`    | Domain entities and core services                                    |
-| `Forma.Infrastructure` | EF Core `DbContext`, SQLite, migrations, seeding, repositories, asset storage and image processing |
+| `Forma.Infrastructure` | EF Core `DbContext`, SQLite, migrations, seeding, repositories, S3 media storage and image processing |
 
 | Endpoint                    | Returns                                                         |
 | --------------------------- | --------------------------------------------------------------- |
@@ -112,14 +112,18 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 | `GET /pages?websiteId={id}` | The pages of one website                                        |
 | `GET /media?websiteId={id}` | The media library of one website                                |
 | `GET /media/{id}`           | One media item                                                  |
+| `GET /media/{id}/image`     | The original image's bytes                                      |
+| `GET /media/{id}/thumbnail` | The WebP thumbnail's bytes                                      |
 | `POST /media`               | Uploads an image (multipart: `websiteId`, `file`), `201` or `400` |
 | `DELETE /media/{id}`        | Deletes a media item and its files, `204`                       |
 
 #### Media
 
-Uploads are images only: JPEG, PNG, GIF or WebP, at most 10 MB. The format is detected from the file's bytes, not its name, so anything else (SVG included) is rejected with `400`. For each upload the API keeps the original unchanged and renders a WebP thumbnail of at most 400 px on its longest side, with EXIF rotation applied, using [SkiaSharp](https://github.com/mono/SkiaSharp).
+Uploads are images only: JPEG, PNG, GIF or WebP, at most 10 MB. A FluentValidation validator checks the size, file name and extension before the upload reaches the core service, which then checks the format from the file's bytes, so anything else (SVG included) is rejected with `400`. The API keeps the original unchanged and renders a WebP thumbnail of at most 400 px on its longest side, with EXIF rotation applied, using [NetVips](https://github.com/kleisauke/net-vips) (libvips).
 
-Both files are written to the assets folder, `Assets:Path` (default `assets`, relative to `src/api/Forma.Api` in development and git-ignored), as `media/{websiteId}/originals/{id}.{ext}` and `media/{websiteId}/thumbnails/{id}.webp`. The API serves that folder at `/assets`, and each media item's `url` and `thumbnailUrl` point there.
+Files are stored through the standard AWS S3 client (`AWSSDK.S3`) in the bucket `Storage:Bucket`, under `{websiteId}/originals/{id}.{ext}` and `{websiteId}/thumbnails/{id}.webp`. Locally that S3 endpoint is [versitygw](https://github.com/versity/versitygw), which keeps every object as a plain file on disk. Any other S3-compatible store works by changing `Storage:ServiceUrl` and the keys. Files are served through the API's `/media/{id}/image` and `/media/{id}/thumbnail` routes, which each media item's `imageUrl` and `thumbnailUrl` point to.
+
+For `dotnet run`, start the local storage first: `docker compose up storage` (S3 on `:7070`, credentials as in `appsettings.Development.json`).
 
 In development the API applies migrations and seeds sample data on startup into `forma.db`, which is git-ignored. It serves interactive docs at **http://localhost:5134/scalar**. Each `dotnet build` writes the OpenAPI document to `src/api/Forma.Api/OpenApi/forma-api.json`, and the app's client is generated from that file.
 
@@ -152,16 +156,22 @@ npm run dev:app -- --port 5174                                 # app → :5174 (
 
 After you change an API endpoint or DTO, run `npm run generate:api` and commit the updated OpenAPI document and generated client. Don't edit `src/app/src/api/generated` by hand.
 
-### API in Docker
+### Docker
 
-[`src/api/Dockerfile`](src/api/Dockerfile) builds the API into an image that listens on port 8080 and stores uploads in `/app/assets`, a volume:
+The [`Dockerfile`](Dockerfile) builds Forma into one image. [supervisord](http://supervisord.org) runs and restarts three processes:
+
+| Process   | What it does                                                                 |
+| --------- | ---------------------------------------------------------------------------- |
+| `nginx`   | Serves the CMS app on port 8080 and proxies `/api` to the API                 |
+| `api`     | The Forma API                                                                |
+| `storage` | versitygw, the S3 endpoint for media, storing files in `/app/assets` (a volume) |
 
 ```bash
-docker build -t forma-api src/api
-docker run -p 5134:8080 -v forma-assets:/app/assets forma-api
+docker build -t forma .
+docker run -p 8080:8080 -v forma-assets:/app/assets forma
 ```
 
-Or run `docker compose up --build`, which does the same with the named volume `forma-assets` ([`docker-compose.yml`](docker-compose.yml)).
+Or run `docker compose up --build forma` ([`docker-compose.yml`](docker-compose.yml)). Run `docker exec <container> supervisorctl -c /etc/supervisor/forma.conf status` to see the processes. The storage credentials only stay inside the container; set `STORAGE_ACCESS_KEY` and `STORAGE_SECRET_KEY` to pin them.
 
 ## Project structure
 
@@ -174,8 +184,9 @@ Forma/
 │   └── api/             .NET 10 backend (Forma.Api.slnx)
 │       ├── Forma.Api/             endpoints, DTOs, OpenAPI document
 │       ├── Forma.Application/     entities + core services
-│       ├── Forma.Infrastructure/  EF Core, SQLite, repositories, asset storage
-│       └── Dockerfile             API image; uploads go to the /app/assets volume
+│       └── Forma.Infrastructure/  EF Core, SQLite, repositories, S3 storage
+├── docker/              nginx, supervisord and entrypoint for the image
+├── Dockerfile           app + API + media storage in one image
 └── package.json         npm workspaces root
 ```
 

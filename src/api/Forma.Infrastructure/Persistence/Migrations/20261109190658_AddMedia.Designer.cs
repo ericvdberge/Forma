@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Forma.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(FormaDbContext))]
-    [Migration("20261109181356_AddMedia")]
+    [Migration("20261109190658_AddMedia")]
     partial class AddMedia
     {
         /// <inheritdoc />
@@ -39,13 +39,13 @@ namespace Forma.Infrastructure.Persistence.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("FilePath")
+                    b.Property<int>("Height")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ImagePath")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("Height")
-                        .HasColumnType("INTEGER");
 
                     b.Property<long>("SizeInBytes")
                         .HasColumnType("INTEGER");

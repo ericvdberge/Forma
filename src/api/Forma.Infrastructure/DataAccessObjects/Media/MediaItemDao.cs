@@ -13,10 +13,10 @@ public class MediaItemDao
     public int Width { get; set; }
     public int Height { get; set; }
 
-    /// <summary>Path of the original file, relative to the assets folder.</summary>
-    public required string FilePath { get; set; }
+    /// <summary>Storage key of the original image.</summary>
+    public required string ImagePath { get; set; }
 
-    /// <summary>Path of the generated thumbnail, relative to the assets folder.</summary>
+    /// <summary>Storage key of the generated thumbnail.</summary>
     public required string ThumbnailPath { get; set; }
 
     public DateTime CreatedAt { get; set; }

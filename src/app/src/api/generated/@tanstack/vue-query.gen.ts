@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/vue-query';
 
 import { client } from '../client.gen';
-import { deleteMedia, getMedia, getMediaItem, getPages, getWebsites, type Options, uploadMedia } from '../sdk.gen';
-import type { DeleteMediaData, DeleteMediaResponse, GetMediaData, GetMediaItemData, GetMediaItemResponse, GetMediaResponse, GetPagesData, GetPagesResponse, GetWebsitesData, GetWebsitesResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
+import { deleteMedia, getMediaImage, getMediaItem, getMediaItems, getMediaThumbnail, getPages, getWebsites, type Options, uploadMedia } from '../sdk.gen';
+import type { DeleteMediaData, DeleteMediaResponse, GetMediaImageData, GetMediaImageResponse, GetMediaItemData, GetMediaItemResponse, GetMediaItemsData, GetMediaItemsResponse, GetMediaThumbnailData, GetMediaThumbnailResponse, GetPagesData, GetPagesResponse, GetWebsitesData, GetWebsitesResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -69,11 +69,11 @@ export const getPagesOptions = (options: Options<GetPagesData>) => queryOptions<
     queryKey: getPagesQueryKey(options)
 });
 
-export const getMediaQueryKey = (options: Options<GetMediaData>) => createQueryKey('getMedia', options);
+export const getMediaItemsQueryKey = (options: Options<GetMediaItemsData>) => createQueryKey('getMediaItems', options);
 
-export const getMediaOptions = (options: Options<GetMediaData>) => queryOptions<GetMediaResponse, DefaultError, GetMediaResponse, ReturnType<typeof getMediaQueryKey>>({
+export const getMediaItemsOptions = (options: Options<GetMediaItemsData>) => queryOptions<GetMediaItemsResponse, DefaultError, GetMediaItemsResponse, ReturnType<typeof getMediaItemsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
-        const { data } = await getMedia({
+        const { data } = await getMediaItems({
             ...options,
             ...queryKey[0],
             signal,
@@ -81,7 +81,7 @@ export const getMediaOptions = (options: Options<GetMediaData>) => queryOptions<
         });
         return data;
     },
-    queryKey: getMediaQueryKey(options)
+    queryKey: getMediaItemsQueryKey(options)
 });
 
 export const uploadMediaMutation = (options?: Partial<Options<UploadMediaData>>): UseMutationOptions<UploadMediaResponse, UploadMediaError, Options<UploadMediaData>> => {
@@ -125,4 +125,34 @@ export const getMediaItemOptions = (options: Options<GetMediaItemData>) => query
         return data;
     },
     queryKey: getMediaItemQueryKey(options)
+});
+
+export const getMediaImageQueryKey = (options: Options<GetMediaImageData>) => createQueryKey('getMediaImage', options);
+
+export const getMediaImageOptions = (options: Options<GetMediaImageData>) => queryOptions<GetMediaImageResponse, DefaultError, GetMediaImageResponse, ReturnType<typeof getMediaImageQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getMediaImage({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getMediaImageQueryKey(options)
+});
+
+export const getMediaThumbnailQueryKey = (options: Options<GetMediaThumbnailData>) => createQueryKey('getMediaThumbnail', options);
+
+export const getMediaThumbnailOptions = (options: Options<GetMediaThumbnailData>) => queryOptions<GetMediaThumbnailResponse, DefaultError, GetMediaThumbnailResponse, ReturnType<typeof getMediaThumbnailQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getMediaThumbnail({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getMediaThumbnailQueryKey(options)
 });

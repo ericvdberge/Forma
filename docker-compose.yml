@@ -1,12 +1,27 @@
 services:
-  api:
-    build: src/api
-    image: forma-api
+  # Everything in one container: app + API + media storage. Open http://localhost:8080
+  forma:
+    build: .
+    image: forma
     ports:
-      - "5134:8080"
+      - "8080:8080"
     volumes:
-      # Uploaded images and their thumbnails.
+      # Uploaded images and their thumbnails, as plain files.
       - forma-assets:/app/assets
+
+  # Media storage for local development with `dotnet run`: docker compose up storage
+  storage:
+    image: versity/versitygw:v1.10.0
+    profiles: [dev]
+    command: ["--port", ":7070", "posix", "/data"]
+    environment:
+      ROOT_ACCESS_KEY: forma
+      ROOT_SECRET_KEY: forma-dev-secret
+    ports:
+      - "7070:7070"
+    volumes:
+      - forma-dev-assets:/data
 
 volumes:
   forma-assets:
+  forma-dev-assets:

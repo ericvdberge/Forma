@@ -25,7 +25,7 @@ export type MediaItemDto = {
     sizeInBytes: number | string;
     width: number | string;
     height: number | string;
-    url: string;
+    imageUrl: string;
     thumbnailUrl: string;
     createdAt: string;
     updatedAt: string;
@@ -42,6 +42,13 @@ export type PageDto = {
 };
 
 export type PageStatus = 'draft' | 'published';
+
+export type Stream = Blob | File;
+
+export type UploadMediaRequest = {
+    websiteId: string;
+    file: IFormFile;
+};
 
 export type WebsiteDto = {
     id: string;
@@ -89,7 +96,7 @@ export type GetPagesResponses = {
 
 export type GetPagesResponse = GetPagesResponses[keyof GetPagesResponses];
 
-export type GetMediaData = {
+export type GetMediaItemsData = {
     body?: never;
     path?: never;
     query: {
@@ -98,21 +105,17 @@ export type GetMediaData = {
     url: '/media';
 };
 
-export type GetMediaResponses = {
+export type GetMediaItemsResponses = {
     /**
      * OK
      */
     200: Array<MediaItemDto>;
 };
 
-export type GetMediaResponse = GetMediaResponses[keyof GetMediaResponses];
+export type GetMediaItemsResponse = GetMediaItemsResponses[keyof GetMediaItemsResponses];
 
 export type UploadMediaData = {
-    body: {
-        websiteId: string;
-    } & {
-        file: IFormFile;
-    };
+    body: UploadMediaRequest;
     path?: never;
     query?: never;
     url: '/media';
@@ -189,3 +192,53 @@ export type GetMediaItemResponses = {
 };
 
 export type GetMediaItemResponse = GetMediaItemResponses[keyof GetMediaItemResponses];
+
+export type GetMediaImageData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/media/{id}/image';
+};
+
+export type GetMediaImageErrors = {
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type GetMediaImageResponses = {
+    /**
+     * OK
+     */
+    200: Stream;
+};
+
+export type GetMediaImageResponse = GetMediaImageResponses[keyof GetMediaImageResponses];
+
+export type GetMediaThumbnailData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/media/{id}/thumbnail';
+};
+
+export type GetMediaThumbnailErrors = {
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type GetMediaThumbnailResponses = {
+    /**
+     * OK
+     */
+    200: Stream;
+};
+
+export type GetMediaThumbnailResponse = GetMediaThumbnailResponses[keyof GetMediaThumbnailResponses];

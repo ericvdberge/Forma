@@ -1,7 +1,7 @@
 namespace Forma.Api.Dtos.Media;
 
-/// <param name="Url">Where the original is served, relative to the API's base URL.</param>
-/// <param name="ThumbnailUrl">Where the WebP thumbnail is served, relative to the API's base URL.</param>
+/// <param name="ImageUrl">Download route of the original image, relative to the API's base URL.</param>
+/// <param name="ThumbnailUrl">Download route of the WebP thumbnail, relative to the API's base URL.</param>
 public record MediaItemDto(
     Guid Id,
     Guid WebsiteId,
@@ -10,7 +10,7 @@ public record MediaItemDto(
     long SizeInBytes,
     int Width,
     int Height,
-    string Url,
+    string ImageUrl,
     string ThumbnailUrl,
     DateTime CreatedAt,
     DateTime UpdatedAt);

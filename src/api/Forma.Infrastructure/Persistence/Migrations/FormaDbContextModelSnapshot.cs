@@ -36,13 +36,13 @@ namespace Forma.Infrastructure.Persistence.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("FilePath")
+                    b.Property<int>("Height")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ImagePath")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("Height")
-                        .HasColumnType("INTEGER");
 
                     b.Property<long>("SizeInBytes")
                         .HasColumnType("INTEGER");

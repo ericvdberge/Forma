@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, GetMediaData, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaResponses, GetPagesData, GetPagesResponses, GetWebsitesData, GetWebsitesResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
+import type { DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, GetMediaImageData, GetMediaImageErrors, GetMediaImageResponses, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaItemsData, GetMediaItemsResponses, GetMediaThumbnailData, GetMediaThumbnailErrors, GetMediaThumbnailResponses, GetPagesData, GetPagesResponses, GetWebsitesData, GetWebsitesResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -22,7 +22,7 @@ export const getWebsites = <ThrowOnError extends boolean = false>(options?: Opti
 
 export const getPages = <ThrowOnError extends boolean = false>(options: Options<GetPagesData, ThrowOnError>): RequestResult<GetPagesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetPagesResponses, unknown, ThrowOnError>({ url: '/pages', ...options });
 
-export const getMedia = <ThrowOnError extends boolean = false>(options: Options<GetMediaData, ThrowOnError>): RequestResult<GetMediaResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetMediaResponses, unknown, ThrowOnError>({ url: '/media', ...options });
+export const getMediaItems = <ThrowOnError extends boolean = false>(options: Options<GetMediaItemsData, ThrowOnError>): RequestResult<GetMediaItemsResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetMediaItemsResponses, unknown, ThrowOnError>({ url: '/media', ...options });
 
 export const uploadMedia = <ThrowOnError extends boolean = false>(options: Options<UploadMediaData, ThrowOnError>): RequestResult<UploadMediaResponses, UploadMediaErrors, ThrowOnError> => (options.client ?? client).post<UploadMediaResponses, UploadMediaErrors, ThrowOnError>({
     ...formDataBodySerializer,
@@ -37,3 +37,7 @@ export const uploadMedia = <ThrowOnError extends boolean = false>(options: Optio
 export const deleteMedia = <ThrowOnError extends boolean = false>(options: Options<DeleteMediaData, ThrowOnError>): RequestResult<DeleteMediaResponses, DeleteMediaErrors, ThrowOnError> => (options.client ?? client).delete<DeleteMediaResponses, DeleteMediaErrors, ThrowOnError>({ url: '/media/{id}', ...options });
 
 export const getMediaItem = <ThrowOnError extends boolean = false>(options: Options<GetMediaItemData, ThrowOnError>): RequestResult<GetMediaItemResponses, GetMediaItemErrors, ThrowOnError> => (options.client ?? client).get<GetMediaItemResponses, GetMediaItemErrors, ThrowOnError>({ url: '/media/{id}', ...options });
+
+export const getMediaImage = <ThrowOnError extends boolean = false>(options: Options<GetMediaImageData, ThrowOnError>): RequestResult<GetMediaImageResponses, GetMediaImageErrors, ThrowOnError> => (options.client ?? client).get<GetMediaImageResponses, GetMediaImageErrors, ThrowOnError>({ url: '/media/{id}/image', ...options });
+
+export const getMediaThumbnail = <ThrowOnError extends boolean = false>(options: Options<GetMediaThumbnailData, ThrowOnError>): RequestResult<GetMediaThumbnailResponses, GetMediaThumbnailErrors, ThrowOnError> => (options.client ?? client).get<GetMediaThumbnailResponses, GetMediaThumbnailErrors, ThrowOnError>({ url: '/media/{id}/thumbnail', ...options });

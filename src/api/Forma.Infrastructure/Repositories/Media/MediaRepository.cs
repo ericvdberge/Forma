@@ -6,7 +6,7 @@ namespace Forma.Infrastructure.Repositories.Media;
 
 public class MediaRepository(FormaDbContext db) : IMediaRepository
 {
-    public async Task<IReadOnlyList<MediaItemDao>> GetMediaAsync(MediaFilter filter, CancellationToken cancellationToken = default) =>
+    public async Task<IReadOnlyList<MediaItemDao>> GetMediaItemsAsync(MediaFilter filter, CancellationToken cancellationToken = default) =>
         await db.Media
             .AsNoTracking()
             .ApplyFilter(filter)

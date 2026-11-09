@@ -22,7 +22,7 @@ namespace Forma.Infrastructure.Persistence.Migrations
                     SizeInBytes = table.Column<long>(type: "INTEGER", nullable: false),
                     Width = table.Column<int>(type: "INTEGER", nullable: false),
                     Height = table.Column<int>(type: "INTEGER", nullable: false),
-                    FilePath = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
+                    ImagePath = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
                     ThumbnailPath = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)

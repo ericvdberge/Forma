@@ -67,7 +67,7 @@
         "tags": [
           "Media"
         ],
-        "operationId": "GetMedia",
+        "operationId": "GetMediaItems",
         "parameters": [
           {
             "name": "websiteId",
@@ -104,30 +104,12 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "required": [
-                  "websiteId",
-                  "file"
-                ],
-                "type": "object",
-                "allOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "websiteId": {
-                        "type": "string",
-                        "format": "uuid"
-                      }
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "file": {
-                        "$ref": "#/components/schemas/IFormFile"
-                      }
-                    }
-                  }
-                ]
+                "$ref": "#/components/schemas/UploadMediaRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadMediaRequest"
               }
             }
           },
@@ -218,6 +200,89 @@
           }
         }
       }
+    },
+    "/media/{id}/image": {
+      "get": {
+        "tags": [
+          "Media"
+        ],
+        "operationId": "GetMediaImage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              },
+              "image/gif": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/media/{id}/thumbnail": {
+      "get": {
+        "tags": [
+          "Media"
+        ],
+        "operationId": "GetMediaThumbnail",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "image/webp": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -282,7 +347,7 @@
           "sizeInBytes",
           "width",
           "height",
-          "url",
+          "imageUrl",
           "thumbnailUrl",
           "createdAt",
           "updatedAt"
@@ -327,7 +392,7 @@
             ],
             "format": "int32"
           },
-          "url": {
+          "imageUrl": {
             "type": "string"
           },
           "thumbnailUrl": {
@@ -387,6 +452,26 @@
           "draft",
           "published"
         ]
+      },
+      "Stream": {
+        "type": "string",
+        "format": "binary"
+      },
+      "UploadMediaRequest": {
+        "required": [
+          "websiteId",
+          "file"
+        ],
+        "type": "object",
+        "properties": {
+          "websiteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "file": {
+            "$ref": "#/components/schemas/IFormFile"
+          }
+        }
       },
       "WebsiteDto": {
         "required": [

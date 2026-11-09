@@ -14,7 +14,7 @@ public class MediaItemConfiguration : IEntityTypeConfiguration<MediaItemDao>
 
         builder.Property(m => m.FileName).HasMaxLength(255).IsRequired();
         builder.Property(m => m.ContentType).HasMaxLength(100).IsRequired();
-        builder.Property(m => m.FilePath).HasMaxLength(500).IsRequired();
+        builder.Property(m => m.ImagePath).HasMaxLength(500).IsRequired();
         builder.Property(m => m.ThumbnailPath).HasMaxLength(500).IsRequired();
 
         builder.HasOne(m => m.Website)

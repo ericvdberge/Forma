@@ -31,6 +31,14 @@ Content-Type: image/png
 
 ###
 
+GET {{Forma.Api_HostAddress}}/media/00000000-0000-0000-0000-000000000000/image
+
+###
+
+GET {{Forma.Api_HostAddress}}/media/00000000-0000-0000-0000-000000000000/thumbnail
+
+###
+
 DELETE {{Forma.Api_HostAddress}}/media/00000000-0000-0000-0000-000000000000
 
 ###

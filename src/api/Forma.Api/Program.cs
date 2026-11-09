@@ -1,8 +1,8 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using FluentValidation;
 using Forma.Api.Abstractions;
-using Forma.Api.Assets;
 using Forma.Application;
 using Forma.Infrastructure;
 using Forma.Infrastructure.Persistence;
@@ -13,6 +13,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));
+
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -32,8 +34,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-app.UseAssetFiles();
 
 app.MapEndpoints();
 

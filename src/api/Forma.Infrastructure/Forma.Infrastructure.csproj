@@ -7,10 +7,11 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="AWSSDK.S3" Version="4.0.104.11" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.14" />
       <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.14" />
-      <PackageReference Include="SkiaSharp" Version="4.155.0" />
-      <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.155.0" />
+      <PackageReference Include="NetVips" Version="3.2.0" />
+      <PackageReference Include="NetVips.Native" Version="8.18.7" />
     </ItemGroup>
 
 </Project>
