@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/assets/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/*.user
+.idea/
+.vscode/
+Dockerfile
+.dockerignore

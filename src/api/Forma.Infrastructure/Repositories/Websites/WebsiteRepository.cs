@@ -11,4 +11,7 @@ public class WebsiteRepository(FormaDbContext db) : IWebsiteRepository
             .AsNoTracking()
             .OrderByDescending(w => w.UpdatedAt)
             .ToListAsync(cancellationToken);
+
+    public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default) =>
+        await db.Websites.AnyAsync(w => w.Id == id, cancellationToken);
 }

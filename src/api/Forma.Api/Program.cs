@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Forma.Api.Abstractions;
+using Forma.Api.Assets;
 using Forma.Application;
 using Forma.Infrastructure;
 using Forma.Infrastructure.Persistence;
@@ -31,6 +32,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAssetFiles();
 
 app.MapEndpoints();
 

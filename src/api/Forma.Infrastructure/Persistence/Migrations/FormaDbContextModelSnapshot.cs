@@ -17,6 +17,57 @@ namespace Forma.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
+            modelBuilder.Entity("Forma.Infrastructure.DataAccessObjects.Media.MediaItemDao", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("SizeInBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ThumbnailPath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("WebsiteId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WebsiteId");
+
+                    b.ToTable("Media", (string)null);
+                });
+
             modelBuilder.Entity("Forma.Infrastructure.DataAccessObjects.Pages.PageDao", b =>
                 {
                     b.Property<Guid>("Id")
@@ -93,6 +144,17 @@ namespace Forma.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Websites", (string)null);
+                });
+
+            modelBuilder.Entity("Forma.Infrastructure.DataAccessObjects.Media.MediaItemDao", b =>
+                {
+                    b.HasOne("Forma.Infrastructure.DataAccessObjects.Websites.WebsiteDao", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Website");
                 });
 
             modelBuilder.Entity("Forma.Infrastructure.DataAccessObjects.Pages.PageDao", b =>

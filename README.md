@@ -104,12 +104,22 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 | ---------------------- | -------------------------------------------------------------------- |
 | `Forma.Api`            | Minimal API endpoints, DTOs and Mapperly mappers, OpenAPI + Scalar   |
 | `Forma.Application`    | Domain entities and core services                                    |
-| `Forma.Infrastructure` | EF Core `DbContext`, SQLite, migrations, seeding and repositories    |
+| `Forma.Infrastructure` | EF Core `DbContext`, SQLite, migrations, seeding, repositories, asset storage and image processing |
 
-| Endpoint                    | Returns                  |
-| --------------------------- | ------------------------ |
-| `GET /websites`             | All websites             |
-| `GET /pages?websiteId={id}` | The pages of one website |
+| Endpoint                    | Returns                                                         |
+| --------------------------- | --------------------------------------------------------------- |
+| `GET /websites`             | All websites                                                    |
+| `GET /pages?websiteId={id}` | The pages of one website                                        |
+| `GET /media?websiteId={id}` | The media library of one website                                |
+| `GET /media/{id}`           | One media item                                                  |
+| `POST /media`               | Uploads an image (multipart: `websiteId`, `file`), `201` or `400` |
+| `DELETE /media/{id}`        | Deletes a media item and its files, `204`                       |
+
+#### Media
+
+Uploads are images only: JPEG, PNG, GIF or WebP, at most 10 MB. The format is detected from the file's bytes, not its name, so anything else (SVG included) is rejected with `400`. For each upload the API keeps the original unchanged and renders a WebP thumbnail of at most 400 px on its longest side, with EXIF rotation applied, using [SkiaSharp](https://github.com/mono/SkiaSharp).
+
+Both files are written to the assets folder, `Assets:Path` (default `assets`, relative to `src/api/Forma.Api` in development and git-ignored), as `media/{websiteId}/originals/{id}.{ext}` and `media/{websiteId}/thumbnails/{id}.webp`. The API serves that folder at `/assets`, and each media item's `url` and `thumbnailUrl` point there.
 
 In development the API applies migrations and seeds sample data on startup into `forma.db`, which is git-ignored. It serves interactive docs at **http://localhost:5134/scalar**. Each `dotnet build` writes the OpenAPI document to `src/api/Forma.Api/OpenApi/forma-api.json`, and the app's client is generated from that file.
 
@@ -142,6 +152,17 @@ npm run dev:app -- --port 5174                                 # app → :5174 (
 
 After you change an API endpoint or DTO, run `npm run generate:api` and commit the updated OpenAPI document and generated client. Don't edit `src/app/src/api/generated` by hand.
 
+### API in Docker
+
+[`src/api/Dockerfile`](src/api/Dockerfile) builds the API into an image that listens on port 8080 and stores uploads in `/app/assets`, a volume:
+
+```bash
+docker build -t forma-api src/api
+docker run -p 5134:8080 -v forma-assets:/app/assets forma-api
+```
+
+Or run `docker compose up --build`, which does the same with the named volume `forma-assets` ([`docker-compose.yml`](docker-compose.yml)).
+
 ## Project structure
 
 ```text
@@ -153,7 +174,8 @@ Forma/
 │   └── api/             .NET 10 backend (Forma.Api.slnx)
 │       ├── Forma.Api/             endpoints, DTOs, OpenAPI document
 │       ├── Forma.Application/     entities + core services
-│       └── Forma.Infrastructure/  EF Core, SQLite, repositories
+│       ├── Forma.Infrastructure/  EF Core, SQLite, repositories, asset storage
+│       └── Dockerfile             API image; uploads go to the /app/assets volume
 └── package.json         npm workspaces root
 ```
 
@@ -224,6 +246,7 @@ Forma speaks with clarity and quiet confidence. No hype, no jargon, no exaggerat
 - [x] Dashboard & website management
 - [x] Pages list
 - [x] API: read websites & pages
+- [x] API: media library (image uploads with thumbnails)
 - [ ] API: create, update & publish
 - [ ] Design Studio: drag & drop editor
 - [ ] Templates, blocks & global styles

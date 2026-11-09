@@ -1,3 +1,6 @@
 node_modules
 dist
 *.local
+
+# Uploaded media (the API's assets folder in development)
+src/api/Forma.Api/assets/

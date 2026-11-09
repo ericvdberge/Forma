@@ -4,6 +4,33 @@ export type ClientOptions = {
     baseUrl: `${string}://${string}` | (string & {});
 };
 
+export type HttpValidationProblemDetails = {
+    type?: null | string;
+    title?: null | string;
+    status?: null | number | string;
+    detail?: null | string;
+    instance?: null | string;
+    errors?: {
+        [key: string]: Array<string>;
+    };
+};
+
+export type IFormFile = Blob | File;
+
+export type MediaItemDto = {
+    id: string;
+    websiteId: string;
+    fileName: string;
+    contentType: string;
+    sizeInBytes: number | string;
+    width: number | string;
+    height: number | string;
+    url: string;
+    thumbnailUrl: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
 export type PageDto = {
     id: string;
     websiteId: string;
@@ -61,3 +88,104 @@ export type GetPagesResponses = {
 };
 
 export type GetPagesResponse = GetPagesResponses[keyof GetPagesResponses];
+
+export type GetMediaData = {
+    body?: never;
+    path?: never;
+    query: {
+        websiteId: string;
+    };
+    url: '/media';
+};
+
+export type GetMediaResponses = {
+    /**
+     * OK
+     */
+    200: Array<MediaItemDto>;
+};
+
+export type GetMediaResponse = GetMediaResponses[keyof GetMediaResponses];
+
+export type UploadMediaData = {
+    body: {
+        websiteId: string;
+    } & {
+        file: IFormFile;
+    };
+    path?: never;
+    query?: never;
+    url: '/media';
+};
+
+export type UploadMediaErrors = {
+    /**
+     * Bad Request
+     */
+    400: HttpValidationProblemDetails;
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type UploadMediaError = UploadMediaErrors[keyof UploadMediaErrors];
+
+export type UploadMediaResponses = {
+    /**
+     * Created
+     */
+    201: MediaItemDto;
+};
+
+export type UploadMediaResponse = UploadMediaResponses[keyof UploadMediaResponses];
+
+export type DeleteMediaData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/media/{id}';
+};
+
+export type DeleteMediaErrors = {
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type DeleteMediaResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type DeleteMediaResponse = DeleteMediaResponses[keyof DeleteMediaResponses];
+
+export type GetMediaItemData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/media/{id}';
+};
+
+export type GetMediaItemErrors = {
+    /**
+     * Not Found
+     */
+    404: unknown;
+};
+
+export type GetMediaItemResponses = {
+    /**
+     * OK
+     */
+    200: MediaItemDto;
+};
+
+export type GetMediaItemResponse = GetMediaItemResponses[keyof GetMediaItemResponses];

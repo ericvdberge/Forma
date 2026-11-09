@@ -1,3 +1,4 @@
+using Forma.Infrastructure.DataAccessObjects.Media;
 using Forma.Infrastructure.DataAccessObjects.Pages;
 using Forma.Infrastructure.DataAccessObjects.Websites;
 using Forma.Infrastructure.Persistence.Converters;
@@ -9,6 +10,7 @@ public class FormaDbContext(DbContextOptions<FormaDbContext> options) : DbContex
 {
     public DbSet<WebsiteDao> Websites => Set<WebsiteDao>();
     public DbSet<PageDao> Pages => Set<PageDao>();
+    public DbSet<MediaItemDao> Media => Set<MediaItemDao>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

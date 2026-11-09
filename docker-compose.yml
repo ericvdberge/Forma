@@ -1,0 +1,12 @@
+services:
+  api:
+    build: src/api
+    image: forma-api
+    ports:
+      - "5134:8080"
+    volumes:
+      # Uploaded images and their thumbnails.
+      - forma-assets:/app/assets
+
+volumes:
+  forma-assets:
