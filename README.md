@@ -89,7 +89,7 @@ The Forma CMS, where you manage your websites, their pages and their media.
 | ---------------- | --------------------------------------------------------------- |
 | `/`              | Dashboard: websites, stats, recent activity                     |
 | `/pages`         | Pages of the active website: filter, create, publish, archive   |
-| `/media`         | Media library of the active website: upload (button, drag & drop or paste), browse, preview, delete |
+| `/media`         | Media library of the active website: stats, upload with progress (button, drag & drop or paste), grid or list, preview, delete |
 | `/websites/:id?` | Switch the active website and edit its details                  |
 | everything else  | Sections that are designed but not built yet show "coming soon" |
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ArrowLeft, Bell, Layers, Search, Zap } from 'lucide-vue-next'
+import { ArrowLeft, Bell, Clock, Copy, Database, Download, Globe, Images, LayoutGrid, Layers, List, Scale, Search, Trash2, Zap } from 'lucide-vue-next'
 import {
+  FActionButton,
   FArchitectureArt,
   FArrowLink,
   FAvatar,
@@ -11,19 +12,31 @@ import {
   FCard,
   FContainer,
   FDivider,
+  FDropzone,
   FEyebrow,
   FFeature,
   FHeading,
   FIconButton,
   FInput,
   FLogo,
+  FMediaCard,
+  FMediaChip,
+  FMenu,
+  FModal,
+  FPillTabs,
+  FProgress,
   FPromoBanner,
+  FSegmented,
   FSelect,
   FSparkline,
+  FStatGroup,
+  FStatTile,
   FStatus,
   FSwatch,
   FSwitch,
   FText,
+  FThumbnailRow,
+  FUploadProgress,
   brand,
   palette,
   supportingPalette,
@@ -33,6 +46,19 @@ import {
 const demoEmail = ref('')
 const demoSwitch = ref(true)
 const demoRole = ref<'editor' | 'admin'>('editor')
+const demoFilter = ref<'all' | 'images' | 'videos'>('all')
+const demoView = ref<'grid' | 'list'>('grid')
+const demoModal = ref(false)
+const demoMenu = [
+  { label: 'Download', icon: Download },
+  { label: 'Copy link', icon: Copy },
+  { label: 'Delete', icon: Trash2, danger: true },
+]
+/** Inline artwork so the showcase needs no image files. */
+const demoImage = (from: string, to: string) =>
+  `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs><rect width="640" height="400" fill="url(#g)"/><path d="M0 300 Q 260 140 640 220 L 640 400 L 0 400 Z" fill="#fff" opacity=".55"/></svg>`,
+  )}`
 </script>
 
 <template>
@@ -183,6 +209,78 @@ const demoRole = ref<'editor' | 'admin'>('editor')
             </div>
           </div>
         </FCard>
+
+        <FHeading id="ds-media" as="h3" size="sm">Media</FHeading>
+        <FCard padding="lg" class="flex flex-col gap-8">
+          <FStatGroup>
+            <FStatTile :icon="Images" value="12.4K" label="Total media" change="12%" change-label="this month" />
+            <FStatTile :icon="Database" value="48.2 GB" label="Storage used" change="4%" change-label="this month" />
+            <FStatTile :icon="Scale" value="2.1 MB" label="Average size" />
+            <FStatTile :icon="Clock" value="2h ago" label="Last upload" />
+          </FStatGroup>
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <FPillTabs
+              v-model="demoFilter"
+              label="Filter"
+              :options="[
+                { label: 'All', value: 'all' },
+                { label: 'Images', value: 'images', count: 24 },
+                { label: 'Videos', value: 'videos', count: 3 },
+              ]"
+            />
+            <FSegmented
+              v-model="demoView"
+              label="Layout"
+              :options="[
+                { value: 'grid', label: 'Grid view', icon: LayoutGrid },
+                { value: 'list', label: 'List view', icon: List },
+              ]"
+            />
+          </div>
+          <div class="grid gap-5 sm:grid-cols-3">
+            <FMediaCard :src="demoImage('#eef1f5', '#93bbfd')" alt="Blue sample" meta="JPG · 2.4 MB" @open="demoModal = true">
+              <template #actions><FMenu :items="demoMenu" label="Actions" variant="glass" /></template>
+            </FMediaCard>
+            <FMediaCard :src="demoImage('#f5f4f0', '#a8b5a0')" alt="Sage sample" meta="PNG · 1.8 MB" @open="demoModal = true" />
+            <FMediaCard :src="demoImage('#fafaf8', '#d8d2c8')" alt="Stone sample" meta="WEBP · 640 KB" @open="demoModal = true" />
+          </div>
+          <FDivider />
+          <div class="grid gap-8 md:grid-cols-2">
+            <FDropzone hint="Supports images up to 10 MB" :formats="['JPG', 'PNG', 'GIF', 'WEBP']" />
+            <div class="flex flex-col gap-3">
+              <FUploadProgress name="facade.jpg" :src="demoImage('#eef1f5', '#93bbfd')" :progress="72" />
+              <FUploadProgress name="interior.png" status="processing" />
+              <FUploadProgress name="notes.txt" status="failed" error="Only images are allowed." dismiss-label="Dismiss" />
+              <FProgress :value="40" label="Example progress" />
+              <div class="flex flex-wrap items-center gap-3 rounded-2xl bg-charcoal/70 p-3">
+                <FMediaChip>JPG · 2.4 MB</FMediaChip>
+                <FMediaChip :icon="null" size="md">1 / 24</FMediaChip>
+                <FMediaChip tone="light">Light chip</FMediaChip>
+              </div>
+            </div>
+          </div>
+          <FDivider />
+          <div class="grid gap-8 md:grid-cols-2">
+            <div class="flex flex-col gap-2">
+              <FActionButton :icon="Download" size="sm">Download</FActionButton>
+              <FActionButton :icon="Copy" size="sm">Copy link</FActionButton>
+              <FActionButton :icon="Trash2" size="sm" tone="danger">Delete</FActionButton>
+            </div>
+            <div class="flex flex-col gap-2">
+              <FThumbnailRow title="Architecture" subtitle="324 files" :src="demoImage('#eef1f5', '#93bbfd')" interactive />
+              <FThumbnailRow eyebrow="In website" title="Atelier Nord" subtitle="ateliernord.com" :icon="Globe" bordered />
+              <FButton variant="secondary" size="sm" class="self-start" @click="demoModal = true">Open modal</FButton>
+            </div>
+          </div>
+        </FCard>
+
+        <FModal v-model:open="demoModal" size="sm" labelledby="demo-modal-title">
+          <div class="flex flex-col gap-4 p-7">
+            <h3 id="demo-modal-title" class="font-display text-xl font-bold tracking-[-0.02em]">A Forma modal</h3>
+            <FText>Blurred backdrop, focus kept inside, closes with Escape or a click outside.</FText>
+            <FButton size="sm" class="self-end" data-autofocus @click="demoModal = false">Got it</FButton>
+          </div>
+        </FModal>
 
         <FPromoBanner href="#/">Turn your ideas<br />into a stunning website.</FPromoBanner>
       </section>

@@ -32,6 +32,8 @@ export interface MediaItem {
   contentType: string
   /** Short format label, e.g. "JPEG". */
   format: string
+  /** File-extension style label for chips, e.g. "JPG". */
+  extension: string
   sizeInBytes: number
   width: number
   height: number

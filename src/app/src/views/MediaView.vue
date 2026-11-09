@@ -1,16 +1,45 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ImagePlus, Images, LoaderCircle, Search, Trash2, TriangleAlert, Upload, X } from 'lucide-vue-next'
-import { FButton, FCard, FIconButton, FSelect, cn } from '@forma/design-system'
-import PageHeader from '@/components/PageHeader.vue'
+import {
+  Clock,
+  Copy,
+  Database,
+  Download,
+  Expand,
+  ImageIcon,
+  ImagePlus,
+  Images,
+  LayoutGrid,
+  List,
+  Scale,
+  Search,
+  Trash2,
+  TriangleAlert,
+} from 'lucide-vue-next'
+import {
+  FButton,
+  FMediaCard,
+  FMenu,
+  FPillTabs,
+  FSegmented,
+  FSelect,
+  FSkeleton,
+  FStatGroup,
+  FStatTile,
+  type FMenuItem,
+} from '@forma/design-system'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import MediaDetails from '@/components/media/MediaDetails.vue'
-import MediaGridSkeleton from '@/components/skeletons/MediaGridSkeleton.vue'
+import MediaHero from '@/components/media/MediaHero.vue'
+import MediaSidePanel from '@/components/media/MediaSidePanel.vue'
 import { useWebsites } from '@/composables/useWebsites'
 import { useActiveWebsite } from '@/composables/useActiveWebsite'
-import { ACCEPT_ATTRIBUTE, ACCEPTED_TYPES, useMedia } from '@/composables/useMedia'
+import { ACCEPTED_TYPES, useMedia } from '@/composables/useMedia'
+import { useToast } from '@/composables/useToast'
 import type { MediaItem } from '@/data/types'
 import { formatBytes } from '@/utils/format'
+import { shortAgo } from '@/utils/time'
 
 const { getWebsites } = useWebsites()
 const { websites } = getWebsites()
@@ -19,7 +48,7 @@ const activeWebsite = getActiveWebsite()
 const { getMediaItems, getUploads, uploadFiles, dismissUpload, dismissFailed, deleteMediaItem, isDeleting } = useMedia()
 const { media, isPending, isError, isFetching, refetch } = getMediaItems(() => activeWebsite.value.id)
 const uploads = getUploads(() => activeWebsite.value.id)
-const failedCount = computed(() => uploads.value.filter((u) => u.status === 'failed').length)
+const { notify } = useToast()
 const route = useRoute()
 const router = useRouter()
 
@@ -29,9 +58,32 @@ const websiteId = computed({
   set: (id: string) => setActiveWebsite(id),
 })
 const websiteOptions = computed(() => websites.value.map((w) => ({ label: w.name, value: w.id })))
+const goToWebsite = () => router.push(`/websites/${activeWebsite.value.id}`)
 
-/* Filters: file name search, format tabs and sort order */
-type Format = 'all' | (typeof ACCEPTED_TYPES)[string]
+/* Stats */
+const WEEK = 7 * 86_400_000
+const stats = computed(() => {
+  const all = media.value
+  const total = all.reduce((s, m) => s + m.sizeInBytes, 0)
+  const recent = all.filter((m) => Date.now() - m.createdAt < WEEK)
+  const recentSize = recent.reduce((s, m) => s + m.sizeInBytes, 0)
+  const growth = (added: number, now: number) => {
+    if (!added) return undefined
+    const before = now - added
+    return before > 0 ? `${Math.round((added / before) * 100)}%` : undefined
+  }
+  return {
+    count: all.length.toLocaleString('en'),
+    countChange: growth(recent.length, all.length),
+    size: formatBytes(total),
+    sizeChange: growth(recentSize, total),
+    average: all.length ? formatBytes(total / all.length) : '—',
+    latest: all[0] ? shortAgo(all[0].createdAt) : '—',
+  }
+})
+
+/* Filters */
+type Format = 'all' | string
 const format = ref<Format>('all')
 const search = ref('')
 type Sort = 'newest' | 'oldest' | 'name' | 'largest'
@@ -42,16 +94,37 @@ const sortOptions: Array<{ label: string; value: Sort }> = [
   { label: 'Name A–Z', value: 'name' },
   { label: 'Largest first', value: 'largest' },
 ]
+type View = 'grid' | 'list'
+const VIEW_KEY = 'forma.mediaView'
+const view = ref<View>(readView())
+function readView(): View {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'grid'
+  } catch {
+    return 'grid'
+  }
+}
+watch(view, (v) => {
+  try {
+    localStorage.setItem(VIEW_KEY, v)
+  } catch {
+    /* storage unavailable */
+  }
+})
+const viewOptions = [
+  { value: 'grid' as const, label: 'Grid view', icon: LayoutGrid },
+  { value: 'list' as const, label: 'List view', icon: List },
+]
 
 const searched = computed(() => {
   const q = search.value.trim().toLowerCase()
   return q ? media.value.filter((m) => m.fileName.toLowerCase().includes(q)) : media.value
 })
 const tabs = computed(() =>
-  (['all', ...Object.values(ACCEPTED_TYPES)] as Format[]).map((value) => ({
+  ['all', ...Object.values(ACCEPTED_TYPES)].map((value) => ({
     value,
     label: value === 'all' ? 'All' : value,
-    count: value === 'all' ? searched.value.length : searched.value.filter((m) => m.format === value).length,
+    count: value === 'all' ? undefined : searched.value.filter((m) => m.format === value).length,
   })),
 )
 const visible = computed(() => {
@@ -64,28 +137,19 @@ const visible = computed(() => {
   }
   return list.sort(compare[sort.value])
 })
-const totalSize = computed(() => media.value.reduce((sum, m) => sum + m.sizeInBytes, 0))
-const filtered = computed(() => !!search.value.trim() || format.value !== 'all')
 function clearFilters() {
   search.value = ''
   format.value = 'all'
 }
-
 watch(() => activeWebsite.value.id, clearFilters)
 
-/* Uploading: the button, or files dropped anywhere on the page */
-const fileInput = ref<HTMLInputElement | null>(null)
+/* Uploading: the buttons, the dropzone, files dropped anywhere on the page, or a paste */
+const sidePanel = ref<InstanceType<typeof MediaSidePanel> | null>(null)
 const canUpload = computed(() => !isPending.value && !isError.value)
-function browse() {
-  fileInput.value?.click()
-}
-function onPicked(e: Event) {
-  const input = e.target as HTMLInputElement
-  if (input.files?.length) startUpload(input.files)
-  input.value = ''
-}
+const activeUploads = computed(() => uploads.value.filter((u) => u.status !== 'failed'))
+const browse = () => sidePanel.value?.browse()
 function startUpload(files: FileList | File[]) {
-  // New uploads show at the top of the grid, so make sure they aren't filtered out of view.
+  // New uploads land at the top of the grid, so make sure they aren't filtered out of view.
   clearFilters()
   sort.value = 'newest'
   uploadFiles(activeWebsite.value.id, files)
@@ -111,16 +175,33 @@ function onDragLeave(e: DragEvent) {
 }
 function onDrop(e: DragEvent) {
   if (!hasFiles(e)) return
-  e.preventDefault()
   dragDepth = 0
   dragging.value = false
+  // The side panel's dropzone handles its own drops.
+  if (e.defaultPrevented) return
+  e.preventDefault()
   if (canUpload.value && e.dataTransfer?.files.length) startUpload(e.dataTransfer.files)
 }
-/** Pasting an image (e.g. a screenshot) uploads it too. */
 function onPaste(e: ClipboardEvent) {
   if ((e.target as HTMLElement).closest('input, textarea') || !canUpload.value) return
   const files = Array.from(e.clipboardData?.files ?? [])
   if (files.length) startUpload(files)
+}
+/** "Paste from clipboard" button: reads images through the async clipboard API. */
+async function pasteFromClipboard() {
+  try {
+    const files: File[] = []
+    for (const item of await navigator.clipboard.read()) {
+      const type = item.types.find((t) => ACCEPTED_TYPES[t])
+      if (!type) continue
+      const blob = await item.getType(type)
+      files.push(new File([blob], `pasted-${Date.now()}.${type.split('/')[1]!.replace('jpeg', 'jpg')}`, { type }))
+    }
+    if (files.length) startUpload(files)
+    else notify('There’s no image on the clipboard', 'error')
+  } catch {
+    notify('Couldn’t read the clipboard', 'error')
+  }
 }
 onMounted(() => {
   document.addEventListener('dragenter', onDragEnter)
@@ -141,6 +222,12 @@ onBeforeUnmount(() => {
 const openId = computed(() => (typeof route.query.item === 'string' ? route.query.item : null))
 const openIndex = computed(() => visible.value.findIndex((m) => m.id === openId.value))
 const openItem = computed(() => visible.value[openIndex.value] ?? media.value.find((m) => m.id === openId.value))
+const detailsOpen = computed({
+  get: () => !!openItem.value,
+  set: (v) => {
+    if (!v) open(null)
+  },
+})
 function open(id: string | null) {
   router.replace({ query: { ...route.query, item: id ?? undefined } })
 }
@@ -148,180 +235,132 @@ function step(by: number) {
   const next = visible.value[openIndex.value + by]
   if (next) open(next.id)
 }
-// Drop a stale ?item= once the list has loaded (deleted, or from another website).
 watch([openId, isPending, media], () => {
   if (openId.value && !isPending.value && !isError.value && !openItem.value) open(null)
 })
 
-async function remove(item: MediaItem) {
-  if (!window.confirm(`Delete “${item.fileName}”? Pages that use it will show a broken image. This can’t be undone.`)) return
+/* Delete, after confirming */
+const pendingDelete = ref<MediaItem | null>(null)
+const confirmOpen = computed({
+  get: () => !!pendingDelete.value,
+  set: (v) => {
+    if (!v) pendingDelete.value = null
+  },
+})
+async function confirmDelete() {
+  const item = pendingDelete.value
+  if (!item) return
   const index = visible.value.findIndex((m) => m.id === item.id)
   const neighbour = visible.value[index + 1] ?? visible.value[index - 1]
   const wasOpen = openId.value === item.id
   if (await deleteMediaItem(item)) {
+    pendingDelete.value = null
     if (wasOpen) open(neighbour?.id ?? null)
   }
 }
+
+async function copyLink(item: MediaItem) {
+  try {
+    await navigator.clipboard.writeText(new URL(item.imageUrl, window.location.origin).href)
+    notify('Link copied')
+  } catch {
+    notify('Couldn’t copy the link', 'error')
+  }
+}
+function menuFor(item: MediaItem): FMenuItem[] {
+  return [
+    { label: 'View details', icon: Expand, onSelect: () => open(item.id) },
+    { label: 'Download', icon: Download, href: item.imageUrl, download: item.fileName },
+    { label: 'Copy link', icon: Copy, onSelect: () => copyLink(item) },
+    { label: 'Delete', icon: Trash2, danger: true, onSelect: () => (pendingDelete.value = item) },
+  ]
+}
+const uploadedOn = (ts: number) => new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(ts)
 </script>
 
 <template>
-  <div class="mx-auto max-w-[1240px]">
-    <PageHeader title="Media">
-      <template #meta>
-        <p class="mt-3 text-[0.9375rem] text-muted">
-          Images for <span class="font-medium text-charcoal">{{ activeWebsite.name }}</span>. JPEG, PNG, GIF or WebP, up to 10 MB each.
-        </p>
-      </template>
-      <FSelect v-model="websiteId" label="Website" hide-label size="sm" :options="websiteOptions" class="w-48" />
-      <FButton :disabled="!canUpload" @click="browse"><Upload class="size-4" aria-hidden="true" /> Upload</FButton>
-      <input ref="fileInput" type="file" multiple :accept="ACCEPT_ATTRIBUTE" class="sr-only" tabindex="-1" aria-hidden="true" @change="onPicked" />
-    </PageHeader>
+  <div class="relative mx-auto max-w-[1480px]">
+    <!-- Soft architectural wash behind the hero -->
+    <div
+      class="pointer-events-none absolute -right-8 -top-24 -z-0 hidden h-[520px] w-[60%] rounded-bl-[200px] bg-[radial-gradient(ellipse_at_top_right,#dfe3e8_0%,transparent_65%)] md:block"
+      aria-hidden="true"
+    />
 
-    <FCard padding="none">
-      <!-- Toolbar -->
-      <div class="flex flex-col gap-4 border-b border-charcoal/[0.06] p-4 lg:flex-row lg:items-center lg:justify-between">
-        <div role="tablist" aria-label="Filter by format" class="flex gap-1 overflow-x-auto">
-          <button
-            v-for="t in tabs"
-            :key="t.value"
-            type="button"
-            role="tab"
-            :aria-selected="format === t.value"
-            :class="
-              cn(
-                'inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-4 text-sm transition-colors',
-                format === t.value ? 'bg-charcoal text-warm-white' : 'text-charcoal/70 hover:bg-charcoal/5 hover:text-charcoal',
-              )
-            "
-            @click="format = t.value"
-          >
-            {{ t.label }}
-            <span :class="cn('text-xs', format === t.value ? 'text-warm-white/60' : 'text-subtle')">{{ t.count }}</span>
-          </button>
-        </div>
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div class="relative sm:w-64">
-            <Search class="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-subtle" aria-hidden="true" />
-            <label for="media-search" class="sr-only">Search media by file name</label>
-            <input
-              id="media-search"
-              v-model="search"
-              type="search"
-              placeholder="Search by file name"
-              class="h-9 w-full rounded-full bg-canvas pl-10 pr-4 text-sm outline-none ring-1 ring-transparent transition-shadow placeholder:text-subtle focus:bg-white focus:ring-2 focus:ring-accent"
-            />
+    <div class="relative grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div class="min-w-0">
+        <MediaHero
+          :latest="media.slice(0, 3)"
+          :upload="activeUploads[0]"
+          :more-uploading="Math.max(0, activeUploads.length - 1)"
+          :can-upload="canUpload"
+          @upload="browse"
+          @open="open"
+        />
+
+        <!-- Stats -->
+        <div v-if="isPending" class="grid grid-cols-2 gap-5 rounded-panel bg-white/80 p-5 ring-1 ring-charcoal/[0.06] lg:grid-cols-4">
+          <div v-for="i in 4" :key="i" class="flex items-center gap-3.5">
+            <FSkeleton class="size-12 shrink-0" rounded="full" />
+            <div><FSkeleton class="h-6 w-16" /><FSkeleton class="mt-1.5 h-3 w-20" /></div>
           </div>
-          <FSelect v-model="sort" label="Sort" hide-label size="sm" :options="sortOptions" class="sm:w-40" />
         </div>
-      </div>
+        <FStatGroup v-else-if="!isError">
+          <FStatTile :icon="Images" :value="stats.count" label="Total media" :change="stats.countChange" change-label="this week" />
+          <FStatTile :icon="Database" :value="stats.size" label="Storage used" :change="stats.sizeChange" change-label="this week" />
+          <FStatTile :icon="Scale" :value="stats.average" label="Average size" />
+          <FStatTile :icon="Clock" :value="stats.latest" label="Last upload" />
+        </FStatGroup>
 
-      <!-- Loading -->
-      <div v-if="isPending" aria-busy="true" aria-label="Loading media">
-        <MediaGridSkeleton />
-      </div>
-
-      <!-- Error -->
-      <div v-else-if="isError" class="flex flex-col items-center gap-3 px-6 py-16 text-center">
-        <span class="grid size-12 place-items-center rounded-2xl bg-canvas"><TriangleAlert class="size-5" aria-hidden="true" /></span>
-        <p class="font-medium">Couldn’t load the media</p>
-        <p class="max-w-xs text-sm text-muted">Check that the Forma API is running, then try again.</p>
-        <FButton size="sm" variant="secondary" :disabled="isFetching" @click="refetch()">Try again</FButton>
-      </div>
-
-      <template v-else>
-        <!-- Failed uploads summary -->
-        <div
-          v-if="failedCount > 1"
-          class="flex items-center justify-between gap-3 border-b border-charcoal/[0.06] bg-danger/[0.04] px-5 py-2.5 text-sm"
-          role="status"
-        >
-          <span class="text-danger">{{ failedCount }} files couldn’t be uploaded.</span>
-          <button type="button" class="font-medium hover:underline" @click="dismissFailed(activeWebsite.id)">Dismiss all</button>
-        </div>
-
-        <!-- Empty library: one big drop target -->
-        <div v-if="!media.length && !uploads.length" class="p-4">
-          <button
-            type="button"
-            class="flex w-full flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-charcoal/10 px-6 py-16 text-center transition-colors hover:border-charcoal/25 hover:bg-warm-white"
-            @click="browse"
-          >
-            <span class="grid size-12 place-items-center rounded-2xl bg-canvas"><ImagePlus class="size-5" aria-hidden="true" /></span>
-            <span class="font-medium">No images yet</span>
-            <span class="max-w-sm text-sm text-muted">
-              Drop images here, paste one, or <span class="font-medium text-charcoal underline underline-offset-2">browse your files</span>.
-            </span>
-          </button>
-        </div>
-
-        <!-- Grid -->
-        <ul
-          v-else-if="visible.length || (!filtered && uploads.length)"
-          class="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-          aria-label="Images"
-        >
-          <!-- In-flight and failed uploads -->
-          <li v-for="u in filtered ? [] : uploads" :key="u.id" class="min-w-0">
-            <div
-              :class="
-                cn(
-                  'relative aspect-square overflow-hidden rounded-xl bg-canvas',
-                  u.status === 'failed' && 'ring-2 ring-inset ring-danger/40',
-                )
-              "
-            >
-              <img v-if="u.previewUrl" :src="u.previewUrl" alt="" :class="cn('size-full object-cover', u.status !== 'failed' && 'opacity-60')" />
-              <div v-if="u.status !== 'failed'" class="absolute inset-0 grid place-items-center bg-charcoal/20">
-                <span class="inline-flex items-center gap-2 rounded-full bg-white/95 px-3 py-1.5 text-xs font-medium shadow-soft">
-                  <LoaderCircle v-if="u.status === 'uploading'" class="size-3.5 animate-spin" aria-hidden="true" />
-                  {{ u.status === 'uploading' ? 'Uploading…' : 'Waiting…' }}
-                </span>
-              </div>
-              <div v-else class="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/85 p-3 text-center">
-                <TriangleAlert class="size-5 text-danger" aria-hidden="true" />
-                <p class="text-xs font-medium text-danger">{{ u.error }}</p>
-              </div>
-              <div v-if="u.status === 'failed'" class="absolute right-2 top-2">
-                <FIconButton :icon="X" :label="`Dismiss ${u.fileName}`" size="sm" variant="surface" @click="dismissUpload(u.id)" />
-              </div>
+        <!-- Toolbar -->
+        <div class="mt-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <FPillTabs v-model="format" :options="tabs" label="Filter by format" />
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="relative min-w-0 flex-1 sm:w-52 sm:flex-none">
+              <Search class="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-subtle" aria-hidden="true" />
+              <label for="media-search" class="sr-only">Search media by file name</label>
+              <input
+                id="media-search"
+                v-model="search"
+                type="search"
+                placeholder="Search media…"
+                class="h-10 w-full rounded-full bg-white/70 pl-10 pr-4 text-sm outline-none ring-1 ring-charcoal/[0.08] transition-shadow placeholder:text-subtle focus:bg-white focus:ring-2 focus:ring-accent"
+              />
             </div>
-            <p class="mt-2.5 truncate text-sm font-medium" :title="u.fileName">{{ u.fileName }}</p>
-            <p class="text-xs text-muted">{{ formatBytes(u.sizeInBytes) }}</p>
-          </li>
+            <FSelect v-model="sort" label="Sort" hide-label size="sm" variant="plain" :options="sortOptions" class="w-[9.5rem]" />
+            <FSegmented v-model="view" :options="viewOptions" label="Layout" />
+          </div>
+        </div>
 
-          <!-- Library -->
-          <li v-for="m in visible" :key="m.id" class="group relative min-w-0">
-            <button
-              type="button"
-              class="block w-full text-left outline-none"
-              :aria-label="`${m.fileName}, ${m.width} by ${m.height}, ${formatBytes(m.sizeInBytes)}`"
-              @click="open(m.id)"
-            >
-              <span
-                class="block aspect-square overflow-hidden rounded-xl bg-canvas ring-1 ring-charcoal/[0.06] transition group-hover:ring-charcoal/20 group-focus-within:ring-2 group-focus-within:ring-accent"
-              >
-                <img
-                  :src="m.thumbnailUrl"
-                  :alt="m.fileName"
-                  loading="lazy"
-                  decoding="async"
-                  class="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                />
-              </span>
-              <span class="mt-2.5 block truncate text-sm font-medium" :title="m.fileName">{{ m.fileName }}</span>
-              <span class="block text-xs tabular-nums text-muted">{{ m.width }} × {{ m.height }} · {{ formatBytes(m.sizeInBytes) }}</span>
-            </button>
-            <div
-              class="absolute right-2 top-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
-            >
-              <FIconButton :icon="Trash2" :label="`Delete ${m.fileName}`" size="sm" variant="surface" :disabled="isDeleting" @click="remove(m)" />
-            </div>
-          </li>
-        </ul>
+        <!-- Loading -->
+        <div v-if="isPending" class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" aria-busy="true" aria-label="Loading media">
+          <FSkeleton v-for="i in 8" :key="i" class="aspect-[16/10] w-full" rounded="2xl" />
+        </div>
 
-        <!-- Nothing matches the filters -->
-        <div v-else class="flex flex-col items-center gap-3 px-6 py-16 text-center">
-          <span class="grid size-12 place-items-center rounded-2xl bg-canvas"><Images class="size-5" aria-hidden="true" /></span>
+        <!-- Error -->
+        <div v-else-if="isError" class="mt-6 flex flex-col items-center gap-3 rounded-panel bg-white px-6 py-16 text-center ring-1 ring-charcoal/[0.06]">
+          <span class="grid size-12 place-items-center rounded-2xl bg-canvas"><TriangleAlert class="size-5" aria-hidden="true" /></span>
+          <p class="font-medium">Couldn’t load the media</p>
+          <p class="max-w-xs text-sm text-muted">Check that the Forma API is running, then try again.</p>
+          <FButton size="sm" variant="secondary" :disabled="isFetching" @click="refetch()">Try again</FButton>
+        </div>
+
+        <!-- Empty library -->
+        <button
+          v-else-if="!media.length"
+          type="button"
+          class="mt-6 flex w-full flex-col items-center gap-3 rounded-panel border-[1.5px] border-dashed border-charcoal/15 bg-white/50 px-6 py-20 text-center transition-colors hover:border-charcoal/30 hover:bg-white"
+          @click="browse"
+        >
+          <span class="grid size-14 place-items-center rounded-2xl bg-white shadow-soft"><ImagePlus class="size-6" :stroke-width="1.5" aria-hidden="true" /></span>
+          <span class="mt-1 font-display text-lg font-bold tracking-[-0.02em]">No images yet</span>
+          <span class="max-w-sm text-sm text-muted">
+            Drop images anywhere on this page, paste one, or <span class="font-medium text-charcoal underline underline-offset-2">browse your files</span>.
+          </span>
+        </button>
+
+        <!-- Nothing matches -->
+        <div v-else-if="!visible.length" class="mt-6 flex flex-col items-center gap-3 rounded-panel bg-white/60 px-6 py-16 text-center ring-1 ring-charcoal/[0.06]">
+          <span class="grid size-12 place-items-center rounded-2xl bg-white shadow-soft"><Images class="size-5" aria-hidden="true" /></span>
           <p class="font-medium">No images match</p>
           <p class="max-w-xs text-sm text-muted">
             {{ search.trim() ? `No file name contains “${search.trim()}”` : `There are no ${format} images` }}{{ search.trim() && format !== 'all' ? ` among the ${format} images` : '' }}.
@@ -329,17 +368,85 @@ async function remove(item: MediaItem) {
           <FButton size="sm" variant="secondary" @click="clearFilters">Clear filters</FButton>
         </div>
 
-        <p v-if="media.length" class="border-t border-charcoal/[0.06] px-5 py-3 text-xs text-muted">
-          {{ media.length }} {{ media.length === 1 ? 'image' : 'images' }} · {{ formatBytes(totalSize) }} in total
-          <span class="hidden sm:inline">· Drop or paste images anywhere on this page to upload them</span>
-        </p>
-      </template>
-    </FCard>
+        <!-- Grid -->
+        <ul v-else-if="view === 'grid'" class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" aria-label="Images">
+          <li v-for="m in visible" :key="m.id">
+            <FMediaCard
+              :src="m.thumbnailUrl"
+              :alt="`${m.fileName}, ${m.width} × ${m.height}, ${formatBytes(m.sizeInBytes)}`"
+              :meta="`${m.extension} · ${formatBytes(m.sizeInBytes)}`"
+              :selected="openId === m.id"
+              @open="open(m.id)"
+            >
+              <template #actions>
+                <FMenu :items="menuFor(m)" :label="`Actions for ${m.fileName}`" variant="glass" />
+              </template>
+            </FMediaCard>
+          </li>
+        </ul>
+
+        <!-- List -->
+        <div v-else class="mt-6 overflow-x-auto rounded-panel bg-white ring-1 ring-charcoal/[0.06] shadow-soft">
+          <table class="w-full min-w-[640px] text-left text-sm">
+            <thead class="text-xs text-muted">
+              <tr class="border-b border-charcoal/[0.06]">
+                <th scope="col" class="px-5 py-3 font-medium">File</th>
+                <th scope="col" class="px-5 py-3 font-medium">Dimensions</th>
+                <th scope="col" class="px-5 py-3 font-medium">Size</th>
+                <th scope="col" class="px-5 py-3 font-medium">Uploaded</th>
+                <th scope="col" class="w-14 px-5 py-3"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="m in visible"
+                :key="m.id"
+                class="cursor-pointer border-b border-charcoal/[0.04] transition-colors last:border-0 hover:bg-warm-white"
+                @click="open(m.id)"
+              >
+                <td class="px-5 py-3">
+                  <div class="flex items-center gap-3">
+                    <img :src="m.thumbnailUrl" alt="" loading="lazy" class="h-11 w-16 shrink-0 rounded-lg bg-canvas object-cover" />
+                    <div class="min-w-0">
+                      <button type="button" class="block max-w-[260px] truncate text-left font-medium hover:underline" @click.stop="open(m.id)">{{ m.fileName }}</button>
+                      <p class="flex items-center gap-1 text-xs text-muted"><ImageIcon class="size-3" aria-hidden="true" />{{ m.extension }}</p>
+                    </div>
+                  </div>
+                </td>
+                <td class="whitespace-nowrap px-5 py-3 tabular-nums text-muted">{{ m.width }} × {{ m.height }}</td>
+                <td class="whitespace-nowrap px-5 py-3 tabular-nums text-muted">{{ formatBytes(m.sizeInBytes) }}</td>
+                <td class="whitespace-nowrap px-5 py-3 text-muted">{{ uploadedOn(m.createdAt) }}</td>
+                <td class="px-5 py-3" @click.stop>
+                  <FMenu :items="menuFor(m)" :label="`Actions for ${m.fileName}`" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Side panel -->
+      <div class="flex flex-col gap-4 xl:sticky xl:top-4 xl:self-start">
+        <FSelect v-model="websiteId" label="Website" hide-label size="sm" :options="websiteOptions" />
+        <MediaSidePanel
+          ref="sidePanel"
+          :media="media"
+          :uploads="uploads"
+          :can-upload="canUpload"
+          @files="startUpload"
+          @dismiss="dismissUpload"
+          @dismiss-failed="dismissFailed(activeWebsite.id)"
+          @format="(f) => (format = f)"
+          @paste="pasteFromClipboard"
+          @website="goToWebsite"
+        />
+      </div>
+    </div>
 
     <!-- Drop overlay -->
     <Transition enter-from-class="opacity-0" leave-to-class="opacity-0" enter-active-class="transition duration-150" leave-active-class="transition duration-150">
       <div v-if="dragging" class="pointer-events-none fixed inset-0 z-50 grid place-items-center bg-charcoal/40 p-6 backdrop-blur-sm">
-        <div class="flex flex-col items-center gap-3 rounded-card border-2 border-dashed border-white/70 bg-charcoal/80 px-12 py-10 text-center text-warm-white">
+        <div class="flex flex-col items-center gap-3 rounded-panel border-2 border-dashed border-white/70 bg-charcoal/80 px-12 py-10 text-center text-warm-white">
           <ImagePlus class="size-7" aria-hidden="true" />
           <p class="font-display text-xl font-bold tracking-[-0.02em]">Drop to upload</p>
           <p class="text-sm text-warm-white/70">to {{ activeWebsite.name }} · JPEG, PNG, GIF or WebP, up to 10 MB</p>
@@ -349,14 +456,24 @@ async function remove(item: MediaItem) {
 
     <MediaDetails
       v-if="openItem"
+      v-model:open="detailsOpen"
       :item="openItem"
+      :website="activeWebsite"
       :index="Math.max(0, openIndex)"
       :total="Math.max(visible.length, 1)"
-      :deleting="isDeleting"
-      @close="open(null)"
+      :paused="confirmOpen"
       @prev="step(-1)"
       @next="step(1)"
-      @delete="remove(openItem)"
+      @delete="pendingDelete = openItem"
+      @website="goToWebsite"
+    />
+
+    <ConfirmDialog
+      v-model:open="confirmOpen"
+      :title="`Delete “${pendingDelete?.fileName ?? ''}”?`"
+      message="The image and its thumbnail are removed for good. Pages that use it will show a broken image."
+      :busy="isDeleting"
+      @confirm="confirmDelete"
     />
   </div>
 </template>

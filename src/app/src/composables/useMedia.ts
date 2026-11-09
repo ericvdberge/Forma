@@ -23,13 +23,17 @@ export const ACCEPT_ATTRIBUTE = [...Object.keys(ACCEPTED_TYPES), ...ACCEPTED_EXT
 /** How many files are sent at the same time. */
 const PARALLEL_UPLOADS = 3
 
+const EXTENSIONS: Record<string, string> = { JPEG: 'JPG', PNG: 'PNG', GIF: 'GIF', WebP: 'WEBP' }
+
 function toMediaItem(dto: MediaItemDto): MediaItem {
+  const format = ACCEPTED_TYPES[dto.contentType] ?? dto.contentType.replace(/^image\//, '').toUpperCase()
   return {
     id: dto.id,
     websiteId: dto.websiteId,
     fileName: dto.fileName,
     contentType: dto.contentType,
-    format: ACCEPTED_TYPES[dto.contentType] ?? dto.contentType.replace(/^image\//, '').toUpperCase(),
+    format,
+    extension: EXTENSIONS[format] ?? format.toUpperCase(),
     sizeInBytes: Number(dto.sizeInBytes),
     width: Number(dto.width),
     height: Number(dto.height),
@@ -51,10 +55,11 @@ export function checkFile(file: File): string | undefined {
 /** Reads the message out of whatever the API client threw. */
 function uploadErrorMessage(error: unknown): string {
   if (error instanceof TypeError) return 'Couldn’t reach the Forma API.'
-  const problem = error as HttpValidationProblemDetails | undefined
+  const problem = error as (HttpValidationProblemDetails & { status?: number | string | null }) | undefined
   const first = problem?.errors && Object.values(problem.errors).flat()[0]
   if (first) return first
-  if (problem?.status === 404 || problem?.status === '404') return 'This website no longer exists.'
+  if (Number(problem?.status) === 404) return 'This website no longer exists.'
+  if (Number(problem?.status) === 413) return 'The file is larger than the server accepts.'
   return 'The upload failed. Try again.'
 }
 
@@ -65,7 +70,10 @@ export interface PendingUpload {
   sizeInBytes: number
   /** Local object URL, shown until the server's thumbnail is ready. */
   previewUrl: string
-  status: 'queued' | 'uploading' | 'failed'
+  /** `processing`: all bytes sent, the API is still making the thumbnail. */
+  status: 'queued' | 'uploading' | 'processing' | 'failed'
+  /** 0–100 while uploading. */
+  progress: number
   error?: string
 }
 
@@ -114,7 +122,14 @@ export function useMedia() {
   async function send(entry: PendingUpload, file: File) {
     entry.status = 'uploading'
     try {
-      const dto = await upload({ body: { websiteId: entry.websiteId, file } })
+      const dto = await upload({
+        websiteId: entry.websiteId,
+        file,
+        onProgress: (percent) => {
+          entry.progress = percent
+          if (percent >= 100) entry.status = 'processing'
+        },
+      })
       updateCachedMedia(entry.websiteId, (dtos) => [dto, ...dtos.filter((d) => d.id !== dto.id)])
       forget(entry.id)
       return true
@@ -137,6 +152,7 @@ export function useMedia() {
         sizeInBytes: file.size,
         previewUrl: error ? '' : URL.createObjectURL(file),
         status: error ? 'failed' : 'queued',
+        progress: 0,
         error,
       }
       uploads.unshift(entry)
