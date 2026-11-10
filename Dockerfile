@@ -50,7 +50,10 @@ COPY --from=versity/versitygw:v1.10.0 /usr/local/bin/versitygw /usr/local/bin/ve
 
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisor/forma.conf
-COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/forma-entrypoint
+COPY docker/entrypoint.sh /usr/local/bin/forma-entrypoint
+# Strip Windows line endings in case the checkout converted them, and make the entrypoint executable.
+RUN sed -i 's/\r$//' /usr/local/bin/forma-entrypoint /etc/supervisor/forma.conf /etc/nginx/nginx.conf \
+    && chmod 755 /usr/local/bin/forma-entrypoint
 COPY --from=app-build /src/src/app/dist /app/wwwroot
 COPY --from=api-build /app/api /app/api
 
