@@ -90,6 +90,7 @@ The Forma CMS, where you manage your websites and their pages.
 | `/`              | Dashboard: websites, stats, recent activity                     |
 | `/pages`         | Pages of the active website: filter, create, publish, archive   |
 | `/websites/:id?` | Switch the active website and edit its details                  |
+| `/studio/:pageId?` | Design Studio: drag & drop page editor (mock content for now)  |
 | everything else  | Sections that are designed but not built yet show "coming soon" |
 
 Websites and pages load from the API through a typed client generated from its OpenAPI document (`@hey-api/openapi-ts` + TanStack Vue Query). Recent activity is still seed data. Until write endpoints exist, edits only update the query cache. In development Vite proxies `/api/*` to the API. Set `FORMA_API_URL` to proxy somewhere else, or `VITE_API_URL` to call a different base URL directly.
@@ -225,7 +226,7 @@ Forma speaks with clarity and quiet confidence. No hype, no jargon, no exaggerat
 - [x] Pages list
 - [x] API: read websites & pages
 - [ ] API: create, update & publish
-- [ ] Design Studio: drag & drop editor
+- [x] Design Studio: drag & drop editor (frontend, mock content)
 - [ ] Templates, blocks & global styles
 - [ ] Publishing & custom domains
 - [ ] Self-hosting guide

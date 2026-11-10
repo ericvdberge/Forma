@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Ellipsis, FileText, Plus, Search, Trash2, TriangleAlert, Upload, Undo2, X } from 'lucide-vue-next'
+import { Ellipsis, FileText, PenTool, Plus, Search, Trash2, TriangleAlert, Upload, Undo2, X } from 'lucide-vue-next'
 import { FButton, FCard, FIconButton, FInput, FSelect, FSkeleton, FStatus, cn } from '@forma/design-system'
 import PageHeader from '@/components/PageHeader.vue'
 import { useWebsites } from '@/composables/useWebsites'
@@ -251,6 +251,13 @@ function act(id: string, action: 'publish' | 'unpublish' | 'delete') {
                       :style="{ top: `${menuPos.top}px`, right: `${menuPos.right}px` }"
                       class="fixed z-40 w-48 rounded-2xl bg-white p-1.5 ring-1 ring-charcoal/[0.06] shadow-float"
                     >
+                      <button
+                        role="menuitem"
+                        class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm hover:bg-canvas"
+                        @click="router.push({ name: 'studio', params: { pageId: p.id } })"
+                      >
+                        <PenTool class="size-4" aria-hidden="true" /> Edit in Design Studio
+                      </button>
                       <button
                         v-if="p.status !== 'live'"
                         role="menuitem"

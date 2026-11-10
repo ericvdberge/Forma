@@ -27,6 +27,7 @@ Don't edit `src/api/generated` by hand. Base URL setup lives in `src/api/client-
 | `/`              | Dashboard                                                   |
 | `/pages`         | Pages of the active website: filter, create, publish, archive |
 | `/websites/:id?` | Switch the active website and edit its details              |
+| `/studio/:pageId?` | Design Studio: the visual page editor (defaults to the Home page) |
 | everything else  | Designed sections that aren't built yet show "coming soon"  |
 
 ## Structure
@@ -36,11 +37,22 @@ src/
   api/                   generated API client + its runtime config
   components/shell/      sidebar, top bar, global search (Ctrl/⌘ K)
   components/dashboard/  dashboard sections
+  components/studio/     Design Studio: library, canvas, inspector, block renderers
   components/skeletons/  loading placeholders per view
-  data/                  types + seed content
+  data/                  types + seed content; data/studio/ holds the studio's mock JSON
+  studio/                page document model, block registry, section templates
   queriers/              TanStack Query per resource, e.g. useWebsitesQuerier().getWebsites() (activity serves seed data for now)
   composables/           view-facing composables on top of the queriers: useWebsites, usePages, useActivity, useActiveWebsite, useToast
   views/                 routed pages
 ```
 
 Websites and pages are loaded from the API. Activity is seed data served through Vue Query. All edits only update the query cache until write endpoints exist, so they reset on reload. The active website and sidebar state are remembered per browser.
+
+## Design Studio
+
+`/studio/:pageId` edits a page as a document of **sections**, each holding **blocks** (`src/studio/types.ts`). Each block type is registered once in `src/studio/blocks.ts` with its defaults and inspector fields; the inspector's forms are generated from those fields, and `components/studio/blocks/` holds the component that draws each type.
+
+- **Data**: page documents, the media library and saved items come from the JSON in `src/data/studio/` through `useStudioQuerier` (mock latency included). `home.json` is used for a page with the `home` slug, `page.json` for every other page.
+- **Cache**: every edit writes a new draft to the Vue Query cache (`['studio', 'page', id]`, alongside the last published version). Drafts survive navigating around the app, reset on reload, and are what the API will receive once it has a content endpoint.
+- **Editing**: drag blocks and templates from the library (or click to add after the selection), drag the grip to move things, edit text in place with Tiptap, and set padding per device: tablet and mobile inherit from desktop until overridden. Undo/redo covers every change, text included.
+- **Publishing**: "Publish changes" copies the draft to the published version and marks the page live; "Discard" goes back to the last published version (and can be undone).

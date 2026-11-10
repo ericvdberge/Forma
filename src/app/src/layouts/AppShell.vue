@@ -7,6 +7,7 @@ import AppSidebar from '@/components/shell/AppSidebar.vue'
 import AppTopbar from '@/components/shell/AppTopbar.vue'
 import DashboardSkeleton from '@/components/skeletons/DashboardSkeleton.vue'
 import PagesSkeleton from '@/components/skeletons/PagesSkeleton.vue'
+import StudioSkeleton from '@/components/skeletons/StudioSkeleton.vue'
 import WebsitesSkeleton from '@/components/skeletons/WebsitesSkeleton.vue'
 import { useWebsites } from '@/composables/useWebsites'
 import { useToast } from '@/composables/useToast'
@@ -22,6 +23,7 @@ const skeletons: Record<string, Component> = {
   pages: PagesSkeleton,
   websites: WebsitesSkeleton,
   website: WebsitesSkeleton,
+  studio: StudioSkeleton,
 }
 const skeleton = computed(() => skeletons[String(route.name)])
 

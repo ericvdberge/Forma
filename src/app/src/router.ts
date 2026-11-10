@@ -23,10 +23,15 @@ export const router = createRouter({
           component: () => import('@/views/WebsitesView.vue'),
           meta: { title: 'Websites' },
         },
+        {
+          path: 'studio/:pageId?',
+          name: 'studio',
+          component: () => import('@/views/StudioView.vue'),
+          meta: { title: 'Design Studio' },
+        },
         // Sections that are designed but not built yet share one placeholder.
         ...(
           [
-            ['studio', 'Design Studio'],
             ['templates', 'Templates'],
             ['blocks', 'Blocks'],
             ['media', 'Media'],

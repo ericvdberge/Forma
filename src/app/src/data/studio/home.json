@@ -1,0 +1,227 @@
+{
+  "sections": [
+    {
+      "id": "s_hero",
+      "settings": {
+        "type": "hero",
+        "minHeight": 560,
+        "verticalAlign": "start",
+        "gap": 18,
+        "radius": 16,
+        "padding": {
+          "desktop": { "top": 20, "bottom": 72, "left": 24, "right": 24 },
+          "tablet": { "bottom": 56, "left": 20, "right": 20 },
+          "mobile": { "top": 12, "bottom": 40, "left": 12, "right": 12 }
+        },
+        "background": {
+          "kind": "image",
+          "image": "/media/hero.svg",
+          "position": "left center",
+          "overlayColor": "#ffffff",
+          "overlayOpacity": 0
+        },
+        "animation": { "entrance": "fade-up", "delay": 0 }
+      },
+      "blocks": [
+        { "id": "b_nav", "type": "nav", "props": { "card": true }, "style": { "marginBottom": 56 } },
+        { "id": "b_badge", "type": "badge", "props": { "text": "Design with ease" }, "style": { "marginTop": 8 } },
+        {
+          "id": "b_title",
+          "type": "heading",
+          "props": { "html": "<p>Build beautiful <span data-muted=\"\">experiences.</span></p>", "level": 1, "size": "xl" },
+          "style": { "maxWidth": "md" }
+        },
+        {
+          "id": "b_intro",
+          "type": "text",
+          "props": { "html": "<p>A modern, flexible design system for building stunning websites and apps.</p>", "size": "lg", "tone": "default" },
+          "style": { "maxWidth": "sm" }
+        },
+        { "id": "b_cta1", "type": "button", "props": { "label": "Start creating", "href": "/signup" }, "style": { "marginTop": 12 } },
+        {
+          "id": "b_cta2",
+          "type": "button",
+          "props": { "label": "Explore templates", "href": "/templates", "variant": "secondary", "arrow": false },
+          "style": { "marginTop": 12 }
+        }
+      ]
+    },
+    {
+      "id": "s_features",
+      "settings": {
+        "type": "features",
+        "name": "Highlights",
+        "padding": {
+          "desktop": { "top": 16, "bottom": 16, "left": 0, "right": 0 }
+        },
+        "animation": { "entrance": "fade-up", "delay": 0.1 }
+      },
+      "blocks": [
+        {
+          "id": "b_features",
+          "type": "features",
+          "props": {
+            "columns": 4,
+            "card": true,
+            "items": [
+              { "icon": "wand", "title": "Visual Freedom", "text": "Drag, drop and customize with ease." },
+              { "icon": "layers", "title": "Modern Components", "text": "A rich library of blocks." },
+              { "icon": "zap", "title": "Blazing Fast", "text": "Optimized for performance." },
+              { "icon": "scale", "title": "Built for Scale", "text": "Grow without limits." }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "s_platform",
+      "settings": {
+        "type": "split",
+        "name": "Our platform",
+        "layout": "split",
+        "splitAt": 1,
+        "splitRatio": 40,
+        "gap": 16,
+        "radius": 16,
+        "padding": {
+          "desktop": { "top": 24, "bottom": 24, "left": 24, "right": 64 },
+          "tablet": { "right": 32 },
+          "mobile": { "top": 20, "bottom": 32, "left": 20, "right": 20 }
+        },
+        "background": { "kind": "color", "color": "#ffffff" },
+        "animation": { "entrance": "fade-up", "delay": 0 }
+      },
+      "blocks": [
+        { "id": "b_facade", "type": "image", "props": { "src": "/media/facade.svg", "alt": "A white sculpted building facade", "aspect": "4/3", "radius": 12 } },
+        { "id": "b_platform_badge", "type": "badge", "props": { "text": "Our platform" } },
+        {
+          "id": "b_platform_title",
+          "type": "heading",
+          "props": { "html": "<p>Create without <span data-muted=\"\">limits.</span></p>", "level": 2, "size": "lg" }
+        },
+        {
+          "id": "b_platform_text",
+          "type": "text",
+          "props": { "html": "<p>From landing pages to complex web apps, Forma gives you the tools to bring your ideas to life.</p>", "size": "lg" }
+        },
+        { "id": "b_platform_link", "type": "button", "props": { "label": "See how it works", "variant": "secondary", "size": "sm" }, "style": { "marginTop": 8 } }
+      ]
+    },
+    {
+      "id": "s_gallery",
+      "settings": {
+        "type": "content",
+        "name": "Showcase",
+        "align": "center",
+        "gap": 16,
+        "padding": {
+          "desktop": { "top": 88, "bottom": 56, "left": 48, "right": 48 },
+          "tablet": { "top": 64, "left": 32, "right": 32 },
+          "mobile": { "top": 48, "bottom": 40, "left": 20, "right": 20 }
+        },
+        "animation": { "entrance": "fade", "delay": 0 }
+      },
+      "blocks": [
+        { "id": "b_gallery_badge", "type": "badge", "props": { "text": "Showcase" } },
+        { "id": "b_gallery_title", "type": "heading", "props": { "html": "<p>Made with Forma</p>", "size": "lg" } },
+        {
+          "id": "b_gallery_text",
+          "type": "text",
+          "props": { "html": "<p>Studios, shops and storytellers build their home on the web with Forma.</p>" },
+          "style": { "maxWidth": "sm", "marginBottom": 16 }
+        },
+        { "id": "b_carousel", "type": "carousel", "props": { "aspect": "21/9" } }
+      ]
+    },
+    {
+      "id": "s_testimonials",
+      "settings": {
+        "type": "content",
+        "name": "Testimonials",
+        "padding": {
+          "desktop": { "top": 40, "bottom": 80, "left": 48, "right": 48 },
+          "tablet": { "left": 32, "right": 32 },
+          "mobile": { "top": 24, "bottom": 48, "left": 20, "right": 20 }
+        }
+      },
+      "blocks": [{ "id": "b_testimonials", "type": "testimonials" }]
+    },
+    {
+      "id": "s_faq",
+      "settings": {
+        "type": "content",
+        "name": "FAQ",
+        "contentWidth": "normal",
+        "gap": 16,
+        "padding": {
+          "desktop": { "top": 64, "bottom": 80, "left": 48, "right": 48 },
+          "tablet": { "left": 32, "right": 32 },
+          "mobile": { "top": 40, "bottom": 48, "left": 20, "right": 20 }
+        },
+        "background": { "kind": "color", "color": "#ffffff" },
+        "radius": 16
+      },
+      "blocks": [
+        { "id": "b_faq_title", "type": "heading", "props": { "html": "<p>Questions, <span data-muted=\"\">answered.</span></p>", "size": "md" } },
+        { "id": "b_faq", "type": "faq" }
+      ]
+    },
+    {
+      "id": "s_cta",
+      "settings": {
+        "type": "cta",
+        "align": "center",
+        "theme": "dark",
+        "contentWidth": "normal",
+        "radius": 16,
+        "padding": {
+          "desktop": { "top": 88, "bottom": 88, "left": 48, "right": 48 },
+          "tablet": { "top": 72, "bottom": 72, "left": 32, "right": 32 },
+          "mobile": { "top": 56, "bottom": 56, "left": 20, "right": 20 }
+        },
+        "background": {
+          "kind": "image",
+          "image": "/media/arch-dark.svg",
+          "position": "center",
+          "overlayColor": "#0b0b0f",
+          "overlayOpacity": 55
+        },
+        "animation": { "entrance": "zoom", "delay": 0 }
+      },
+      "blocks": [
+        { "id": "b_cta_title", "type": "heading", "props": { "html": "<p>Ready to build something beautiful?</p>", "size": "lg" } },
+        { "id": "b_cta_text", "type": "text", "props": { "html": "<p>Start for free. No credit card required.</p>" } },
+        { "id": "b_cta_button", "type": "button", "props": { "label": "Get started", "variant": "accent" }, "style": { "marginTop": 8 } }
+      ]
+    },
+    {
+      "id": "s_footer",
+      "settings": {
+        "type": "footer",
+        "gap": 20,
+        "padding": {
+          "desktop": { "top": 48, "bottom": 32, "left": 48, "right": 48 },
+          "tablet": { "left": 32, "right": 32 },
+          "mobile": { "top": 40, "left": 20, "right": 20 }
+        }
+      },
+      "blocks": [
+        {
+          "id": "b_footer_nav",
+          "type": "nav",
+          "props": {
+            "links": [
+              { "label": "Product", "href": "#" },
+              { "label": "Templates", "href": "#" },
+              { "label": "Docs", "href": "#" },
+              { "label": "Contact", "href": "#" }
+            ],
+            "ctaLabel": ""
+          }
+        },
+        { "id": "b_footer_line", "type": "divider" },
+        { "id": "b_footer_text", "type": "text", "props": { "html": "<p>© 2026 Forma. Built with Forma.</p>", "size": "sm" } }
+      ]
+    }
+  ]
+}
