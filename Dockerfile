@@ -1,8 +1,8 @@
 # Forma in one image: the CMS app (nginx), the API (.NET) and media storage (versitygw, S3-compatible),
 # kept running by supervisord. Build from the repository root:
 #   docker build -t forma .
-#   docker run -p 8080:8080 -v forma-assets:/app/assets forma
-# Uploaded images and thumbnails are plain files under /app/assets, a volume.
+#   docker run -p 8080:8080 -v forma-assets:/app/assets -v forma-data:/app/data forma
+# Uploaded images and thumbnails are plain files under /app/assets, the database is /app/data/forma.db.
 
 # --- CMS app (Vue) ---------------------------------------------------------------------------
 FROM node:22-bookworm-slim AS app-build
@@ -57,9 +57,10 @@ RUN sed -i 's/\r$//' /usr/local/bin/forma-entrypoint /etc/supervisor/forma.conf 
 COPY --from=app-build /src/src/app/dist /app/wwwroot
 COPY --from=api-build /app/api /app/api
 
-# Owned by the non-root `app` user, so a fresh named volume inherits that ownership.
-RUN mkdir -p /app/assets && chown app:app /app/assets
-VOLUME /app/assets
+# Owned by the non-root `app` user, so fresh named volumes inherit that ownership.
+# /app/assets holds uploaded images, /app/data the SQLite database.
+RUN mkdir -p /app/assets /app/data && chown app:app /app/assets /app/data
+VOLUME ["/app/assets", "/app/data"]
 
 USER app
 EXPOSE 8080

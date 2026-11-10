@@ -25,7 +25,15 @@ public class S3AssetStorage(IAmazonS3 s3, S3StorageOptions options) : IAssetStor
         catch (AmazonS3Exception e) when (e.ErrorCode == "NoSuchBucket")
         {
             // First upload against a fresh store: create the bucket and try once more.
-            await s3.PutBucketAsync(options.Bucket, cancellationToken);
+            try
+            {
+                await s3.PutBucketAsync(options.Bucket, cancellationToken);
+            }
+            catch (AmazonS3Exception created) when (created.ErrorCode == "BucketAlreadyOwnedByYou")
+            {
+                // Uploads that run side by side race to create it; losing that race is fine.
+            }
+
             content.Position = 0;
             await s3.PutObjectAsync(request, cancellationToken);
         }

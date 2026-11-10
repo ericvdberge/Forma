@@ -164,15 +164,15 @@ The [`Dockerfile`](Dockerfile) builds Forma into one image. [supervisord](http:/
 | Process   | What it does                                                                 |
 | --------- | ---------------------------------------------------------------------------- |
 | `nginx`   | Serves the CMS app on port 8080 and proxies `/api` to the API                 |
-| `api`     | The Forma API                                                                |
+| `api`     | The Forma API, with its SQLite database in `/app/data` (a volume)             |
 | `storage` | versitygw, the S3 endpoint for media, storing files in `/app/assets` (a volume) |
 
 ```bash
 docker build -t forma .
-docker run -p 8080:8080 -v forma-assets:/app/assets forma
+docker run -p 8080:8080 -v forma-assets:/app/assets -v forma-data:/app/data forma
 ```
 
-Or run `docker compose up --build forma` ([`docker-compose.yml`](docker-compose.yml)). Run `docker exec <container> supervisorctl -c /etc/supervisor/forma.conf status` to see the processes. The storage credentials only stay inside the container; set `STORAGE_ACCESS_KEY` and `STORAGE_SECRET_KEY` to pin them.
+Or run `docker compose up --build forma` ([`docker-compose.yml`](docker-compose.yml)). Run `docker exec <container> supervisorctl -c /etc/supervisor/forma.conf status` to see the processes. The storage credentials only stay inside the container; set `STORAGE_ACCESS_KEY` and `STORAGE_SECRET_KEY` to pin them. The API applies database migrations on start. Because websites can't be created yet, an empty database gets the sample websites and pages; set `FORMA_SAMPLE_DATA=false` to start without them.
 
 ## Project structure
 

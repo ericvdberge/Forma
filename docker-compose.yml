@@ -8,6 +8,8 @@ services:
     volumes:
       # Uploaded images and their thumbnails, as plain files.
       - forma-assets:/app/assets
+      # The SQLite database.
+      - forma-data:/app/data
 
   # Media storage for local development with `dotnet run`: docker compose up storage
   storage:
@@ -24,4 +26,5 @@ services:
 
 volumes:
   forma-assets:
+  forma-data:
   forma-dev-assets:

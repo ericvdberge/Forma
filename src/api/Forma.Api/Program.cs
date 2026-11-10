@@ -25,12 +25,14 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
+}
 
-    // Skip migrations/seeding when the build-time OpenAPI generator boots the app.
-    if (Assembly.GetEntryAssembly()?.GetName().Name != "GetDocument.Insider")
-    {
-        await app.Services.InitializeDatabaseAsync();
-    }
+// Skip migrations/seeding when the build-time OpenAPI generator boots the app.
+if (Assembly.GetEntryAssembly()?.GetName().Name != "GetDocument.Insider")
+{
+    // Sample data is always there in development; elsewhere only when Database:SeedSampleData is set.
+    var seedSampleData = app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Database:SeedSampleData");
+    await app.Services.InitializeDatabaseAsync(seedSampleData);
 }
 
 app.UseHttpsRedirection();
