@@ -134,7 +134,7 @@ export type UploadMediaData = {
 
 export type UploadMediaErrors = {
     /**
-     * The file is missing, empty, too large, or not a supported image.
+     * The file is missing, empty, too large, damaged, or not a supported image.
      */
     400: HttpValidationProblemDetails;
     /**

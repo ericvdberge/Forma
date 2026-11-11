@@ -26,8 +26,8 @@ export const getMediaItems = <ThrowOnError extends boolean = false>(options: Opt
 /**
  * Uploads an image to a website's media library and creates its thumbnail.
  *
- * Accepts JPEG, PNG, GIF and WebP files up to 10 MB. The file's contents are checked as well as
- * its extension, so a file that is not really a supported image is rejected.
+ * Accepts JPEG, PNG, GIF and WebP files up to 10 MB and 100 megapixels. The file's contents are checked
+ * as well as its extension, so a file that is not really a supported image, or is damaged, is rejected.
  */
 export const uploadMedia = <ThrowOnError extends boolean = false>(options: Options<UploadMediaData, ThrowOnError>): RequestResult<UploadMediaResponses, UploadMediaErrors, ThrowOnError> => (options.client ?? client).post<UploadMediaResponses, UploadMediaErrors, ThrowOnError>({
     ...formDataBodySerializer,

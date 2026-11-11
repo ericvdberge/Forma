@@ -9,6 +9,15 @@ public class VipsImageProcessor : IImageProcessor
     public const int ThumbnailMaxSize = 400;
 
     /// <summary>
+    /// Most pixels an image may have (about 10,000 × 10,000). Compressed files can claim far larger sizes
+    /// than their bytes suggest, and decoding those would take minutes and gigabytes.
+    /// </summary>
+    public const long MaxPixels = 100_000_000;
+
+    private const string UnsupportedError = "Only JPEG, PNG, GIF and WebP images are allowed.";
+    private const string DamagedError = "The image is damaged or incomplete.";
+
+    /// <summary>
     /// How many images are decoded at once. Each decode holds the upload and its pixel buffers, and libvips
     /// already spreads one image over every core, so a bulk upload queues here instead of running out of memory.
     /// </summary>
@@ -32,7 +41,7 @@ public class VipsImageProcessor : IImageProcessor
         ["VipsForeignLoadWebpBuffer"] = ("image/webp", ".webp"),
     };
 
-    public async Task<ProcessedImage?> ProcessAsync(byte[] content, CancellationToken cancellationToken = default)
+    public async Task<ImageProcessingResult> ProcessAsync(byte[] content, CancellationToken cancellationToken = default)
     {
         await _gate.WaitAsync(cancellationToken);
         try
@@ -45,29 +54,42 @@ public class VipsImageProcessor : IImageProcessor
         }
     }
 
-    private static ProcessedImage? Process(byte[] content)
+    private static ImageProcessingResult Process(byte[] content)
     {
         var loader = Image.FindLoadBuffer(content);
         if (loader is null || !SupportedLoaders.TryGetValue(loader, out var format))
         {
-            return null;
+            return new ImageProcessingResult.Rejected(UnsupportedError);
         }
 
         try
         {
+            // Opening reads only the header, so the size is checked before any pixels are decoded.
+            // FailOn.Truncated makes decoding a cut-off or corrupt file fail instead of filling in grey.
+            using var original = Image.NewFromBuffer(content, access: Enums.Access.Sequential, failOn: Enums.FailOn.Truncated);
+            if ((long)original.Width * original.Height > MaxPixels)
+            {
+                return new ImageProcessingResult.Rejected(
+                    $"The image is larger than {MaxPixels / 1_000_000} megapixels.");
+            }
+
+            // Decode every pixel once, top to bottom, so a damaged file is caught here. The thumbnail can't
+            // tell: it decodes JPEGs at reduced size and only the first frame of a GIF.
+            original.Avg();
+
             // Autorot applies the EXIF orientation, so width and height are as the image is displayed.
-            using var original = Image.NewFromBuffer(content, access: Enums.Access.Sequential);
             using var oriented = original.Autorot();
 
             // ThumbnailBuffer also auto-rotates, and never upscales with Size.Down.
             using var thumbnail = Image.ThumbnailBuffer(content, ThumbnailMaxSize, height: ThumbnailMaxSize, size: Enums.Size.Down);
 
-            return new ProcessedImage(format.ContentType, format.Extension, oriented.Width, oriented.Height, thumbnail.WebpsaveBuffer(q: 80));
+            var processed = new ProcessedImage(format.ContentType, format.Extension, oriented.Width, oriented.Height, thumbnail.WebpsaveBuffer(q: 80));
+            return new ImageProcessingResult.Processed(processed);
         }
         catch (VipsException)
         {
             // The header matched a supported format but the image itself is corrupt.
-            return null;
+            return new ImageProcessingResult.Rejected(DamagedError);
         }
     }
 }

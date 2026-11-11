@@ -75,10 +75,11 @@ public class MediaCoreService(
         // Buffer the upload once: it is decoded for validation and the thumbnail, then stored as-is.
         var bytes = await ReadAllBytesAsync(content, cancellationToken);
 
-        var image = await imageProcessor.ProcessAsync(bytes, cancellationToken);
-        if (image is null)
+        var processing = await imageProcessor.ProcessAsync(bytes, cancellationToken);
+        if (processing is not ImageProcessingResult.Processed { Image: var image })
         {
-            return new MediaUploadResult.Rejected("Only JPEG, PNG, GIF and WebP images are allowed.");
+            var error = processing is ImageProcessingResult.Rejected rejected ? rejected.Error : "The image could not be processed.";
+            return new MediaUploadResult.Rejected(error);
         }
 
         var id = Guid.CreateVersion7();
