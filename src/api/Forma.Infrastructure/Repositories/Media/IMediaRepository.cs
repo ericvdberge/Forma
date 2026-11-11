@@ -1,4 +1,4 @@
-using Forma.Infrastructure.DataAccessObjects.Media;
+using Forma.Infrastructure.Daos;
 
 namespace Forma.Infrastructure.Repositories.Media;
 

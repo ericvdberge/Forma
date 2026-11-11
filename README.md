@@ -105,7 +105,7 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 | ---------------------- | -------------------------------------------------------------------- |
 | `Forma.Api`            | Minimal API endpoints, DTOs and Mapperly mappers, OpenAPI + Scalar   |
 | `Forma.Application`    | Domain entities and core services                                    |
-| `Forma.Infrastructure` | EF Core `DbContext`, SQLite, migrations, seeding, repositories, S3 media storage and image processing |
+| `Forma.Infrastructure` | EF Core `DbContext`, SQLite, migrations, seeding, repositories, media file storage and image processing |
 
 | Endpoint                    | Returns                                                         |
 | --------------------------- | --------------------------------------------------------------- |
@@ -122,9 +122,7 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 
 Uploads are images only: JPEG, PNG, GIF or WebP, at most 10 MB. A FluentValidation validator checks the size, file name and extension before the upload reaches the core service, which then checks the format from the file's bytes, so anything else (SVG included) is rejected with `400`. The API keeps the original unchanged and renders a WebP thumbnail of at most 400 px on its longest side, with EXIF rotation applied, using [NetVips](https://github.com/kleisauke/net-vips) (libvips).
 
-Files are stored through the standard AWS S3 client (`AWSSDK.S3`) in the bucket `Storage:Bucket`, under `{websiteId}/originals/{id}.{ext}` and `{websiteId}/thumbnails/{id}.webp`. Locally that S3 endpoint is [versitygw](https://github.com/versity/versitygw), which keeps every object as a plain file on disk. Any other S3-compatible store works by changing `Storage:ServiceUrl` and the keys. Files are served through the API's `/media/{id}/image` and `/media/{id}/thumbnail` routes, which each media item's `imageUrl` and `thumbnailUrl` point to.
-
-For `dotnet run`, start the local storage first: `docker compose up storage` (S3 on `:7070`, credentials as in `appsettings.Development.json`).
+Files are stored as plain files in the folder `Assets:Path` (default `assets`, `/app/assets` in Docker), under `{websiteId}/originals/{id}.{ext}` and `{websiteId}/thumbnails/{id}.webp`. Storage sits behind `IAssetStorage`, so an S3-compatible store can be added later without touching the rest of the API. Files are served through the API's `/media/{id}/image` and `/media/{id}/thumbnail` routes, which each media item's `imageUrl` and `thumbnailUrl` point to.
 
 In development the API applies migrations and seeds sample data on startup into `forma.db`, which is git-ignored. It serves interactive docs at **http://localhost:5134/scalar**. Each `dotnet build` writes the OpenAPI document to `src/api/Forma.Api/OpenApi/forma-api.json`, and the app's client is generated from that file.
 
@@ -159,20 +157,19 @@ After you change an API endpoint or DTO, run `npm run generate:api` and commit t
 
 ### Docker
 
-The [`Dockerfile`](Dockerfile) builds Forma into one image. [supervisord](http://supervisord.org) runs and restarts three processes:
+The [`Dockerfile`](Dockerfile) builds Forma into one image. [supervisord](http://supervisord.org) runs and restarts two processes:
 
 | Process   | What it does                                                                 |
 | --------- | ---------------------------------------------------------------------------- |
 | `nginx`   | Serves the CMS app on port 8080 and proxies `/api` to the API                 |
 | `api`     | The Forma API, with its SQLite database in `/app/data` (a volume)             |
-| `storage` | versitygw, the S3 endpoint for media, storing files in `/app/assets` (a volume) |
 
 ```bash
 docker build -t forma .
 docker run -p 8080:8080 -v forma-assets:/app/assets -v forma-data:/app/data forma
 ```
 
-Or run `docker compose up --build forma` ([`docker-compose.yml`](docker-compose.yml)). Run `docker exec <container> supervisorctl -c /etc/supervisor/forma.conf status` to see the processes. The storage credentials only stay inside the container; set `STORAGE_ACCESS_KEY` and `STORAGE_SECRET_KEY` to pin them. The API applies database migrations on start. Because websites can't be created yet, an empty database gets the sample websites and pages; set `FORMA_SAMPLE_DATA=false` to start without them.
+Or run `docker compose up --build forma` ([`docker-compose.yml`](docker-compose.yml)). Run `docker exec <container> supervisorctl -c /etc/supervisor/forma.conf status` to see the processes. Uploaded media are plain files in `/app/assets`, a volume. The API applies database migrations on start. Because websites can't be created yet, an empty database gets the sample websites and pages; set `FORMA_SAMPLE_DATA=false` to start without them.
 
 ## Project structure
 
@@ -185,9 +182,9 @@ Forma/
 │   └── api/             .NET 10 backend (Forma.Api.slnx)
 │       ├── Forma.Api/             endpoints, DTOs, OpenAPI document
 │       ├── Forma.Application/     entities + core services
-│       └── Forma.Infrastructure/  EF Core, SQLite, repositories, S3 storage
+│       └── Forma.Infrastructure/  EF Core, SQLite, repositories, media storage
 ├── docker/              nginx, supervisord and entrypoint for the image
-├── Dockerfile           app + API + media storage in one image
+├── Dockerfile           app + API in one image
 └── package.json         npm workspaces root
 ```
 

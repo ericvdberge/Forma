@@ -39,38 +39,11 @@ const createQueryKey = <TOptions extends Options>(id: string, options?: TOptions
     return [params];
 };
 
-export const getWebsitesQueryKey = (options?: Options<GetWebsitesData>) => createQueryKey('getWebsites', options);
-
-export const getWebsitesOptions = (options?: Options<GetWebsitesData>) => queryOptions<GetWebsitesResponse, DefaultError, GetWebsitesResponse, ReturnType<typeof getWebsitesQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await getWebsites({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: getWebsitesQueryKey(options)
-});
-
-export const getPagesQueryKey = (options: Options<GetPagesData>) => createQueryKey('getPages', options);
-
-export const getPagesOptions = (options: Options<GetPagesData>) => queryOptions<GetPagesResponse, DefaultError, GetPagesResponse, ReturnType<typeof getPagesQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await getPages({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: getPagesQueryKey(options)
-});
-
 export const getMediaItemsQueryKey = (options: Options<GetMediaItemsData>) => createQueryKey('getMediaItems', options);
 
+/**
+ * Lists the media items of a website, newest first.
+ */
 export const getMediaItemsOptions = (options: Options<GetMediaItemsData>) => queryOptions<GetMediaItemsResponse, DefaultError, GetMediaItemsResponse, ReturnType<typeof getMediaItemsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getMediaItems({
@@ -84,6 +57,12 @@ export const getMediaItemsOptions = (options: Options<GetMediaItemsData>) => que
     queryKey: getMediaItemsQueryKey(options)
 });
 
+/**
+ * Uploads an image to a website's media library and creates its thumbnail.
+ *
+ * Accepts JPEG, PNG, GIF and WebP files up to 10 MB. The file's contents are checked as well as
+ * its extension, so a file that is not really a supported image is rejected.
+ */
 export const uploadMediaMutation = (options?: Partial<Options<UploadMediaData>>): UseMutationOptions<UploadMediaResponse, UploadMediaError, Options<UploadMediaData>> => {
     const mutationOptions: UseMutationOptions<UploadMediaResponse, UploadMediaError, Options<UploadMediaData>> = {
         mutationFn: async (fnOptions) => {
@@ -98,6 +77,9 @@ export const uploadMediaMutation = (options?: Partial<Options<UploadMediaData>>)
     return mutationOptions;
 };
 
+/**
+ * Deletes a media item together with its original image and thumbnail.
+ */
 export const deleteMediaMutation = (options?: Partial<Options<DeleteMediaData>>): UseMutationOptions<DeleteMediaResponse, DefaultError, Options<DeleteMediaData>> => {
     const mutationOptions: UseMutationOptions<DeleteMediaResponse, DefaultError, Options<DeleteMediaData>> = {
         mutationFn: async (fnOptions) => {
@@ -114,6 +96,9 @@ export const deleteMediaMutation = (options?: Partial<Options<DeleteMediaData>>)
 
 export const getMediaItemQueryKey = (options: Options<GetMediaItemData>) => createQueryKey('getMediaItem', options);
 
+/**
+ * Gets a single media item's details.
+ */
 export const getMediaItemOptions = (options: Options<GetMediaItemData>) => queryOptions<GetMediaItemResponse, DefaultError, GetMediaItemResponse, ReturnType<typeof getMediaItemQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getMediaItem({
@@ -129,6 +114,11 @@ export const getMediaItemOptions = (options: Options<GetMediaItemData>) => query
 
 export const getMediaImageQueryKey = (options: Options<GetMediaImageData>) => createQueryKey('getMediaImage', options);
 
+/**
+ * Streams the original image as it was uploaded.
+ *
+ * The response may be cached indefinitely, because a media item's files never change.
+ */
 export const getMediaImageOptions = (options: Options<GetMediaImageData>) => queryOptions<GetMediaImageResponse, DefaultError, GetMediaImageResponse, ReturnType<typeof getMediaImageQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getMediaImage({
@@ -144,6 +134,11 @@ export const getMediaImageOptions = (options: Options<GetMediaImageData>) => que
 
 export const getMediaThumbnailQueryKey = (options: Options<GetMediaThumbnailData>) => createQueryKey('getMediaThumbnail', options);
 
+/**
+ * Streams the image's WebP thumbnail.
+ *
+ * The response may be cached indefinitely, because a media item's files never change.
+ */
 export const getMediaThumbnailOptions = (options: Options<GetMediaThumbnailData>) => queryOptions<GetMediaThumbnailResponse, DefaultError, GetMediaThumbnailResponse, ReturnType<typeof getMediaThumbnailQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getMediaThumbnail({
@@ -155,4 +150,40 @@ export const getMediaThumbnailOptions = (options: Options<GetMediaThumbnailData>
         return data;
     },
     queryKey: getMediaThumbnailQueryKey(options)
+});
+
+export const getPagesQueryKey = (options: Options<GetPagesData>) => createQueryKey('getPages', options);
+
+/**
+ * Lists the pages of a website, most recently updated first.
+ */
+export const getPagesOptions = (options: Options<GetPagesData>) => queryOptions<GetPagesResponse, DefaultError, GetPagesResponse, ReturnType<typeof getPagesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPages({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPagesQueryKey(options)
+});
+
+export const getWebsitesQueryKey = (options?: Options<GetWebsitesData>) => createQueryKey('getWebsites', options);
+
+/**
+ * Lists all websites, most recently updated first.
+ */
+export const getWebsitesOptions = (options?: Options<GetWebsitesData>) => queryOptions<GetWebsitesResponse, DefaultError, GetWebsitesResponse, ReturnType<typeof getWebsitesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getWebsites({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getWebsitesQueryKey(options)
 });

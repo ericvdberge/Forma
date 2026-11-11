@@ -1,4 +1,4 @@
-using Forma.Infrastructure.DataAccessObjects.Websites;
+using Forma.Infrastructure.Daos;
 
 namespace Forma.Infrastructure.Repositories.Websites;
 

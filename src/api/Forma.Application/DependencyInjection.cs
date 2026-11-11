@@ -1,6 +1,4 @@
-using Forma.Application.Services.Media;
-using Forma.Application.Services.Pages;
-using Forma.Application.Services.Websites;
+using Forma.Application.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Forma.Application;

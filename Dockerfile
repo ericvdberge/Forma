@@ -1,5 +1,4 @@
-# Forma in one image: the CMS app (nginx), the API (.NET) and media storage (versitygw, S3-compatible),
-# kept running by supervisord. Build from the repository root:
+# Forma in one image: the CMS app (nginx) and the API (.NET), kept running by supervisord. Build from the repository root:
 #   docker build -t forma .
 #   docker run -p 8080:8080 -v forma-assets:/app/assets -v forma-data:/app/data forma
 # Uploaded images and thumbnails are plain files under /app/assets, the database is /app/data/forma.db.
@@ -44,9 +43,6 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 RUN apt-get update \
     && apt-get install -y --no-install-recommends nginx supervisor \
     && rm -rf /var/lib/apt/lists/*
-
-# S3-compatible gateway that stores each object as a file: bucket "media" is /app/assets/media.
-COPY --from=versity/versitygw:v1.10.0 /usr/local/bin/versitygw /usr/local/bin/versitygw
 
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisor/forma.conf
