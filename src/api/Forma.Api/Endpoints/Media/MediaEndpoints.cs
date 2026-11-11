@@ -92,7 +92,7 @@ public class MediaEndpoints : IEndpoints
         return deleted ? TypedResults.NoContent() : TypedResults.NotFound();
     }
 
-    private static Results<FileStreamHttpResult, NotFound> ToFileResult(MediaFile? file, HttpResponse response)
+    private static Results<FileStreamHttpResult, NotFound> ToFileResult((Stream Content, string ContentType)? file, HttpResponse response)
     {
         if (file is null)
         {
@@ -104,6 +104,6 @@ public class MediaEndpoints : IEndpoints
         response.Headers[HeaderNames.XContentTypeOptions] = "nosniff";
 
         // The stream result disposes the stream once it has been sent.
-        return TypedResults.Stream(file.Content, file.ContentType);
+        return TypedResults.Stream(file.Value.Content, file.Value.ContentType);
     }
 }

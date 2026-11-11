@@ -13,11 +13,11 @@ public interface IMediaCoreService
 
     Task<MediaItem?> GetMediaItemAsync(Guid id, CancellationToken cancellationToken = default);
 
-    /// <summary>Opens the original image, or returns <c>null</c> when the media item does not exist.</summary>
-    Task<MediaFile?> GetImageAsync(Guid id, CancellationToken cancellationToken = default);
+    /// <summary>Opens the original image and its content type, or returns <c>null</c> when the media item does not exist.</summary>
+    Task<(Stream Content, string ContentType)?> GetImageAsync(Guid id, CancellationToken cancellationToken = default);
 
-    /// <summary>Opens the WebP thumbnail, or returns <c>null</c> when the media item does not exist.</summary>
-    Task<MediaFile?> GetThumbnailAsync(Guid id, CancellationToken cancellationToken = default);
+    /// <summary>Opens the WebP thumbnail and its content type, or returns <c>null</c> when the media item does not exist.</summary>
+    Task<(Stream Content, string ContentType)?> GetThumbnailAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Checks that the upload really is a supported image, stores the original and a thumbnail
@@ -48,16 +48,16 @@ public class MediaCoreService(
         return media?.ToEntity();
     }
 
-    public async Task<MediaFile?> GetImageAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<(Stream Content, string ContentType)?> GetImageAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var media = await mediaRepository.GetByIdAsync(id, cancellationToken);
-        return media is null ? null : await OpenAsync(media.ImagePath, cancellationToken);
+        return media is null ? null : await OpenAsync(media.ImagePath, media.ContentType, cancellationToken);
     }
 
-    public async Task<MediaFile?> GetThumbnailAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<(Stream Content, string ContentType)?> GetThumbnailAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var media = await mediaRepository.GetByIdAsync(id, cancellationToken);
-        return media is null ? null : await OpenAsync(media.ThumbnailPath, cancellationToken);
+        return media is null ? null : await OpenAsync(media.ThumbnailPath, ProcessedImage.ThumbnailContentType, cancellationToken);
     }
 
     public async Task<MediaUploadResult> UploadAsync(
@@ -102,9 +102,9 @@ public class MediaCoreService(
         try
         {
             using var original = new MemoryStream(bytes, writable: false);
-            await assetStorage.SaveAsync(media.ImagePath, original, media.ContentType, cancellationToken);
+            await assetStorage.SaveAsync(media.ImagePath, original, cancellationToken);
             using var thumbnail = new MemoryStream(image.Thumbnail, writable: false);
-            await assetStorage.SaveAsync(media.ThumbnailPath, thumbnail, ProcessedImage.ThumbnailContentType, cancellationToken);
+            await assetStorage.SaveAsync(media.ThumbnailPath, thumbnail, cancellationToken);
 
             await mediaRepository.AddAsync(media.ToDao(), cancellationToken);
         }
@@ -129,10 +129,10 @@ public class MediaCoreService(
         return true;
     }
 
-    private async Task<MediaFile?> OpenAsync(string key, CancellationToken cancellationToken)
+    private async Task<(Stream Content, string ContentType)?> OpenAsync(string key, string contentType, CancellationToken cancellationToken)
     {
-        var asset = await assetStorage.OpenReadAsync(key, cancellationToken);
-        return asset is null ? null : new MediaFile(asset.Content, asset.ContentType, asset.Length);
+        var content = await assetStorage.OpenReadAsync(key, cancellationToken);
+        return content is null ? null : (content, contentType);
     }
 
     private async Task DeleteFilesAsync(MediaItem media, CancellationToken cancellationToken)
