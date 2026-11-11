@@ -27,7 +27,7 @@ Don't edit `src/api/generated` by hand. Base URL setup lives in `src/api/client-
 | `/`              | Dashboard                                                   |
 | `/pages`         | Pages of the active website: filter, create, publish, archive |
 | `/websites/:id?` | Switch the active website and edit its details              |
-| `/studio/:pageId?` | Design Studio: the visual page editor (defaults to the Home page) |
+| `/pages/:id/edit` | Design Studio: the visual editor for one page, opened with Edit on the Pages list |
 | everything else  | Designed sections that aren't built yet show "coming soon"  |
 
 ## Structure
@@ -50,7 +50,7 @@ Websites and pages are loaded from the API. Activity is seed data served through
 
 ## Design Studio
 
-`/studio/:pageId` edits a page as a document of **sections**, each holding **blocks** (`src/studio/types.ts`). Each block type is registered once in `src/studio/blocks.ts` with its defaults and inspector fields; the inspector's forms are generated from those fields, and `components/studio/blocks/` holds the component that draws each type.
+`/pages/:id/edit` (the **Edit** button on the Pages list) edits a page as a document of **sections**, each holding **blocks** (`src/studio/types.ts`). Each block type is registered once in `src/studio/blocks.ts` with its defaults and inspector fields; the inspector's forms are generated from those fields, and `components/studio/blocks/` holds the component that draws each type.
 
 - **Data**: page documents, the media library and saved items come from the JSON in `src/data/studio/` through `useStudioQuerier` (mock latency included). `home.json` is used for a page with the `home` slug, `page.json` for every other page.
 - **Cache**: every edit writes a new draft to the Vue Query cache (`['studio', 'page', id]`, alongside the last published version). Drafts survive navigating around the app, reset on reload, and are what the API will receive once it has a content endpoint.

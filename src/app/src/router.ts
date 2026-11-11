@@ -24,11 +24,13 @@ export const router = createRouter({
           meta: { title: 'Websites' },
         },
         {
-          path: 'studio/:pageId?',
+          path: 'pages/:pageId/edit',
           name: 'studio',
           component: () => import('@/views/StudioView.vue'),
           meta: { title: 'Design Studio' },
         },
+        // Old link: the studio is opened from a page now.
+        { path: 'studio', redirect: { name: 'pages' } },
         // Sections that are designed but not built yet share one placeholder.
         ...(
           [

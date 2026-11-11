@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ArrowRight, Eye, EyeOff, Monitor, PanelLeft, PanelRight, Redo2, Smartphone, Tablet, Undo2 } from 'lucide-vue-next'
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Monitor, PanelLeft, PanelRight, Redo2, Smartphone, Tablet, Undo2 } from 'lucide-vue-next'
 import { FButton, cn } from '@forma/design-system'
 import { useStudio } from '@/composables/useStudio'
 import type { Breakpoint } from '@/studio/types'
 
-defineProps<{ pages: Array<{ label: string; value: string }>; pageId: string }>()
-const emit = defineEmits<{ page: [id: string]; library: []; inspector: [] }>()
+defineProps<{ pageTitle: string; pagePath: string }>()
+const emit = defineEmits<{ library: []; inspector: [] }>()
 const studio = useStudio()
 
 const devices: Array<{ value: Breakpoint; label: string; icon: typeof Monitor }> = [
@@ -28,6 +28,9 @@ const iconBtn =
 
 <template>
   <div class="flex flex-wrap items-center gap-2 border-b border-charcoal/[0.06] bg-white px-3 py-2.5">
+    <RouterLink :to="{ name: 'pages' }" :class="iconBtn" aria-label="Back to pages" title="Back to pages">
+      <ArrowLeft class="size-5" :stroke-width="1.6" aria-hidden="true" />
+    </RouterLink>
     <button type="button" :class="cn(iconBtn, 'xl:hidden')" aria-label="Show library" title="Library" @click="emit('library')">
       <PanelLeft class="size-5" :stroke-width="1.6" aria-hidden="true" />
     </button>
@@ -62,15 +65,10 @@ const iconBtn =
       </button>
     </div>
 
-    <label class="sr-only" for="studio-page">Page</label>
-    <select
-      id="studio-page"
-      :value="pageId"
-      class="h-9 w-32 cursor-pointer sm:w-auto sm:max-w-44 rounded-full bg-white pl-3.5 pr-8 text-sm ring-1 ring-charcoal/10 outline-none focus:ring-2 focus:ring-accent"
-      @change="emit('page', ($event.target as HTMLSelectElement).value)"
-    >
-      <option v-for="p in pages" :key="p.value" :value="p.value">{{ p.label }}</option>
-    </select>
+    <div class="min-w-0 px-1">
+      <p class="truncate text-sm font-medium">{{ pageTitle }}</p>
+      <p class="hidden truncate text-xs text-muted sm:block">{{ pagePath }}</p>
+    </div>
 
     <div class="ml-auto flex shrink-0 items-center gap-2">
       <button

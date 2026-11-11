@@ -5,6 +5,7 @@ import { FileText, TriangleAlert, X } from 'lucide-vue-next'
 import { FButton, FSkeleton, cn } from '@forma/design-system'
 import { useActiveWebsite } from '@/composables/useActiveWebsite'
 import { usePages } from '@/composables/usePages'
+import { useToast } from '@/composables/useToast'
 import { createStudio, provideStudio } from '@/composables/useStudio'
 import type { StudioPageSeed } from '@/queriers/useStudioQuerier'
 import StudioCanvas from '@/components/studio/StudioCanvas.vue'
@@ -17,19 +18,20 @@ const router = useRouter()
 const { getActiveWebsite } = useActiveWebsite()
 const activeWebsite = getActiveWebsite()
 const { getPages } = usePages()
+const { notify } = useToast()
 const pagesQuery = getPages(() => activeWebsite.value.id)
 const { pages } = pagesQuery
 
-/* Which page: the one in the URL, else the website's Home page (or its first page). */
+/* The page from the URL. One that isn't in the active website (deleted, or another website's) goes back to Pages. */
 const pageId = computed(() => (typeof route.params.pageId === 'string' ? route.params.pageId : ''))
 const page = computed(() => pages.value.find((p) => p.id === pageId.value))
 watch(
   [pageId, pages, () => pagesQuery.isPending.value],
   () => {
-    if (pagesQuery.isPending.value || !pages.value.length) return
+    if (pagesQuery.isPending.value || pagesQuery.isError.value) return
     if (!page.value) {
-      const fallback = pages.value.find((p) => p.slug === 'home') ?? pages.value.at(-1)!
-      router.replace({ name: 'studio', params: { pageId: fallback.id } })
+      notify('That page isn’t in this website')
+      router.replace({ name: 'pages' })
     }
   },
   { immediate: true },
@@ -46,9 +48,6 @@ const seed = computed<StudioPageSeed | undefined>(() =>
 const studio = createStudio(() => (page.value ? pageId.value : ''), seed)
 provideStudio(studio)
 
-const pageOptions = computed(() =>
-  [...pages.value].sort((a, b) => a.title.localeCompare(b.title)).map((p) => ({ label: p.title, value: p.id })),
-)
 
 /* Library and inspector are drawers below the xl breakpoint. */
 const drawer = ref<null | 'library' | 'inspector'>(null)
@@ -169,9 +168,8 @@ const loading = computed(() => pagesQuery.isPending.value || (!!page.value && st
       <!-- Canvas -->
       <div class="flex min-w-0 flex-1 flex-col overflow-hidden bg-white sm:rounded-panel sm:shadow-soft sm:ring-1 sm:ring-charcoal/[0.06]">
         <StudioToolbar
-          :pages="pageOptions"
-          :page-id="pageId"
-          @page="router.push({ name: 'studio', params: { pageId: $event } })"
+          :page-title="page?.title ?? ''"
+          :page-path="page ? `${activeWebsite.domain}/${page.slug}` : ''"
           @library="drawer = 'library'"
           @inspector="drawer = 'inspector'"
         />
