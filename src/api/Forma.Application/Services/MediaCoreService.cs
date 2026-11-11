@@ -73,11 +73,9 @@ public class MediaCoreService(
         }
 
         // Buffer the upload once: it is decoded for validation and the thumbnail, then stored as-is.
-        using var buffer = new MemoryStream();
-        await content.CopyToAsync(buffer, cancellationToken);
-        var bytes = buffer.ToArray();
+        var bytes = await ReadAllBytesAsync(content, cancellationToken);
 
-        var image = imageProcessor.Process(bytes);
+        var image = await imageProcessor.ProcessAsync(bytes, cancellationToken);
         if (image is null)
         {
             return new MediaUploadResult.Rejected("Only JPEG, PNG, GIF and WebP images are allowed.");
@@ -128,6 +126,22 @@ public class MediaCoreService(
 
         await DeleteFilesAsync(media.ToEntity(), cancellationToken);
         return true;
+    }
+
+    // Reads straight into an array of the right size when the length is known, instead of growing a
+    // MemoryStream and copying it again: uploads are up to 10 MB each and many can arrive at once.
+    private static async Task<byte[]> ReadAllBytesAsync(Stream content, CancellationToken cancellationToken)
+    {
+        if (content.CanSeek)
+        {
+            var bytes = new byte[content.Length - content.Position];
+            await content.ReadExactlyAsync(bytes, cancellationToken);
+            return bytes;
+        }
+
+        using var buffer = new MemoryStream();
+        await content.CopyToAsync(buffer, cancellationToken);
+        return buffer.ToArray();
     }
 
     private async Task<(Stream Content, string ContentType)?> OpenAsync(string key, string contentType, CancellationToken cancellationToken)
