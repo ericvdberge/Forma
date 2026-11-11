@@ -17,7 +17,7 @@ namespace Forma.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
-            modelBuilder.Entity("Forma.Infrastructure.DataAccessObjects.Media.MediaItemDao", b =>
+            modelBuilder.Entity("Forma.Infrastructure.Daos.MediaItemDao", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -68,7 +68,7 @@ namespace Forma.Infrastructure.Persistence.Migrations
                     b.ToTable("Media", (string)null);
                 });
 
-            modelBuilder.Entity("Forma.Infrastructure.DataAccessObjects.Pages.PageDao", b =>
+            modelBuilder.Entity("Forma.Infrastructure.Daos.PageDao", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -106,7 +106,7 @@ namespace Forma.Infrastructure.Persistence.Migrations
                     b.ToTable("Pages", (string)null);
                 });
 
-            modelBuilder.Entity("Forma.Infrastructure.DataAccessObjects.Websites.WebsiteDao", b =>
+            modelBuilder.Entity("Forma.Infrastructure.Daos.WebsiteDao", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -146,9 +146,9 @@ namespace Forma.Infrastructure.Persistence.Migrations
                     b.ToTable("Websites", (string)null);
                 });
 
-            modelBuilder.Entity("Forma.Infrastructure.DataAccessObjects.Media.MediaItemDao", b =>
+            modelBuilder.Entity("Forma.Infrastructure.Daos.MediaItemDao", b =>
                 {
-                    b.HasOne("Forma.Infrastructure.DataAccessObjects.Websites.WebsiteDao", "Website")
+                    b.HasOne("Forma.Infrastructure.Daos.WebsiteDao", "Website")
                         .WithMany()
                         .HasForeignKey("WebsiteId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -157,9 +157,9 @@ namespace Forma.Infrastructure.Persistence.Migrations
                     b.Navigation("Website");
                 });
 
-            modelBuilder.Entity("Forma.Infrastructure.DataAccessObjects.Pages.PageDao", b =>
+            modelBuilder.Entity("Forma.Infrastructure.Daos.PageDao", b =>
                 {
-                    b.HasOne("Forma.Infrastructure.DataAccessObjects.Websites.WebsiteDao", "Website")
+                    b.HasOne("Forma.Infrastructure.Daos.WebsiteDao", "Website")
                         .WithMany()
                         .HasForeignKey("WebsiteId")
                         .OnDelete(DeleteBehavior.Cascade)

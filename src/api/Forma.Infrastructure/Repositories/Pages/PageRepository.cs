@@ -1,4 +1,4 @@
-using Forma.Infrastructure.DataAccessObjects.Pages;
+using Forma.Infrastructure.Daos;
 using Forma.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 

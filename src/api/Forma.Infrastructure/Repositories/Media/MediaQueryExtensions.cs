@@ -1,4 +1,4 @@
-using Forma.Infrastructure.DataAccessObjects.Media;
+using Forma.Infrastructure.Daos;
 using Forma.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,9 +12,9 @@ internal static class MediaQueryExtensions
             .WithWebsiteId(filter.WebsiteId)
             .WithFileNameContaining(filter.FileName);
 
-    public static IQueryable<MediaItemDao> WithWebsiteId(this IQueryable<MediaItemDao> query, Guid? websiteId) =>
+    private static IQueryable<MediaItemDao> WithWebsiteId(this IQueryable<MediaItemDao> query, Guid? websiteId) =>
         query.WhereIf(websiteId.HasValue, m => m.WebsiteId == websiteId);
 
-    public static IQueryable<MediaItemDao> WithFileNameContaining(this IQueryable<MediaItemDao> query, string? fileName) =>
+    private static IQueryable<MediaItemDao> WithFileNameContaining(this IQueryable<MediaItemDao> query, string? fileName) =>
         query.WhereIf(!string.IsNullOrWhiteSpace(fileName), m => EF.Functions.Like(m.FileName, $"%{fileName!.Trim()}%"));
 }

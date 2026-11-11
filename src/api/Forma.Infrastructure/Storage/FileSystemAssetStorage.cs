@@ -33,11 +33,8 @@ public class FileSystemAssetStorage(string rootPath) : IAssetStorage
     private string Resolve(string key)
     {
         var path = Path.GetFullPath(Path.Combine(_rootPath, key));
-        if (!path.StartsWith(_rootPath + Path.DirectorySeparatorChar, StringComparison.Ordinal))
-        {
-            throw new ArgumentException($"Asset key '{key}' is outside the assets folder.", nameof(key));
-        }
-
-        return path;
+        return !path.StartsWith(_rootPath + Path.DirectorySeparatorChar, StringComparison.Ordinal) 
+            ? throw new ArgumentException($"Asset key '{key}' is outside the assets folder.", nameof(key)) :
+            path;
     }
 }

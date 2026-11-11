@@ -18,12 +18,17 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
     meta?: keyof ClientMeta extends never ? Record<string, unknown> : ClientMeta;
 };
 
-export const getWebsites = <ThrowOnError extends boolean = false>(options?: Options<GetWebsitesData, ThrowOnError>): RequestResult<GetWebsitesResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetWebsitesResponses, unknown, ThrowOnError>({ url: '/websites', ...options });
-
-export const getPages = <ThrowOnError extends boolean = false>(options: Options<GetPagesData, ThrowOnError>): RequestResult<GetPagesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetPagesResponses, unknown, ThrowOnError>({ url: '/pages', ...options });
-
+/**
+ * Lists the media items of a website, newest first.
+ */
 export const getMediaItems = <ThrowOnError extends boolean = false>(options: Options<GetMediaItemsData, ThrowOnError>): RequestResult<GetMediaItemsResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetMediaItemsResponses, unknown, ThrowOnError>({ url: '/media', ...options });
 
+/**
+ * Uploads an image to a website's media library and creates its thumbnail.
+ *
+ * Accepts JPEG, PNG, GIF and WebP files up to 10 MB. The file's contents are checked as well as
+ * its extension, so a file that is not really a supported image is rejected.
+ */
 export const uploadMedia = <ThrowOnError extends boolean = false>(options: Options<UploadMediaData, ThrowOnError>): RequestResult<UploadMediaResponses, UploadMediaErrors, ThrowOnError> => (options.client ?? client).post<UploadMediaResponses, UploadMediaErrors, ThrowOnError>({
     ...formDataBodySerializer,
     url: '/media',
@@ -34,10 +39,36 @@ export const uploadMedia = <ThrowOnError extends boolean = false>(options: Optio
     }
 });
 
+/**
+ * Deletes a media item together with its original image and thumbnail.
+ */
 export const deleteMedia = <ThrowOnError extends boolean = false>(options: Options<DeleteMediaData, ThrowOnError>): RequestResult<DeleteMediaResponses, DeleteMediaErrors, ThrowOnError> => (options.client ?? client).delete<DeleteMediaResponses, DeleteMediaErrors, ThrowOnError>({ url: '/media/{id}', ...options });
 
+/**
+ * Gets a single media item's details.
+ */
 export const getMediaItem = <ThrowOnError extends boolean = false>(options: Options<GetMediaItemData, ThrowOnError>): RequestResult<GetMediaItemResponses, GetMediaItemErrors, ThrowOnError> => (options.client ?? client).get<GetMediaItemResponses, GetMediaItemErrors, ThrowOnError>({ url: '/media/{id}', ...options });
 
+/**
+ * Streams the original image as it was uploaded.
+ *
+ * The response may be cached indefinitely, because a media item's files never change.
+ */
 export const getMediaImage = <ThrowOnError extends boolean = false>(options: Options<GetMediaImageData, ThrowOnError>): RequestResult<GetMediaImageResponses, GetMediaImageErrors, ThrowOnError> => (options.client ?? client).get<GetMediaImageResponses, GetMediaImageErrors, ThrowOnError>({ url: '/media/{id}/image', ...options });
 
+/**
+ * Streams the image's WebP thumbnail.
+ *
+ * The response may be cached indefinitely, because a media item's files never change.
+ */
 export const getMediaThumbnail = <ThrowOnError extends boolean = false>(options: Options<GetMediaThumbnailData, ThrowOnError>): RequestResult<GetMediaThumbnailResponses, GetMediaThumbnailErrors, ThrowOnError> => (options.client ?? client).get<GetMediaThumbnailResponses, GetMediaThumbnailErrors, ThrowOnError>({ url: '/media/{id}/thumbnail', ...options });
+
+/**
+ * Lists the pages of a website, most recently updated first.
+ */
+export const getPages = <ThrowOnError extends boolean = false>(options: Options<GetPagesData, ThrowOnError>): RequestResult<GetPagesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetPagesResponses, unknown, ThrowOnError>({ url: '/pages', ...options });
+
+/**
+ * Lists all websites, most recently updated first.
+ */
+export const getWebsites = <ThrowOnError extends boolean = false>(options?: Options<GetWebsitesData, ThrowOnError>): RequestResult<GetWebsitesResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetWebsitesResponses, unknown, ThrowOnError>({ url: '/websites', ...options });
