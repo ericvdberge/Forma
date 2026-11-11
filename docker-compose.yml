@@ -8,6 +8,9 @@ services:
     volumes:
       # Uploaded images and their thumbnails, as plain files.
       - forma-assets:/app/assets
+      # The SQLite database.
+      - forma-data:/app/data
 
 volumes:
   forma-assets:
+  forma-data:

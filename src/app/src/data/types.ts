@@ -25,11 +25,29 @@ export interface Page {
   updatedAt: number
 }
 
+export interface MediaItem {
+  id: string
+  websiteId: string
+  fileName: string
+  contentType: string
+  /** Short format label, e.g. "JPEG". */
+  format: string
+  /** File-extension style label for chips, e.g. "JPG". */
+  extension: string
+  sizeInBytes: number
+  width: number
+  height: number
+  /** Absolute URLs (API base included), ready for <img src>. */
+  imageUrl: string
+  thumbnailUrl: string
+  createdAt: number
+}
+
 export interface Activity {
   id: string
   message: string
   at: number
-  kind: 'page' | 'template' | 'styles' | 'website'
+  kind: 'page' | 'template' | 'styles' | 'website' | 'media'
 }
 
 export interface Stat {

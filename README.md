@@ -83,16 +83,17 @@ More in [`src/landing/README.md`](src/landing/README.md).
 
 ### App
 
-The Forma CMS, where you manage your websites and their pages.
+The Forma CMS, where you manage your websites, their pages and their media.
 
 | Route            | What it does                                                    |
 | ---------------- | --------------------------------------------------------------- |
 | `/`              | Dashboard: websites, stats, recent activity                     |
 | `/pages`         | Pages of the active website: filter, create, publish, archive   |
+| `/media`         | Media library of the active website: stats, upload with progress (button, drag & drop or paste), grid or list, preview, delete |
 | `/websites/:id?` | Switch the active website and edit its details                  |
 | everything else  | Sections that are designed but not built yet show "coming soon" |
 
-Websites and pages load from the API through a typed client generated from its OpenAPI document (`@hey-api/openapi-ts` + TanStack Vue Query). Recent activity is still seed data. Until write endpoints exist, edits only update the query cache. In development Vite proxies `/api/*` to the API. Set `FORMA_API_URL` to proxy somewhere else, or `VITE_API_URL` to call a different base URL directly.
+Websites, pages and media load from the API through a typed client generated from its OpenAPI document (`@hey-api/openapi-ts` + TanStack Vue Query). Recent activity is still seed data. Media uploads and deletes go to the API; other edits only update the query cache until their write endpoints exist. In development Vite proxies `/api/*` to the API. Set `FORMA_API_URL` to proxy somewhere else, or `VITE_API_URL` to call a different base URL directly.
 
 More in [`src/app/README.md`](src/app/README.md).
 
@@ -161,14 +162,14 @@ The [`Dockerfile`](Dockerfile) builds Forma into one image. [supervisord](http:/
 | Process   | What it does                                                                 |
 | --------- | ---------------------------------------------------------------------------- |
 | `nginx`   | Serves the CMS app on port 8080 and proxies `/api` to the API                 |
-| `api`     | The Forma API                                                                |
+| `api`     | The Forma API, with its SQLite database in `/app/data` (a volume)             |
 
 ```bash
 docker build -t forma .
-docker run -p 8080:8080 -v forma-assets:/app/assets forma
+docker run -p 8080:8080 -v forma-assets:/app/assets -v forma-data:/app/data forma
 ```
 
-Or run `docker compose up --build forma` ([`docker-compose.yml`](docker-compose.yml)). Run `docker exec <container> supervisorctl -c /etc/supervisor/forma.conf status` to see the processes. Uploaded media are plain files in `/app/assets`, a volume.
+Or run `docker compose up --build forma` ([`docker-compose.yml`](docker-compose.yml)). Run `docker exec <container> supervisorctl -c /etc/supervisor/forma.conf status` to see the processes. Uploaded media are plain files in `/app/assets`, a volume. The API applies database migrations on start. Because websites can't be created yet, an empty database gets the sample websites and pages; set `FORMA_SAMPLE_DATA=false` to start without them.
 
 ## Project structure
 
@@ -177,7 +178,7 @@ Forma/
 ├── src/
 │   ├── design-system/   @forma/design-system: brand tokens + Vue components
 │   ├── landing/         Marketing site (Vue 3 + Vite)
-│   ├── app/             The Forma CMS: dashboard, websites & pages (Vue 3 + Vue Router)
+│   ├── app/             The Forma CMS: dashboard, websites, pages & media (Vue 3 + Vue Router)
 │   └── api/             .NET 10 backend (Forma.Api.slnx)
 │       ├── Forma.Api/             endpoints, DTOs, OpenAPI document
 │       ├── Forma.Application/     entities + core services
@@ -255,6 +256,7 @@ Forma speaks with clarity and quiet confidence. No hype, no jargon, no exaggerat
 - [x] Pages list
 - [x] API: read websites & pages
 - [x] API: media library (image uploads with thumbnails)
+- [x] Media library
 - [ ] API: create, update & publish
 - [ ] Design Studio: drag & drop editor
 - [ ] Templates, blocks & global styles

@@ -110,7 +110,16 @@ public class MediaCoreService(
         }
         catch
         {
-            await DeleteFilesAsync(media, CancellationToken.None);
+            // Best effort: a failing cleanup must not hide the error that caused it.
+            try
+            {
+                await DeleteFilesAsync(media, CancellationToken.None);
+            }
+            catch
+            {
+                // The files may never have been written.
+            }
+
             throw;
         }
 

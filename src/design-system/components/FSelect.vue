@@ -5,8 +5,15 @@ import { cn } from '../utils/cn'
 
 const model = defineModel<T>({ required: true })
 withDefaults(
-  defineProps<{ label: string; hideLabel?: boolean; options: Array<{ label: string; value: T }>; size?: 'sm' | 'md' }>(),
-  { hideLabel: false, size: 'md' },
+  defineProps<{
+    label: string
+    hideLabel?: boolean
+    options: Array<{ label: string; value: T }>
+    size?: 'sm' | 'md'
+    /** `plain` drops the field chrome, for inline controls like "Newest first ⌄" */
+    variant?: 'field' | 'plain'
+  }>(),
+  { hideLabel: false, size: 'md', variant: 'field' },
 )
 const id = useId()
 </script>
@@ -20,7 +27,8 @@ const id = useId()
         v-model="model"
         :class="
           cn(
-            'w-full cursor-pointer appearance-none rounded-full bg-white pl-4 pr-10 text-charcoal ring-1 ring-charcoal/10 outline-none transition-shadow focus:ring-2 focus:ring-accent',
+            'w-full cursor-pointer appearance-none rounded-full pl-4 pr-10 text-charcoal outline-none transition-shadow focus:ring-2 focus:ring-accent',
+            variant === 'field' ? 'bg-white ring-1 ring-charcoal/10' : 'bg-transparent font-medium hover:bg-charcoal/5',
             size === 'sm' ? 'h-9 text-sm' : 'h-11 text-[0.9375rem]',
           )
         "
