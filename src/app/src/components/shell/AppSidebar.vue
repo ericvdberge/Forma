@@ -1,10 +1,15 @@
 <script setup lang="ts">
+import { useRoute } from 'vue-router'
 import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
 import { FArchitectureArt, FButton, FLogo, cn } from '@forma/design-system'
 import { nav } from './nav'
 
 defineProps<{ collapsed: boolean }>()
 defineEmits<{ toggle: []; navigate: [] }>()
+
+const route = useRoute()
+/** Nested screens (e.g. /pages/:id/edit) keep their section highlighted. */
+const isCurrent = (to: string) => (to === '/' ? route.path === '/' : route.path === to || route.path.startsWith(`${to}/`))
 </script>
 
 <template>
@@ -24,19 +29,19 @@ defineEmits<{ toggle: []; navigate: [] }>()
       <ul class="flex flex-col gap-1">
         <li v-for="item in nav" :key="item.to">
           <RouterLink
-            v-slot="{ href, navigate, isActive, isExactActive }"
+            v-slot="{ href, navigate }"
             :to="item.to"
             custom
           >
             <a
               :href="href"
-              :aria-current="(item.to === '/' ? isExactActive : isActive) ? 'page' : undefined"
+              :aria-current="isCurrent(item.to) ? 'page' : undefined"
               :title="collapsed ? item.label : undefined"
               :class="
                 cn(
                   'flex h-11 items-center gap-3.5 rounded-xl text-[0.9375rem] transition-colors',
                   collapsed ? 'justify-center' : 'px-4',
-                  (item.to === '/' ? isExactActive : isActive)
+                  isCurrent(item.to)
                     ? 'bg-charcoal/[0.06] font-medium text-charcoal'
                     : 'text-charcoal/75 hover:bg-charcoal/[0.04] hover:text-charcoal',
                 )

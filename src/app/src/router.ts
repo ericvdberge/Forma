@@ -10,6 +10,13 @@ declare module 'vue-router' {
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
+    // The page editor is full-screen: no app sidebar or top bar, so the page gets the room.
+    {
+      path: '/pages/:pageId/edit',
+      name: 'studio',
+      component: () => import('@/views/StudioView.vue'),
+      meta: { title: 'Edit page' },
+    },
     {
       path: '/',
       component: AppShell,
@@ -23,10 +30,11 @@ export const router = createRouter({
           component: () => import('@/views/WebsitesView.vue'),
           meta: { title: 'Websites' },
         },
+        // Old link: the studio is opened from a page now.
+        { path: 'studio', redirect: { name: 'pages' } },
         // Sections that are designed but not built yet share one placeholder.
         ...(
           [
-            ['studio', 'Design Studio'],
             ['templates', 'Templates'],
             ['blocks', 'Blocks'],
             ['media', 'Media'],

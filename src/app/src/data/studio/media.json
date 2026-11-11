@@ -1,0 +1,9 @@
+[
+  { "id": "m_hero", "name": "Sculpted facade (wide)", "src": "/media/hero.svg" },
+  { "id": "m_arch_light", "name": "Sculpted facade", "src": "/media/arch-light.svg" },
+  { "id": "m_arch_dark", "name": "Villa at dusk", "src": "/media/arch-dark.svg" },
+  { "id": "m_facade", "name": "White tower", "src": "/media/facade.svg" },
+  { "id": "m_stairs", "name": "Stairwell", "src": "/media/stairs.svg" },
+  { "id": "m_courtyard", "name": "Courtyard", "src": "/media/courtyard.svg" },
+  { "id": "m_tower", "name": "Glass tower", "src": "/media/tower.svg" }
+]

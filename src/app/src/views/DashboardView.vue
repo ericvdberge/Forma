@@ -40,7 +40,7 @@ const statIcons = [Eye, LayoutGrid, Layers, Users]
             Your creative journey starts here. Design, build and publish stunning websites with Forma.
           </p>
           <div class="mt-7 flex flex-wrap gap-3">
-            <LinkButton to="/studio" arrow>Open Design Studio</LinkButton>
+            <LinkButton to="/pages" arrow>Edit your pages</LinkButton>
             <LinkButton to="/templates" variant="secondary" class="bg-white/60 backdrop-blur">Browse Templates</LinkButton>
           </div>
         </section>

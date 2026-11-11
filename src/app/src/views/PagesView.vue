@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Ellipsis, FileText, Plus, Search, Trash2, TriangleAlert, Upload, Undo2, X } from 'lucide-vue-next'
+import { Ellipsis, FileText, Pencil, Plus, Search, Trash2, TriangleAlert, Upload, Undo2, X } from 'lucide-vue-next'
 import { FButton, FCard, FIconButton, FInput, FSelect, FSkeleton, FStatus, cn } from '@forma/design-system'
+import LinkButton from '@/components/LinkButton.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { useWebsites } from '@/composables/useWebsites'
 import { useActiveWebsite } from '@/composables/useActiveWebsite'
@@ -229,7 +230,9 @@ function act(id: string, action: 'publish' | 'unpublish' | 'delete') {
                       <FileText class="size-4" :stroke-width="1.6" aria-hidden="true" />
                     </span>
                     <div class="min-w-0">
-                      <p class="truncate font-medium">{{ p.title }}</p>
+                      <RouterLink :to="{ name: 'studio', params: { pageId: p.id } }" class="block truncate font-medium hover:underline">
+                        {{ p.title }}
+                      </RouterLink>
                       <p class="truncate text-xs text-muted">{{ activeWebsite.domain }}{{ p.path }}</p>
                     </div>
                   </div>
@@ -237,7 +240,15 @@ function act(id: string, action: 'publish' | 'unpublish' | 'delete') {
                 <td class="px-5 py-3.5"><FStatus :status="p.status" :label="p.status === 'live' ? 'Published' : undefined" /></td>
                 <td class="whitespace-nowrap px-5 py-3.5 text-muted">{{ timeAgo(p.updatedAt) }}</td>
                 <td class="px-5 py-3.5">
-                  <div data-row-menu class="flex justify-end">
+                  <div data-row-menu class="flex items-center justify-end gap-1">
+                    <LinkButton
+                      :to="{ name: 'studio', params: { pageId: p.id } }"
+                      size="sm"
+                      variant="secondary"
+                      :aria-label="`Edit ${p.title}`"
+                    >
+                      <Pencil class="size-3.5" aria-hidden="true" /> Edit
+                    </LinkButton>
                     <FIconButton
                       :icon="Ellipsis"
                       :label="`Actions for ${p.title}`"
