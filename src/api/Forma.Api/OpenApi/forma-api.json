@@ -5,22 +5,236 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/websites": {
+    "/media": {
       "get": {
         "tags": [
-          "Websites"
+          "Media"
         ],
-        "operationId": "GetWebsites",
+        "summary": "Lists the media items of a website, newest first.",
+        "operationId": "GetMediaItems",
+        "parameters": [
+          {
+            "name": "websiteId",
+            "in": "query",
+            "description": "The website whose media library is listed.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "The website's media items, newest first.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/WebsiteDto"
+                    "$ref": "#/components/schemas/MediaItemDto"
                   }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Media"
+        ],
+        "summary": "Uploads an image to a website's media library and creates its thumbnail.",
+        "description": "Accepts JPEG, PNG, GIF and WebP files up to 10 MB. The file's contents are checked as well as\r\nits extension, so a file that is not really a supported image is rejected.",
+        "operationId": "UploadMedia",
+        "requestBody": {
+          "description": "Cancels the request.",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadMediaRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadMediaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The image was stored; the body is the new media item.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaItemDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The file is missing, empty, too large, or not a supported image.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No website exists with the given id."
+          }
+        }
+      }
+    },
+    "/media/{id}": {
+      "get": {
+        "tags": [
+          "Media"
+        ],
+        "summary": "Gets a single media item's details.",
+        "operationId": "GetMediaItem",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The media item's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The media item.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaItemDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No media item exists with this id."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Media"
+        ],
+        "summary": "Deletes a media item together with its original image and thumbnail.",
+        "operationId": "DeleteMedia",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The media item's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The media item and its files were deleted."
+          },
+          "404": {
+            "description": "No media item exists with this id."
+          }
+        }
+      }
+    },
+    "/media/{id}/image": {
+      "get": {
+        "tags": [
+          "Media"
+        ],
+        "summary": "Streams the original image as it was uploaded.",
+        "description": "The response may be cached indefinitely, because a media item's files never change.",
+        "operationId": "GetMediaImage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The media item's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "No media item or stored image exists with this id."
+          },
+          "200": {
+            "description": "The original image (JPEG, PNG, GIF or WebP).",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              },
+              "image/gif": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/media/{id}/thumbnail": {
+      "get": {
+        "tags": [
+          "Media"
+        ],
+        "summary": "Streams the image's WebP thumbnail.",
+        "description": "The response may be cached indefinitely, because a media item's files never change.",
+        "operationId": "GetMediaThumbnail",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The media item's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "No media item or stored thumbnail exists with this id."
+          },
+          "200": {
+            "description": "The WebP thumbnail.",
+            "content": {
+              "image/webp": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
                 }
               }
             }
@@ -33,11 +247,13 @@
         "tags": [
           "Pages"
         ],
+        "summary": "Lists the pages of a website, most recently updated first.",
         "operationId": "GetPages",
         "parameters": [
           {
             "name": "websiteId",
             "in": "query",
+            "description": "The website whose pages are listed.",
             "required": true,
             "schema": {
               "type": "string",
@@ -47,7 +263,7 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "The website's pages, most recently updated first.",
             "content": {
               "application/json": {
                 "schema": {
@@ -61,10 +277,167 @@
           }
         }
       }
+    },
+    "/websites": {
+      "get": {
+        "tags": [
+          "Websites"
+        ],
+        "summary": "Lists all websites, most recently updated first.",
+        "operationId": "GetWebsites",
+        "responses": {
+          "200": {
+            "description": "All websites, most recently updated first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WebsiteDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "HttpValidationProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "IFormFile": {
+        "type": "string",
+        "format": "binary"
+      },
+      "MediaItemDto": {
+        "required": [
+          "id",
+          "websiteId",
+          "fileName",
+          "contentType",
+          "sizeInBytes",
+          "width",
+          "height",
+          "imageUrl",
+          "thumbnailUrl",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The media item's id.",
+            "format": "uuid"
+          },
+          "websiteId": {
+            "type": "string",
+            "description": "The website the media item belongs to.",
+            "format": "uuid"
+          },
+          "fileName": {
+            "type": "string",
+            "description": "The file name the image was uploaded with."
+          },
+          "contentType": {
+            "type": "string",
+            "description": "The original image's MIME type, for example `image/png`."
+          },
+          "sizeInBytes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "The original image's size in bytes.",
+            "format": "int64"
+          },
+          "width": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "The original image's width in pixels.",
+            "format": "int32"
+          },
+          "height": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "The original image's height in pixels.",
+            "format": "int32"
+          },
+          "imageUrl": {
+            "type": "string",
+            "description": "Download route of the original image, relative to the API's base URL."
+          },
+          "thumbnailUrl": {
+            "type": "string",
+            "description": "Download route of the WebP thumbnail, relative to the API's base URL."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the image was uploaded (UTC).",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "When the media item was last changed (UTC).",
+            "format": "date-time"
+          }
+        },
+        "description": "An image in a website's media library."
+      },
       "PageDto": {
         "required": [
           "id",
@@ -109,6 +482,27 @@
           "draft",
           "published"
         ]
+      },
+      "Stream": {
+        "type": "string",
+        "format": "binary"
+      },
+      "UploadMediaRequest": {
+        "required": [
+          "websiteId",
+          "file"
+        ],
+        "type": "object",
+        "properties": {
+          "websiteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "file": {
+            "$ref": "#/components/schemas/IFormFile"
+          }
+        },
+        "description": "Multipart form for `POST /media`."
       },
       "WebsiteDto": {
         "required": [
@@ -158,10 +552,13 @@
   },
   "tags": [
     {
-      "name": "Websites"
+      "name": "Media"
     },
     {
       "name": "Pages"
+    },
+    {
+      "name": "Websites"
     }
   ]
 }

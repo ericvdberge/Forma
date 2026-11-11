@@ -1,4 +1,4 @@
-using Forma.Infrastructure.DataAccessObjects.Websites;
+using Forma.Infrastructure.Daos;
 using Microsoft.EntityFrameworkCore;
 
 namespace Forma.Infrastructure.Persistence.Seeding;

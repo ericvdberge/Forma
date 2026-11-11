@@ -1,0 +1,13 @@
+services:
+  # Everything in one container: app + API + media files. Open http://localhost:8080
+  forma:
+    build: .
+    image: forma
+    ports:
+      - "8080:8080"
+    volumes:
+      # Uploaded images and their thumbnails, as plain files.
+      - forma-assets:/app/assets
+
+volumes:
+  forma-assets:

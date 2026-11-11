@@ -4,6 +4,69 @@ export type ClientOptions = {
     baseUrl: `${string}://${string}` | (string & {});
 };
 
+export type HttpValidationProblemDetails = {
+    type?: null | string;
+    title?: null | string;
+    status?: null | number | string;
+    detail?: null | string;
+    instance?: null | string;
+    errors?: {
+        [key: string]: Array<string>;
+    };
+};
+
+export type IFormFile = Blob | File;
+
+/**
+ * An image in a website's media library.
+ */
+export type MediaItemDto = {
+    /**
+     * The media item's id.
+     */
+    id: string;
+    /**
+     * The website the media item belongs to.
+     */
+    websiteId: string;
+    /**
+     * The file name the image was uploaded with.
+     */
+    fileName: string;
+    /**
+     * The original image's MIME type, for example `image/png`.
+     */
+    contentType: string;
+    /**
+     * The original image's size in bytes.
+     */
+    sizeInBytes: number | string;
+    /**
+     * The original image's width in pixels.
+     */
+    width: number | string;
+    /**
+     * The original image's height in pixels.
+     */
+    height: number | string;
+    /**
+     * Download route of the original image, relative to the API's base URL.
+     */
+    imageUrl: string;
+    /**
+     * Download route of the WebP thumbnail, relative to the API's base URL.
+     */
+    thumbnailUrl: string;
+    /**
+     * When the image was uploaded (UTC).
+     */
+    createdAt: string;
+    /**
+     * When the media item was last changed (UTC).
+     */
+    updatedAt: string;
+};
+
 export type PageDto = {
     id: string;
     websiteId: string;
@@ -15,6 +78,16 @@ export type PageDto = {
 };
 
 export type PageStatus = 'draft' | 'published';
+
+export type Stream = Blob | File;
+
+/**
+ * Multipart form for `POST /media`.
+ */
+export type UploadMediaRequest = {
+    websiteId: string;
+    file: IFormFile;
+};
 
 export type WebsiteDto = {
     id: string;
@@ -28,6 +101,192 @@ export type WebsiteDto = {
 
 export type WebsiteStatus = 'draft' | 'live';
 
+export type GetMediaItemsData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The website whose media library is listed.
+         */
+        websiteId: string;
+    };
+    url: '/media';
+};
+
+export type GetMediaItemsResponses = {
+    /**
+     * The website's media items, newest first.
+     */
+    200: Array<MediaItemDto>;
+};
+
+export type GetMediaItemsResponse = GetMediaItemsResponses[keyof GetMediaItemsResponses];
+
+export type UploadMediaData = {
+    /**
+     * Cancels the request.
+     */
+    body: UploadMediaRequest;
+    path?: never;
+    query?: never;
+    url: '/media';
+};
+
+export type UploadMediaErrors = {
+    /**
+     * The file is missing, empty, too large, or not a supported image.
+     */
+    400: HttpValidationProblemDetails;
+    /**
+     * No website exists with the given id.
+     */
+    404: unknown;
+};
+
+export type UploadMediaError = UploadMediaErrors[keyof UploadMediaErrors];
+
+export type UploadMediaResponses = {
+    /**
+     * The image was stored; the body is the new media item.
+     */
+    201: MediaItemDto;
+};
+
+export type UploadMediaResponse = UploadMediaResponses[keyof UploadMediaResponses];
+
+export type DeleteMediaData = {
+    body?: never;
+    path: {
+        /**
+         * The media item's id.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/media/{id}';
+};
+
+export type DeleteMediaErrors = {
+    /**
+     * No media item exists with this id.
+     */
+    404: unknown;
+};
+
+export type DeleteMediaResponses = {
+    /**
+     * The media item and its files were deleted.
+     */
+    204: void;
+};
+
+export type DeleteMediaResponse = DeleteMediaResponses[keyof DeleteMediaResponses];
+
+export type GetMediaItemData = {
+    body?: never;
+    path: {
+        /**
+         * The media item's id.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/media/{id}';
+};
+
+export type GetMediaItemErrors = {
+    /**
+     * No media item exists with this id.
+     */
+    404: unknown;
+};
+
+export type GetMediaItemResponses = {
+    /**
+     * The media item.
+     */
+    200: MediaItemDto;
+};
+
+export type GetMediaItemResponse = GetMediaItemResponses[keyof GetMediaItemResponses];
+
+export type GetMediaImageData = {
+    body?: never;
+    path: {
+        /**
+         * The media item's id.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/media/{id}/image';
+};
+
+export type GetMediaImageErrors = {
+    /**
+     * No media item or stored image exists with this id.
+     */
+    404: unknown;
+};
+
+export type GetMediaImageResponses = {
+    /**
+     * The original image (JPEG, PNG, GIF or WebP).
+     */
+    200: Stream;
+};
+
+export type GetMediaImageResponse = GetMediaImageResponses[keyof GetMediaImageResponses];
+
+export type GetMediaThumbnailData = {
+    body?: never;
+    path: {
+        /**
+         * The media item's id.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/media/{id}/thumbnail';
+};
+
+export type GetMediaThumbnailErrors = {
+    /**
+     * No media item or stored thumbnail exists with this id.
+     */
+    404: unknown;
+};
+
+export type GetMediaThumbnailResponses = {
+    /**
+     * The WebP thumbnail.
+     */
+    200: Stream;
+};
+
+export type GetMediaThumbnailResponse = GetMediaThumbnailResponses[keyof GetMediaThumbnailResponses];
+
+export type GetPagesData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The website whose pages are listed.
+         */
+        websiteId: string;
+    };
+    url: '/pages';
+};
+
+export type GetPagesResponses = {
+    /**
+     * The website's pages, most recently updated first.
+     */
+    200: Array<PageDto>;
+};
+
+export type GetPagesResponse = GetPagesResponses[keyof GetPagesResponses];
+
 export type GetWebsitesData = {
     body?: never;
     path?: never;
@@ -37,27 +296,9 @@ export type GetWebsitesData = {
 
 export type GetWebsitesResponses = {
     /**
-     * OK
+     * All websites, most recently updated first.
      */
     200: Array<WebsiteDto>;
 };
 
 export type GetWebsitesResponse = GetWebsitesResponses[keyof GetWebsitesResponses];
-
-export type GetPagesData = {
-    body?: never;
-    path?: never;
-    query: {
-        websiteId: string;
-    };
-    url: '/pages';
-};
-
-export type GetPagesResponses = {
-    /**
-     * OK
-     */
-    200: Array<PageDto>;
-};
-
-export type GetPagesResponse = GetPagesResponses[keyof GetPagesResponses];

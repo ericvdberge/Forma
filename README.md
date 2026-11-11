@@ -104,12 +104,24 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 | ---------------------- | -------------------------------------------------------------------- |
 | `Forma.Api`            | Minimal API endpoints, DTOs and Mapperly mappers, OpenAPI + Scalar   |
 | `Forma.Application`    | Domain entities and core services                                    |
-| `Forma.Infrastructure` | EF Core `DbContext`, SQLite, migrations, seeding and repositories    |
+| `Forma.Infrastructure` | EF Core `DbContext`, SQLite, migrations, seeding, repositories, media file storage and image processing |
 
-| Endpoint                    | Returns                  |
-| --------------------------- | ------------------------ |
-| `GET /websites`             | All websites             |
-| `GET /pages?websiteId={id}` | The pages of one website |
+| Endpoint                    | Returns                                                         |
+| --------------------------- | --------------------------------------------------------------- |
+| `GET /websites`             | All websites                                                    |
+| `GET /pages?websiteId={id}` | The pages of one website                                        |
+| `GET /media?websiteId={id}` | The media library of one website                                |
+| `GET /media/{id}`           | One media item                                                  |
+| `GET /media/{id}/image`     | The original image's bytes                                      |
+| `GET /media/{id}/thumbnail` | The WebP thumbnail's bytes                                      |
+| `POST /media`               | Uploads an image (multipart: `websiteId`, `file`), `201` or `400` |
+| `DELETE /media/{id}`        | Deletes a media item and its files, `204`                       |
+
+#### Media
+
+Uploads are images only: JPEG, PNG, GIF or WebP, at most 10 MB. A FluentValidation validator checks the size, file name and extension before the upload reaches the core service, which then checks the format from the file's bytes, so anything else (SVG included) is rejected with `400`. The API keeps the original unchanged and renders a WebP thumbnail of at most 400 px on its longest side, with EXIF rotation applied, using [NetVips](https://github.com/kleisauke/net-vips) (libvips).
+
+Files are stored as plain files in the folder `Assets:Path` (default `assets`, `/app/assets` in Docker), under `{websiteId}/originals/{id}.{ext}` and `{websiteId}/thumbnails/{id}.webp`. Storage sits behind `IAssetStorage`, so an S3-compatible store can be added later without touching the rest of the API. Files are served through the API's `/media/{id}/image` and `/media/{id}/thumbnail` routes, which each media item's `imageUrl` and `thumbnailUrl` point to.
 
 In development the API applies migrations and seeds sample data on startup into `forma.db`, which is git-ignored. It serves interactive docs at **http://localhost:5134/scalar**. Each `dotnet build` writes the OpenAPI document to `src/api/Forma.Api/OpenApi/forma-api.json`, and the app's client is generated from that file.
 
@@ -142,6 +154,22 @@ npm run dev:app -- --port 5174                                 # app → :5174 (
 
 After you change an API endpoint or DTO, run `npm run generate:api` and commit the updated OpenAPI document and generated client. Don't edit `src/app/src/api/generated` by hand.
 
+### Docker
+
+The [`Dockerfile`](Dockerfile) builds Forma into one image. [supervisord](http://supervisord.org) runs and restarts two processes:
+
+| Process   | What it does                                                                 |
+| --------- | ---------------------------------------------------------------------------- |
+| `nginx`   | Serves the CMS app on port 8080 and proxies `/api` to the API                 |
+| `api`     | The Forma API                                                                |
+
+```bash
+docker build -t forma .
+docker run -p 8080:8080 -v forma-assets:/app/assets forma
+```
+
+Or run `docker compose up --build forma` ([`docker-compose.yml`](docker-compose.yml)). Run `docker exec <container> supervisorctl -c /etc/supervisor/forma.conf status` to see the processes. Uploaded media are plain files in `/app/assets`, a volume.
+
 ## Project structure
 
 ```text
@@ -153,7 +181,9 @@ Forma/
 │   └── api/             .NET 10 backend (Forma.Api.slnx)
 │       ├── Forma.Api/             endpoints, DTOs, OpenAPI document
 │       ├── Forma.Application/     entities + core services
-│       └── Forma.Infrastructure/  EF Core, SQLite, repositories
+│       └── Forma.Infrastructure/  EF Core, SQLite, repositories, media storage
+├── docker/              nginx, supervisord and entrypoint for the image
+├── Dockerfile           app + API in one image
 └── package.json         npm workspaces root
 ```
 
@@ -224,6 +254,7 @@ Forma speaks with clarity and quiet confidence. No hype, no jargon, no exaggerat
 - [x] Dashboard & website management
 - [x] Pages list
 - [x] API: read websites & pages
+- [x] API: media library (image uploads with thumbnails)
 - [ ] API: create, update & publish
 - [ ] Design Studio: drag & drop editor
 - [ ] Templates, blocks & global styles

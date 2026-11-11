@@ -17,7 +17,58 @@ namespace Forma.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
-            modelBuilder.Entity("Forma.Infrastructure.DataAccessObjects.Pages.PageDao", b =>
+            modelBuilder.Entity("Forma.Infrastructure.Daos.MediaItemDao", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ImagePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("SizeInBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ThumbnailPath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("WebsiteId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WebsiteId");
+
+                    b.ToTable("Media", (string)null);
+                });
+
+            modelBuilder.Entity("Forma.Infrastructure.Daos.PageDao", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -55,7 +106,7 @@ namespace Forma.Infrastructure.Persistence.Migrations
                     b.ToTable("Pages", (string)null);
                 });
 
-            modelBuilder.Entity("Forma.Infrastructure.DataAccessObjects.Websites.WebsiteDao", b =>
+            modelBuilder.Entity("Forma.Infrastructure.Daos.WebsiteDao", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -95,9 +146,20 @@ namespace Forma.Infrastructure.Persistence.Migrations
                     b.ToTable("Websites", (string)null);
                 });
 
-            modelBuilder.Entity("Forma.Infrastructure.DataAccessObjects.Pages.PageDao", b =>
+            modelBuilder.Entity("Forma.Infrastructure.Daos.MediaItemDao", b =>
                 {
-                    b.HasOne("Forma.Infrastructure.DataAccessObjects.Websites.WebsiteDao", "Website")
+                    b.HasOne("Forma.Infrastructure.Daos.WebsiteDao", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Forma.Infrastructure.Daos.PageDao", b =>
+                {
+                    b.HasOne("Forma.Infrastructure.Daos.WebsiteDao", "Website")
                         .WithMany()
                         .HasForeignKey("WebsiteId")
                         .OnDelete(DeleteBehavior.Cascade)
