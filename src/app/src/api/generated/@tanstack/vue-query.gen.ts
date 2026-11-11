@@ -60,8 +60,8 @@ export const getMediaItemsOptions = (options: Options<GetMediaItemsData>) => que
 /**
  * Uploads an image to a website's media library and creates its thumbnail.
  *
- * Accepts JPEG, PNG, GIF and WebP files up to 10 MB. The file's contents are checked as well as
- * its extension, so a file that is not really a supported image is rejected.
+ * Accepts JPEG, PNG, GIF and WebP files up to 10 MB and 100 megapixels. The file's contents are checked
+ * as well as its extension, so a file that is not really a supported image, or is damaged, is rejected.
  */
 export const uploadMediaMutation = (options?: Partial<Options<UploadMediaData>>): UseMutationOptions<UploadMediaResponse, UploadMediaError, Options<UploadMediaData>> => {
     const mutationOptions: UseMutationOptions<UploadMediaResponse, UploadMediaError, Options<UploadMediaData>> = {

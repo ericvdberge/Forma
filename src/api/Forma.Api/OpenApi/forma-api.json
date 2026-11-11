@@ -45,7 +45,7 @@
           "Media"
         ],
         "summary": "Uploads an image to a website's media library and creates its thumbnail.",
-        "description": "Accepts JPEG, PNG, GIF and WebP files up to 10 MB. The file's contents are checked as well as\r\nits extension, so a file that is not really a supported image is rejected.",
+        "description": "Accepts JPEG, PNG, GIF and WebP files up to 10 MB and 100 megapixels. The file's contents are checked\r\nas well as its extension, so a file that is not really a supported image, or is damaged, is rejected.",
         "operationId": "UploadMedia",
         "requestBody": {
           "description": "Cancels the request.",
@@ -75,7 +75,7 @@
             }
           },
           "400": {
-            "description": "The file is missing, empty, too large, or not a supported image.",
+            "description": "The file is missing, empty, too large, damaged, or not a supported image.",
             "content": {
               "application/problem+json": {
                 "schema": {

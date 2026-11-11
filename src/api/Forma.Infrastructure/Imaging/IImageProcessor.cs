@@ -4,8 +4,8 @@ public interface IImageProcessor
 {
     /// <summary>
     /// Validates that <paramref name="content"/> is a supported image (JPEG, PNG, GIF or WebP,
-    /// detected from the bytes, not the file name) and renders its thumbnail.
-    /// Returns <c>null</c> when it is not a supported image.
+    /// detected from the bytes, not the file name) that is complete and not too large, and renders its thumbnail.
     /// </summary>
-    ProcessedImage? Process(byte[] content);
+    /// <remarks>Waits its turn when other images are being processed, so a bulk upload can't exhaust memory.</remarks>
+    Task<ImageProcessingResult> ProcessAsync(byte[] content, CancellationToken cancellationToken = default);
 }

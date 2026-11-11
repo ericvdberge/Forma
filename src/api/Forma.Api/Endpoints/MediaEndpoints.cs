@@ -95,15 +95,15 @@ public class MediaEndpoints : IEndpoints
 
     /// <summary>Uploads an image to a website's media library and creates its thumbnail.</summary>
     /// <remarks>
-    /// Accepts JPEG, PNG, GIF and WebP files up to 10 MB. The file's contents are checked as well as
-    /// its extension, so a file that is not really a supported image is rejected.
+    /// Accepts JPEG, PNG, GIF and WebP files up to 10 MB and 100 megapixels. The file's contents are checked
+    /// as well as its extension, so a file that is not really a supported image, or is damaged, is rejected.
     /// </remarks>
     /// <param name="request">The multipart form with the website id and the image file.</param>
     /// <param name="mediaCoreService">Service that checks, stores and records the image.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>The created media item, a validation problem, or 404 when the website does not exist.</returns>
     /// <response code="201">The image was stored; the body is the new media item.</response>
-    /// <response code="400">The file is missing, empty, too large, or not a supported image.</response>
+    /// <response code="400">The file is missing, empty, too large, damaged, or not a supported image.</response>
     /// <response code="404">No website exists with the given id.</response>
     /// <exception cref="InvalidOperationException">The core service returned an upload result this endpoint does not handle.</exception>
     internal static async Task<Results<Created<MediaItemDto>, ValidationProblem, NotFound>> UploadMediaAsync(
