@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { MousePointerClick, Type } from 'lucide-vue-next'
+import { ArrowDown, ArrowUp, Copy, ImageIcon, MousePointerClick, Plus, Trash2, Type } from 'lucide-vue-next'
 import { cn } from '@forma/design-system'
 import { useStudio } from '@/composables/useStudio'
 import { blockDefinition, type Field } from '@/studio/blocks'
@@ -15,6 +15,11 @@ const studio = useStudio()
 const section = computed(() => studio.selectedSection.value)
 const block = computed(() => studio.selectedBlock.value)
 const def = computed(() => (block.value ? blockDefinition(block.value.type) : null))
+const advanced = computed(() => studio.mode.value === 'advanced')
+const contentFields = computed(() => (def.value?.fields ?? []).filter((f) => advanced.value || !f.advanced))
+const title = computed(() =>
+  block.value ? def.value!.label : section.value ? section.value.settings.name || sectionTypeLabels[section.value.settings.type] : '',
+)
 
 type Tab = 'content' | 'style' | 'advanced'
 const tab = ref<Tab>('content')
@@ -23,9 +28,9 @@ const tabs = computed<Array<{ value: Tab; label: string }>>(() => [
   { value: 'style', label: 'Style' },
   { value: 'advanced', label: 'Advanced' },
 ])
-// A newly selected item opens on its main tab.
+// A newly selected item opens on its main tab; simple mode only has that one.
 watch(
-  () => (block.value ?? section.value)?.id,
+  () => [(block.value ?? section.value)?.id, advanced.value],
   () => (tab.value = 'content'),
 )
 
@@ -87,7 +92,7 @@ const sectionStyle: Array<[Field, string]> = [
   [{ key: 'minHeight', label: 'Minimum height', kind: 'slider', min: 0, max: 900, step: 10, unit: 'px' }, 'minHeight'],
   [{ key: 'radius', label: 'Corner radius', kind: 'slider', min: 0, max: 40, unit: 'px' }, 'radius'],
 ]
-const advanced: Field[] = [
+const attributeFields: Field[] = [
   { key: 'anchor', label: 'Anchor ID', kind: 'text', placeholder: 'e.g. pricing → /page#pricing' },
   { key: 'className', label: 'CSS classes', kind: 'text', placeholder: 'Space-separated' },
 ]
@@ -100,13 +105,20 @@ const blockStyle: Field[] = [
   { key: 'marginBottom', label: 'Space below', kind: 'slider', min: 0, max: 160, step: 4, unit: 'px' },
 ]
 
+const action =
+  'inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-canvas px-3 text-sm font-medium transition-colors hover:bg-charcoal/[0.08]'
+
 const deviceLabels = { desktop: 'Desktop', tablet: 'Tablet', mobile: 'Mobile' }
 </script>
 
 <template>
   <aside class="flex h-full min-h-0 flex-col bg-white" aria-label="Inspector">
     <template v-if="section">
-      <div role="tablist" aria-label="Inspector" class="flex gap-1 border-b border-charcoal/[0.06] pl-3 pr-12 pt-4 xl:pr-3">
+      <div v-if="!advanced" class="border-b border-charcoal/[0.06] px-5 pb-4 pr-12 pt-5 xl:pr-5">
+        <p class="text-xs font-medium uppercase tracking-[0.08em] text-subtle">{{ block ? 'Editing' : 'Editing section' }}</p>
+        <h2 class="mt-1 text-lg font-bold">{{ title }}</h2>
+      </div>
+      <div v-else role="tablist" aria-label="Inspector" class="flex gap-1 border-b border-charcoal/[0.06] pl-3 pr-12 pt-4 xl:pr-3">
         <button
           v-for="t in tabs"
           :key="t.value"
@@ -129,13 +141,13 @@ const deviceLabels = { desktop: 'Desktop', tablet: 'Tablet', mobile: 'Mobile' }
         <!-- ===== Block ===== -->
         <template v-if="block && def">
           <template v-if="tab === 'content'">
-            <InspectorGroup :title="def.label">
+            <InspectorGroup :title="advanced ? def.label : 'Content'">
               <p v-if="def.richText" class="flex gap-2 rounded-xl bg-accent-50 p-3 text-xs leading-relaxed text-accent-700">
                 <Type class="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
                 Type directly on the canvas. Select text to make it bold, italic, a link or a softer colour.
               </p>
               <FieldControl
-                v-for="f in def.fields"
+                v-for="f in contentFields"
                 :key="f.key"
                 :field="f"
                 :model-value="blockValue(`props.${f.key}`)"
@@ -155,7 +167,7 @@ const deviceLabels = { desktop: 'Desktop', tablet: 'Tablet', mobile: 'Mobile' }
           <template v-else>
             <InspectorGroup title="Attributes">
               <FieldControl
-                v-for="f in advanced"
+                v-for="f in attributeFields"
                 :key="f.key"
                 :field="f"
                 :model-value="blockValue(`style.${f.key}`)"
@@ -177,7 +189,7 @@ const deviceLabels = { desktop: 'Desktop', tablet: 'Tablet', mobile: 'Mobile' }
         <!-- ===== Section ===== -->
         <template v-else>
           <template v-if="tab === 'content'">
-            <InspectorGroup title="General">
+            <InspectorGroup v-if="advanced" title="General">
               <FieldControl v-for="[f, path] in general" :key="path" :field="f" :model-value="sectionValue(path)" @update:model-value="setSection(path, $event)" />
               <template v-if="section.settings.layout === 'split'">
                 <FieldControl v-for="[f, path] in splitFields" :key="path" :field="f" :model-value="sectionValue(path)" @update:model-value="setSection(path, $event)" />
@@ -186,7 +198,7 @@ const deviceLabels = { desktop: 'Desktop', tablet: 'Tablet', mobile: 'Mobile' }
               <SpacingControl :model-value="section.settings.padding" @update:model-value="setSection('padding', $event)" />
             </InspectorGroup>
 
-            <InspectorGroup title="Background">
+            <InspectorGroup :title="advanced ? 'Background' : 'Background picture or colour'">
               <FieldControl :field="bgKind" :model-value="sectionValue('background.kind')" @update:model-value="setSection('background.kind', $event)" />
               <FieldControl
                 v-if="section.settings.background.kind === 'color'"
@@ -216,7 +228,7 @@ const deviceLabels = { desktop: 'Desktop', tablet: 'Tablet', mobile: 'Mobile' }
               <FieldControl :field="widthField" :model-value="sectionValue('contentWidth')" @update:model-value="setSection('contentWidth', $event)" />
             </InspectorGroup>
 
-            <InspectorGroup title="Animation">
+            <InspectorGroup v-if="advanced" title="Animation">
               <FieldControl v-for="[f, path] in animation" :key="path" :field="f" :model-value="sectionValue(path)" @update:model-value="setSection(path, $event)" />
             </InspectorGroup>
           </template>
@@ -227,7 +239,7 @@ const deviceLabels = { desktop: 'Desktop', tablet: 'Tablet', mobile: 'Mobile' }
 
           <template v-else>
             <InspectorGroup title="Attributes">
-              <FieldControl v-for="f in advanced" :key="f.key" :field="f" :model-value="sectionValue(f.key)" @update:model-value="setSection(f.key, $event)" />
+              <FieldControl v-for="f in attributeFields" :key="f.key" :field="f" :model-value="sectionValue(f.key)" @update:model-value="setSection(f.key, $event)" />
             </InspectorGroup>
             <InspectorGroup title="Visibility">
               <FieldControl
@@ -240,8 +252,48 @@ const deviceLabels = { desktop: 'Desktop', tablet: 'Tablet', mobile: 'Mobile' }
             </InspectorGroup>
           </template>
         </template>
+
+        <!-- Simple mode: the actions spelled out, so nothing hides behind small icons -->
+        <section v-if="!advanced" class="flex flex-col gap-2 px-5 py-5">
+          <h3 class="text-sm font-bold">Actions</h3>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" :class="action" @click="studio.nudge(-1)"><ArrowUp class="size-4" aria-hidden="true" /> Move up</button>
+            <button type="button" :class="action" @click="studio.nudge(1)"><ArrowDown class="size-4" aria-hidden="true" /> Move down</button>
+            <button type="button" :class="action" @click="studio.duplicate()"><Copy class="size-4" aria-hidden="true" /> Duplicate</button>
+            <button type="button" :class="action" @click="studio.adding.value = { mode: 'block' }"><Plus class="size-4" aria-hidden="true" /> Add below</button>
+          </div>
+          <button type="button" :class="cn(action, 'text-danger hover:bg-danger/5')" @click="studio.remove()">
+            <Trash2 class="size-4" aria-hidden="true" /> Remove this {{ block ? 'item' : 'section' }}
+          </button>
+        </section>
       </div>
     </template>
+
+    <div v-else-if="!advanced" class="flex flex-1 flex-col overflow-y-auto px-6 py-8">
+      <h2 class="text-lg font-bold">How to change this page</h2>
+      <ol class="mt-5 flex flex-col gap-5 text-[0.9375rem] leading-relaxed">
+        <li class="flex gap-3">
+          <span class="grid size-8 shrink-0 place-items-center rounded-full bg-accent-50 text-accent"><Type class="size-4" aria-hidden="true" /></span>
+          <span><strong>Change text:</strong> click any text on the page and start typing.</span>
+        </li>
+        <li class="flex gap-3">
+          <span class="grid size-8 shrink-0 place-items-center rounded-full bg-accent-50 text-accent"><ImageIcon class="size-4" aria-hidden="true" /></span>
+          <span><strong>Change a picture or button:</strong> click it, then use the settings that appear here.</span>
+        </li>
+        <li class="flex gap-3">
+          <span class="grid size-8 shrink-0 place-items-center rounded-full bg-accent-50 text-accent"><Plus class="size-4" aria-hidden="true" /></span>
+          <span><strong>Add something:</strong> use <em>Add a section</em> at the bottom of the page, or <em>Add</em> at the top.</span>
+        </li>
+        <li class="flex gap-3">
+          <span class="grid size-8 shrink-0 place-items-center rounded-full bg-accent-50 text-accent"><MousePointerClick class="size-4" aria-hidden="true" /></span>
+          <span><strong>Done?</strong> Use <em>Preview</em> to check it, then <em>Publish</em> to put it live.</span>
+        </li>
+      </ol>
+      <p class="mt-8 rounded-xl bg-canvas p-4 text-sm text-muted">
+        Made a mistake? <strong class="text-charcoal">Undo</strong> (Ctrl+Z) takes back any change, and
+        <strong class="text-charcoal">Discard</strong> goes back to the published page.
+      </p>
+    </div>
 
     <div v-else class="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
       <span class="grid size-12 place-items-center rounded-2xl bg-canvas">

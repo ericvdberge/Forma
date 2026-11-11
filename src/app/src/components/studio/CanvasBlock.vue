@@ -44,7 +44,9 @@ const innerStyle = computed(() => {
 function onClick(e: MouseEvent) {
   if (!props.ctx.editing) return
   e.stopPropagation()
-  if (!selected.value) studio.select({ kind: 'block', sectionId: props.section.id, blockId: props.block.id })
+  if (selected.value) return
+  if (def.value.richText) studio.textPointer.value = { x: e.clientX, y: e.clientY }
+  studio.select({ kind: 'block', sectionId: props.section.id, blockId: props.block.id })
 }
 </script>
 

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, shallowRef, watch } from 'vue'
+import { computed, inject, nextTick, onBeforeUnmount, shallowRef, watch } from 'vue'
 import { generateHTML, generateJSON } from '@tiptap/core'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 import { richTextExtensions } from '@/studio/tiptap'
-import { textEditorKey } from '@/studio/inject'
+import { textEditorKey, textPointerKey } from '@/studio/inject'
 
 /**
  * Rich text that becomes editable in place (Tiptap) while its block is selected in the studio,
@@ -14,6 +14,7 @@ const emit = defineEmits<{ update: [html: string] }>()
 
 /** Lets the floating toolbar format the text being edited. */
 const activeEditor = inject(textEditorKey, null)
+const pointer = inject(textPointerKey, null)
 const editor = shallowRef<Editor | null>(null)
 
 function create() {
@@ -25,6 +26,32 @@ function create() {
   })
   editor.value = e
   if (activeEditor) activeEditor.value = e
+  // The click that selected the block also puts the cursor where it landed: one click to start typing.
+  const at = pointer?.value
+  if (at) {
+    pointer!.value = null
+    // Wait for EditorContent to put the editor's DOM on the page before hit-testing it.
+    nextTick(() => requestAnimationFrame(() => {
+      if (e.isDestroyed) return
+      e.commands.focus(posAt(e, at.x, at.y) ?? 'end')
+    }))
+  }
+}
+
+/** The document position under a screen point. The browser's own hit test copes with the canvas zoom. */
+function posAt(e: Editor, x: number, y: number): number | undefined {
+  const doc = document as Document & { caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null }
+  const hit = doc.caretPositionFromPoint?.(x, y)
+  const node = hit?.offsetNode ?? document.caretRangeFromPoint?.(x, y)?.startContainer
+  const offset = hit?.offset ?? document.caretRangeFromPoint?.(x, y)?.startOffset ?? 0
+  if (node && e.view.dom.contains(node)) {
+    try {
+      return e.view.posAtDOM(node, offset)
+    } catch {
+      /* fall through */
+    }
+  }
+  return e.view.posAtCoords({ left: x, top: y })?.pos
 }
 
 function destroy() {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { LayoutTemplate, MousePointerClick } from 'lucide-vue-next'
+import { LayoutTemplate, MousePointerClick, Plus } from 'lucide-vue-next'
 import { FButton, cn } from '@forma/design-system'
 import { isSectionPayload, useStudio, type DragPayload, type DropTarget } from '@/composables/useStudio'
 import { createBlock } from '@/studio/blocks'
@@ -170,9 +170,30 @@ function addHero() {
         <template v-if="doc?.sections.length">
           <template v-for="(section, i) in doc.sections" :key="section.id">
             <div v-if="sectionIndicator(i)" class="-my-[7.5px] h-[3px] shrink-0 rounded-full bg-accent" aria-hidden="true" />
+            <!-- Hover the gap between two sections to add one there. -->
+            <div v-else-if="editing && i > 0 && !drag" class="group relative z-20 -my-3 h-6 shrink-0">
+              <button
+                type="button"
+                class="absolute left-1/2 top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white opacity-0 shadow-card transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
+                :style="{ zoom: 1 / zoom }"
+                @click.stop="studio.adding.value = { mode: 'section', index: i }"
+              >
+                <Plus class="size-4" aria-hidden="true" /> Add section here
+              </button>
+            </div>
             <CanvasSection :section="section" :bp="device" :editing="editing" />
           </template>
           <div v-if="sectionIndicator(doc.sections.length)" class="-my-[7.5px] h-[3px] shrink-0 rounded-full bg-accent" aria-hidden="true" />
+          <button
+            v-if="editing"
+            type="button"
+            class="flex min-h-28 shrink-0 items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-charcoal/15 text-muted transition-colors hover:border-accent hover:bg-accent-50 hover:text-accent"
+            @click.stop="studio.adding.value = { mode: 'section', index: doc.sections.length }"
+          >
+            <span class="inline-flex items-center gap-2 text-lg font-medium" :style="{ zoom: 1 / zoom }">
+              <Plus class="size-5" aria-hidden="true" /> Add a section
+            </span>
+          </button>
         </template>
 
         <div
@@ -191,7 +212,10 @@ function addHero() {
             <p class="text-xl font-bold">This page is empty</p>
             <p class="mt-1 text-muted">Drag a block or template from the library, or start with a hero.</p>
           </div>
-          <FButton v-if="editing" variant="secondary" @click.stop="addHero"><LayoutTemplate class="size-4" aria-hidden="true" /> Add a hero section</FButton>
+          <div v-if="editing" class="flex flex-wrap justify-center gap-2">
+            <FButton @click.stop="studio.adding.value = { mode: 'section', index: 0 }"><Plus class="size-4" aria-hidden="true" /> Add a section</FButton>
+            <FButton variant="secondary" @click.stop="addHero"><LayoutTemplate class="size-4" aria-hidden="true" /> Start with a hero</FButton>
+          </div>
         </div>
       </div>
     </div>

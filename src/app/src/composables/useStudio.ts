@@ -8,7 +8,7 @@ import { useToast } from '@/composables/useToast'
 import { clone } from '@/studio/defaults'
 import { createBlock } from '@/studio/blocks'
 import { createSection, globalElements, sectionTemplates, withFreshIds } from '@/studio/sections'
-import { textEditorKey } from '@/studio/inject'
+import { textEditorKey, textPointerKey } from '@/studio/inject'
 import type { Block, BlockType, Breakpoint, MediaAsset, PageDocument, SavedItem, Section, Selection, StudioPage } from '@/studio/types'
 
 /** Something being dragged onto or around the canvas. */
@@ -21,6 +21,26 @@ export type DragPayload =
 
 /** Where a drop would land: between sections, or at an index inside a section (and column, for split layouts). */
 export type DropTarget = { kind: 'section'; index: number } | { kind: 'block'; sectionId: string; index: number; column?: 0 | 1 }
+
+export type StudioMode = 'simple' | 'advanced'
+
+/** Simple mode hides the block library and technical settings; remembered per browser. */
+const MODE_KEY = 'forma.studioMode'
+const mode = ref<StudioMode>(readMode())
+function readMode(): StudioMode {
+  try {
+    return localStorage.getItem(MODE_KEY) === 'advanced' ? 'advanced' : 'simple'
+  } catch {
+    return 'simple' /* storage unavailable */
+  }
+}
+watch(mode, (m) => {
+  try {
+    localStorage.setItem(MODE_KEY, m)
+  } catch {
+    /* storage unavailable */
+  }
+})
 
 const HISTORY_LIMIT = 100
 /** Edits to the same field within this window are one undo step (e.g. typing). */
@@ -77,6 +97,9 @@ export function createStudio(pageId: MaybeRefOrGetter<string>, seed: MaybeRefOrG
   const dropTarget = ref<DropTarget | null>(null)
   /** The rich-text editor of the text block being edited, for the formatting toolbar. */
   const textEditor = shallowRef<Editor | null>(null)
+  const textPointer = shallowRef<{ x: number; y: number } | null>(null)
+  /** The Add dialog: a new section at an index, or a block into the selected section. */
+  const adding = ref<null | { mode: 'section'; index: number } | { mode: 'block' }>(null)
 
   const past = shallowRef<PageDocument[]>([])
   const future = shallowRef<PageDocument[]>([])
@@ -350,6 +373,15 @@ export function createStudio(pageId: MaybeRefOrGetter<string>, seed: MaybeRefOrG
     drop(p, { kind: 'section', index: d.sections.length })
   }
 
+  /** Adds what was picked in the Add dialog where it was opened. */
+  function addPicked(p: DragPayload) {
+    const a = adding.value
+    adding.value = null
+    if (!a) return
+    if (a.mode === 'section') drop(p, { kind: 'section', index: a.index })
+    else insert(p)
+  }
+
   function saveToLibrary(sel: Selection = selection.value, name?: string) {
     const d = doc.value
     if (!sel || !d) return
@@ -408,10 +440,14 @@ export function createStudio(pageId: MaybeRefOrGetter<string>, seed: MaybeRefOrG
     selectedBlock,
     device,
     preview,
+    mode,
     zoom,
     drag,
     dropTarget,
     textEditor,
+    textPointer,
+    adding,
+    addPicked,
     hasChanges,
     isPublished,
     canUndo: computed(() => past.value.length > 0),
@@ -447,6 +483,7 @@ const StudioKey: InjectionKey<Studio> = Symbol('studio')
 export function provideStudio(studio: Studio) {
   provide(StudioKey, studio)
   provide(textEditorKey, studio.textEditor)
+  provide(textPointerKey, studio.textPointer)
 }
 
 /** The studio of the page being edited, for components inside the Design Studio view. */

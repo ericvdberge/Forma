@@ -16,6 +16,8 @@ const studio = useStudio()
 const s = computed(() => props.section.settings)
 const selected = computed(() => studio.selection.value?.kind === 'section' && studio.selection.value.sectionId === props.section.id)
 const hidden = computed(() => !s.value.visibility[props.bp])
+/** The section or one of its blocks is selected: show its "Add" button. */
+const active = computed(() => studio.selection.value?.sectionId === props.section.id)
 const label = computed(() => s.value.name || sectionTypeLabels[s.value.type])
 const ctx = computed<Omit<RenderContext, 'selected'>>(() => ({ bp: props.bp, theme: s.value.theme, editing: props.editing }))
 
@@ -193,9 +195,31 @@ function onClick(e: MouseEvent) {
             )
           "
         >
-          <Plus class="size-5" aria-hidden="true" />
-          Drag blocks here, or select this section and click a block in the library
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 font-medium text-accent shadow-soft ring-1 ring-accent/40 hover:bg-accent-50"
+            :style="{ zoom: 1 / studio.zoom.value }"
+            @click.stop="studio.select({ kind: 'section', sectionId: section.id }); studio.adding.value = { mode: 'block' }"
+          >
+            <Plus class="size-4" aria-hidden="true" /> Add something to this section
+          </button>
+          <span :style="{ zoom: 1 / studio.zoom.value }">or drag it in from the library</span>
         </div>
+      </div>
+
+      <div
+        v-if="editing && active && section.blocks.length"
+        class="mt-5 flex"
+        :style="{ justifyContent: s.align === 'center' ? 'center' : 'flex-start' }"
+      >
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-medium text-accent shadow-soft ring-1 ring-accent/40 hover:bg-accent-50"
+          :style="{ zoom: 1 / studio.zoom.value }"
+          @click.stop="studio.adding.value = { mode: 'block' }"
+        >
+          <Plus class="size-4" aria-hidden="true" /> {{ studio.selection.value?.kind === 'block' ? 'Add below the selected item' : 'Add to this section' }}
+        </button>
       </div>
     </div>
 

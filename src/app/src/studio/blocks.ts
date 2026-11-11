@@ -47,7 +47,8 @@ const iconOptions = Object.keys(featureIcons).map((value) => ({ value, label: va
 
 /* Inspector fields: the content form for each block type is generated from these. */
 type Option = { value: string | number; label: string }
-export type Field =
+/** `advanced` fields are hidden in the studio's Simple mode. */
+export type Field = { advanced?: boolean } & (
   | { key: string; label: string; kind: 'text' | 'textarea' | 'url'; placeholder?: string }
   | { key: string; label: string; kind: 'number' | 'slider'; min: number; max: number; step?: number; unit?: string }
   | { key: string; label: string; kind: 'select' | 'segmented'; options: Option[] }
@@ -62,6 +63,7 @@ export type Field =
       itemFields: Field[]
       newItem: () => Record<string, unknown>
     }
+  )
 
 export interface BlockDefinition<T extends BlockType = BlockType> {
   type: T
@@ -75,7 +77,7 @@ export interface BlockDefinition<T extends BlockType = BlockType> {
   fields: Field[]
 }
 
-const radius: Field = { key: 'radius', label: 'Corner radius', kind: 'slider', min: 0, max: 40, unit: 'px' }
+const radius: Field = { key: 'radius', label: 'Corner radius', kind: 'slider', min: 0, max: 40, unit: 'px', advanced: true }
 const columns = (max = 4): Field => ({
   key: 'columns',
   label: 'Columns',
@@ -93,7 +95,7 @@ const definitions: { [K in BlockType]: BlockDefinition<K> } = {
     richText: true,
     props: () => ({ html: '<p>Your heading</p>', level: 2, size: 'lg' }),
     fields: [
-      { key: 'level', label: 'Tag', kind: 'segmented', options: [1, 2, 3, 4].map((n) => ({ value: n, label: `H${n}` })) },
+      { key: 'level', label: 'Tag', kind: 'segmented', options: [1, 2, 3, 4].map((n) => ({ value: n, label: `H${n}` })), advanced: true },
       {
         key: 'size',
         label: 'Size',
@@ -152,11 +154,12 @@ const definitions: { [K in BlockType]: BlockDefinition<K> } = {
     props: () => ({ src: IMG('facade'), alt: '', aspect: '4/3', radius: 16, caption: '' }),
     fields: [
       { key: 'src', label: 'Image', kind: 'image' },
-      { key: 'alt', label: 'Alt text', kind: 'text', placeholder: 'Describe the image' },
+      { key: 'alt', label: 'Describe the picture', kind: 'text', placeholder: 'For visitors who can’t see it' },
       {
         key: 'aspect',
         label: 'Aspect ratio',
         kind: 'select',
+        advanced: true,
         options: [
           { value: 'auto', label: 'Original' },
           { value: '16/9', label: '16:9' },
@@ -192,7 +195,7 @@ const definitions: { [K in BlockType]: BlockDefinition<K> } = {
         newItem: () => ({ src: IMG('arch-light'), alt: '' }),
       },
       columns(4),
-      { key: 'gap', label: 'Gap', kind: 'slider', min: 0, max: 40, unit: 'px' },
+      { key: 'gap', label: 'Gap', kind: 'slider', min: 0, max: 40, unit: 'px', advanced: true },
       radius,
     ],
   },
@@ -203,7 +206,7 @@ const definitions: { [K in BlockType]: BlockDefinition<K> } = {
     props: () => ({ url: '', aspect: '16/9', radius: 16 }),
     fields: [
       { key: 'url', label: 'YouTube or Vimeo link', kind: 'url', placeholder: 'https://youtube.com/watch?v=…' },
-      { key: 'aspect', label: 'Aspect ratio', kind: 'segmented', options: ['16/9', '4/3', '1/1'].map((v) => ({ value: v, label: v.replace('/', ':') })) },
+      { key: 'aspect', label: 'Aspect ratio', kind: 'segmented', options: ['16/9', '4/3', '1/1'].map((v) => ({ value: v, label: v.replace('/', ':') })), advanced: true },
       radius,
     ],
   },
@@ -214,7 +217,7 @@ const definitions: { [K in BlockType]: BlockDefinition<K> } = {
     props: () => ({ style: 'solid', thickness: 1 }),
     fields: [
       { key: 'style', label: 'Line', kind: 'segmented', options: [{ value: 'solid', label: 'Solid' }, { value: 'dashed', label: 'Dashed' }] },
-      { key: 'thickness', label: 'Thickness', kind: 'slider', min: 1, max: 6, unit: 'px' },
+      { key: 'thickness', label: 'Thickness', kind: 'slider', min: 1, max: 6, unit: 'px', advanced: true },
     ],
   },
   spacer: {
@@ -266,8 +269,8 @@ const definitions: { [K in BlockType]: BlockDefinition<K> } = {
     props: () => ({ address: 'Keizersgracht 123, Amsterdam', zoom: 14, height: 320, radius: 16 }),
     fields: [
       { key: 'address', label: 'Address', kind: 'text' },
-      { key: 'zoom', label: 'Zoom', kind: 'slider', min: 3, max: 19 },
-      { key: 'height', label: 'Height', kind: 'slider', min: 160, max: 640, step: 8, unit: 'px' },
+      { key: 'zoom', label: 'Zoom', kind: 'slider', min: 3, max: 19, advanced: true },
+      { key: 'height', label: 'Height', kind: 'slider', min: 160, max: 640, step: 8, unit: 'px', advanced: true },
       radius,
     ],
   },
@@ -297,8 +300,8 @@ const definitions: { [K in BlockType]: BlockDefinition<K> } = {
         ],
         newItem: () => ({ src: IMG('tower'), caption: '' }),
       },
-      { key: 'aspect', label: 'Aspect ratio', kind: 'segmented', options: ['21/9', '16/9', '4/3'].map((v) => ({ value: v, label: v.replace('/', ':') })) },
-      { key: 'autoplay', label: 'Autoplay in preview', kind: 'toggle' },
+      { key: 'aspect', label: 'Aspect ratio', kind: 'segmented', options: ['21/9', '16/9', '4/3'].map((v) => ({ value: v, label: v.replace('/', ':') })), advanced: true },
+      { key: 'autoplay', label: 'Play automatically', kind: 'toggle' },
       radius,
     ],
   },
