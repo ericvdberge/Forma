@@ -8,19 +8,16 @@ import { cn } from '../utils/cn'
  * A photo tile: the image fills the card, with a frosted meta chip bottom-left and room for
  * actions (e.g. an `FMenu`) top-right. The whole card is one button.
  */
-withDefaults(
-  defineProps<{
-    src: string
-    alt: string
-    /** Shown in the chip, e.g. "JPG · 2.4 MB" */
-    meta?: string
-    metaIcon?: Component
-    /** Tailwind aspect class */
-    aspect?: string
-    selected?: boolean
-  }>(),
-  { aspect: 'aspect-[16/10]', selected: false },
-)
+const { aspect = 'aspect-[16/10]', selected = false } = defineProps<{
+  src: string
+  alt: string
+  /** Shown in the chip, e.g. "JPG · 2.4 MB" */
+  meta?: string
+  metaIcon?: Component
+  /** Tailwind aspect class */
+  aspect?: string
+  selected?: boolean
+}>()
 const emit = defineEmits<{ open: [] }>()
 const failed = ref(false)
 </script>

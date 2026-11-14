@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useSupported } from '@vueuse/core'
 import { ArrowRight, ClipboardPaste, CloudUpload, Globe } from 'lucide-vue-next'
 import { FActionButton, FDropzone, FThumbnailRow, FUploadProgress } from '@forma/design-system'
 import type { MediaItem } from '@/data/types'
@@ -33,7 +34,7 @@ const formats = computed(() =>
     })
     .filter((f) => f.items.length),
 )
-const canPaste = typeof navigator !== 'undefined' && !!navigator.clipboard?.read
+const canPaste = useSupported(() => !!navigator.clipboard?.read)
 </script>
 
 <template>
@@ -60,7 +61,6 @@ const canPaste = typeof navigator !== 'undefined' && !!navigator.clipboard?.read
               :name="u.fileName"
               :src="u.previewUrl"
               :status="u.status"
-              :progress="u.progress"
               :error="u.error"
               :dismiss-label="u.status === 'failed' ? `Dismiss ${u.fileName}` : undefined"
               @dismiss="emit('dismiss', u.id)"

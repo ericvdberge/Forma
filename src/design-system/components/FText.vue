@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import { cn } from '../utils/cn'
 
-withDefaults(
-  defineProps<{
-    as?: 'p' | 'span' | 'div'
-    size?: 'lead' | 'body' | 'small' | 'caption'
-    tone?: 'default' | 'muted' | 'light' | 'light-muted'
-  }>(),
-  { as: 'p', size: 'body', tone: 'muted' },
-)
+const { as = 'p', size = 'body', tone = 'muted' } = defineProps<{
+  as?: 'p' | 'span' | 'div'
+  size?: 'lead' | 'body' | 'small' | 'caption'
+  tone?: 'default' | 'muted' | 'light' | 'light-muted'
+}>()
 
 const sizes = {
   lead: 'text-lg md:text-xl leading-relaxed',

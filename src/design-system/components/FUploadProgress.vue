@@ -5,21 +5,18 @@ import FProgress from './FProgress.vue'
 import { cn } from '../utils/cn'
 
 /** One file being uploaded: thumbnail, status, progress and a dismiss/cancel button. */
-const props = withDefaults(
-  defineProps<{
-    name: string
-    /** Local preview (object URL) */
-    src?: string
-    status?: 'queued' | 'uploading' | 'processing' | 'failed'
-    /** 0–100, while uploading */
-    progress?: number | null
-    error?: string
-    /** `floating` is the frosted card laid over artwork */
-    variant?: 'plain' | 'floating'
-    dismissLabel?: string
-  }>(),
-  { status: 'uploading', progress: null, variant: 'plain' },
-)
+const { status = 'uploading', progress = null, variant = 'plain', error } = defineProps<{
+  name: string
+  /** Local preview (object URL) */
+  src?: string
+  status?: 'queued' | 'uploading' | 'processing' | 'failed'
+  /** 0–100, while uploading */
+  progress?: number | null
+  error?: string
+  /** `floating` is the frosted card laid over artwork */
+  variant?: 'plain' | 'floating'
+  dismissLabel?: string
+}>()
 defineEmits<{ dismiss: [] }>()
 
 const statusText = computed(
@@ -28,10 +25,10 @@ const statusText = computed(
       queued: 'Waiting…',
       uploading: 'Uploading…',
       processing: 'Processing…',
-      failed: props.error ?? 'Upload failed',
-    })[props.status],
+      failed: error ?? 'Upload failed',
+    })[status],
 )
-const percent = computed(() => (props.status === 'uploading' && props.progress != null ? Math.round(props.progress) : null))
+const percent = computed(() => (status === 'uploading' && progress != null ? Math.round(progress) : null))
 </script>
 
 <template>

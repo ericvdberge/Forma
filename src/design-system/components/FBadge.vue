@@ -1,16 +1,13 @@
 <script setup lang="ts">
 import { cn } from '../utils/cn'
 
-withDefaults(
-  defineProps<{
-    tone?: 'neutral' | 'accent' | 'dark'
-    /** Leading status dot */
-    dot?: boolean
-    /** Colour of the dot: accent pulses, positive is a calm "active" signal */
-    dotTone?: 'accent' | 'positive'
-  }>(),
-  { tone: 'neutral', dot: true, dotTone: 'accent' },
-)
+const { tone = 'neutral', dot = true, dotTone = 'accent' } = defineProps<{
+  tone?: 'neutral' | 'accent' | 'dark'
+  /** Leading status dot */
+  dot?: boolean
+  /** Colour of the dot: accent pulses, positive is a calm "active" signal */
+  dotTone?: 'accent' | 'positive'
+}>()
 
 const tones = {
   neutral: 'bg-white/70 text-charcoal ring-charcoal/[0.08] backdrop-blur',

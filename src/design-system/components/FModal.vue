@@ -13,18 +13,15 @@ import { cn } from '../utils/cn'
  * to choose where focus starts.
  */
 const open = defineModel<boolean>('open', { required: true })
-const props = withDefaults(
-  defineProps<{
-    /** Accessible name, when there is no visible heading to point `labelledby` at */
-    label?: string
-    labelledby?: string
-    size?: 'sm' | 'md' | 'lg' | 'xl'
-    /** Fills small screens edge to edge */
-    fullscreenOnMobile?: boolean
-    panelClass?: string
-  }>(),
-  { size: 'md', fullscreenOnMobile: false },
-)
+const { size = 'md', fullscreenOnMobile = false, labelledby, label } = defineProps<{
+  /** Accessible name, when there is no visible heading to point `labelledby` at */
+  label?: string
+  labelledby?: string
+  size?: 'sm' | 'md' | 'lg' | 'xl'
+  /** Fills small screens edge to edge */
+  fullscreenOnMobile?: boolean
+  panelClass?: string
+}>()
 const emit = defineEmits<{ close: [] }>()
 
 const sizes = { sm: 'max-w-md', md: 'max-w-2xl', lg: 'max-w-4xl', xl: 'max-w-[1300px]' }
@@ -102,8 +99,8 @@ onBeforeUnmount(() => {
           ref="panel"
           role="dialog"
           aria-modal="true"
-          :aria-label="props.labelledby ? undefined : props.label"
-          :aria-labelledby="props.labelledby"
+          :aria-label="labelledby ? undefined : label"
+          :aria-labelledby="labelledby"
           tabindex="-1"
           :class="
             cn(

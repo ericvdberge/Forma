@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { cn } from '../utils/cn'
 
-withDefaults(defineProps<{ tone?: 'accent' | 'muted' | 'light'; line?: boolean }>(), {
-  tone: 'accent',
-  line: true,
-})
+const { tone = 'accent', line = true } = defineProps<{ tone?: 'accent' | 'muted' | 'light'; line?: boolean }>()
 
 const tones = { accent: 'text-accent', muted: 'text-muted', light: 'text-warm-white/70' }
 </script>

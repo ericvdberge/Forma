@@ -2,13 +2,10 @@
 import { cn } from '../utils/cn'
 
 /** Placeholder block shown while content loads. Size it with classes (h-*, w-*); shape it with `rounded`. */
-withDefaults(
-  defineProps<{
-    rounded?: 'none' | 'md' | 'lg' | 'xl' | '2xl' | 'full'
-    tone?: 'default' | 'light'
-  }>(),
-  { rounded: 'lg', tone: 'default' },
-)
+const { rounded = 'lg', tone = 'default' } = defineProps<{
+  rounded?: 'none' | 'md' | 'lg' | 'xl' | '2xl' | 'full'
+  tone?: 'default' | 'light'
+}>()
 
 const radii = {
   none: 'rounded-none',

@@ -4,14 +4,11 @@ import { Image } from 'lucide-vue-next'
 import { cn } from '../utils/cn'
 
 /** Small frosted label laid over a photo, e.g. "JPG · 2.4 MB". */
-withDefaults(
-  defineProps<{
-    icon?: Component | null
-    tone?: 'dark' | 'light'
-    size?: 'sm' | 'md'
-  }>(),
-  { icon: () => Image, tone: 'dark', size: 'sm' },
-)
+const { icon = Image, tone = 'dark', size = 'sm' } = defineProps<{
+  icon?: Component | null
+  tone?: 'dark' | 'light'
+  size?: 'sm' | 'md'
+}>()
 </script>
 
 <template>

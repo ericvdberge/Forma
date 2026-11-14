@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useEventListener, useLocalStorage } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import {
   Clock,
@@ -30,12 +31,13 @@ import {
   type FMenuItem,
 } from '@forma/design-system'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import MediaDetails from '@/components/media/MediaDetails.vue'
+import MediaDetails from '@/components/media/details/MediaDetails.vue'
 import MediaHero from '@/components/media/MediaHero.vue'
 import MediaSidePanel from '@/components/media/MediaSidePanel.vue'
 import { useWebsites } from '@/composables/useWebsites'
 import { useActiveWebsite } from '@/composables/useActiveWebsite'
 import { ACCEPTED_TYPES, useMedia } from '@/composables/useMedia'
+import { useMediaLink } from '@/composables/useMediaLink'
 import { useToast } from '@/composables/useToast'
 import type { MediaItem } from '@/data/types'
 import { formatBytes } from '@/utils/format'
@@ -49,6 +51,7 @@ const { getMediaItems, getUploads, uploadFiles, dismissUpload, dismissFailed, de
 const { media, isPending, isError, isFetching, refetch } = getMediaItems(() => activeWebsite.value.id)
 const uploads = getUploads(() => activeWebsite.value.id)
 const { notify } = useToast()
+const { copyLink } = useMediaLink()
 const route = useRoute()
 const router = useRouter()
 
@@ -95,22 +98,7 @@ const sortOptions: Array<{ label: string; value: Sort }> = [
   { label: 'Largest first', value: 'largest' },
 ]
 type View = 'grid' | 'list'
-const VIEW_KEY = 'forma.mediaView'
-const view = ref<View>(readView())
-function readView(): View {
-  try {
-    return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'grid'
-  } catch {
-    return 'grid'
-  }
-}
-watch(view, (v) => {
-  try {
-    localStorage.setItem(VIEW_KEY, v)
-  } catch {
-    /* storage unavailable */
-  }
-})
+const view = useLocalStorage<View>('forma.mediaView', 'grid')
 const viewOptions = [
   { value: 'grid' as const, label: 'Grid view', icon: LayoutGrid },
   { value: 'list' as const, label: 'List view', icon: List },
@@ -203,20 +191,11 @@ async function pasteFromClipboard() {
     notify('Couldn’t read the clipboard', 'error')
   }
 }
-onMounted(() => {
-  document.addEventListener('dragenter', onDragEnter)
-  document.addEventListener('dragover', onDragOver)
-  document.addEventListener('dragleave', onDragLeave)
-  document.addEventListener('drop', onDrop)
-  document.addEventListener('paste', onPaste)
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('dragenter', onDragEnter)
-  document.removeEventListener('dragover', onDragOver)
-  document.removeEventListener('dragleave', onDragLeave)
-  document.removeEventListener('drop', onDrop)
-  document.removeEventListener('paste', onPaste)
-})
+useEventListener(document, 'dragenter', onDragEnter)
+useEventListener(document, 'dragover', onDragOver)
+useEventListener(document, 'dragleave', onDragLeave)
+useEventListener(document, 'drop', onDrop)
+useEventListener(document, 'paste', onPaste)
 
 /* Details: the open item lives in the URL (?item=…) so it can be linked to and survives a reload */
 const openId = computed(() => (typeof route.query.item === 'string' ? route.query.item : null))
@@ -259,14 +238,6 @@ async function confirmDelete() {
   }
 }
 
-async function copyLink(item: MediaItem) {
-  try {
-    await navigator.clipboard.writeText(new URL(item.imageUrl, window.location.origin).href)
-    notify('Link copied')
-  } catch {
-    notify('Couldn’t copy the link', 'error')
-  }
-}
 function menuFor(item: MediaItem): FMenuItem[] {
   return [
     { label: 'View details', icon: Expand, onSelect: () => open(item.id) },

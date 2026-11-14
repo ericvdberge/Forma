@@ -6,22 +6,19 @@ import { cn } from '../utils/cn'
  * Thumbnail, title and a muted line, with an optional trailing slot (a menu, a chevron…).
  * Renders a link with `href`, a button when it has a click listener, otherwise a plain row.
  */
-const props = withDefaults(
-  defineProps<{
-    title: string
-    subtitle?: string
-    /** Image URL; falls back to `icon` on a canvas square */
-    src?: string
-    icon?: Component
-    /** Small label above the title, e.g. "In website" */
-    eyebrow?: string
-    href?: string
-    interactive?: boolean
-    bordered?: boolean
-  }>(),
-  { interactive: false, bordered: false },
-)
-const tag = props.href ? 'a' : props.interactive ? 'button' : 'div'
+const { interactive = false, bordered = false, href } = defineProps<{
+  title: string
+  subtitle?: string
+  /** Image URL; falls back to `icon` on a canvas square */
+  src?: string
+  icon?: Component
+  /** Small label above the title, e.g. "In website" */
+  eyebrow?: string
+  href?: string
+  interactive?: boolean
+  bordered?: boolean
+}>()
+const tag = href ? 'a' : interactive ? 'button' : 'div'
 </script>
 
 <template>

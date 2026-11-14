@@ -4,20 +4,17 @@ import { CloudUpload } from 'lucide-vue-next'
 import { cn } from '../utils/cn'
 
 /** Dashed drop target with a "browse" fallback. Emits the chosen or dropped files. */
-withDefaults(
-  defineProps<{
-    title?: string
-    /** Line under the box, e.g. "Supports images up to 10 MB" */
-    hint?: string
-    /** Format pills under the hint, e.g. ['JPG', 'PNG'] */
-    formats?: string[]
-    /** `<input accept>` */
-    accept?: string
-    multiple?: boolean
-    disabled?: boolean
-  }>(),
-  { title: 'Drag & drop your files here', multiple: true, disabled: false, formats: () => [] },
-)
+const { title = 'Drag & drop your files here', multiple = true, disabled = false, formats = [] } = defineProps<{
+  title?: string
+  /** Line under the box, e.g. "Supports images up to 10 MB" */
+  hint?: string
+  /** Format pills under the hint, e.g. ['JPG', 'PNG'] */
+  formats?: string[]
+  /** `<input accept>` */
+  accept?: string
+  multiple?: boolean
+  disabled?: boolean
+}>()
 const emit = defineEmits<{ files: [files: File[]] }>()
 
 const input = ref<HTMLInputElement | null>(null)

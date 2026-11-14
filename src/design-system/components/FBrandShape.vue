@@ -2,7 +2,7 @@
 import { cn } from '../utils/cn'
 
 /** The four brand elements: leaf, circle, wedge and gradient tile. */
-withDefaults(defineProps<{ shape: 'leaf' | 'circle' | 'wedge' | 'gradient'; size?: number }>(), { size: 48 })
+const { size = 48 } = defineProps<{ shape: 'leaf' | 'circle' | 'wedge' | 'gradient'; size?: number }>()
 </script>
 
 <template>

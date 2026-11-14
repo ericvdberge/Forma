@@ -2,15 +2,12 @@
 import { cn } from '../utils/cn'
 
 /** Thin progress bar. Leave `value` out for an indeterminate shimmer. */
-withDefaults(
-  defineProps<{
-    /** 0–100 */
-    value?: number | null
-    label?: string
-    tone?: 'positive' | 'accent' | 'danger'
-  }>(),
-  { value: null, label: 'Progress', tone: 'positive' },
-)
+const { value = null, label = 'Progress', tone = 'positive' } = defineProps<{
+  /** 0–100 */
+  value?: number | null
+  label?: string
+  tone?: 'positive' | 'accent' | 'danger'
+}>()
 const tones = { positive: 'bg-positive', accent: 'bg-accent', danger: 'bg-danger' }
 </script>
 

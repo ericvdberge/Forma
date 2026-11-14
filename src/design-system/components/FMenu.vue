@@ -21,18 +21,15 @@ export interface FMenuItem {
  * "More" menu. The popover is fixed to the viewport, so scroll containers and cards that clip
  * their overflow don't cut it off.
  */
-withDefaults(
-  defineProps<{
-    items: FMenuItem[]
-    /** Accessible name of the trigger */
-    label: string
-    icon?: Component
-    variant?: 'ghost' | 'surface' | 'glass' | 'outline'
-    size?: 'sm' | 'md' | 'lg'
-    shape?: 'rounded' | 'circle'
-  }>(),
-  { icon: () => Ellipsis, variant: 'ghost', size: 'sm', shape: 'rounded' },
-)
+const { icon = Ellipsis, variant = 'ghost', size = 'sm', shape = 'rounded' } = defineProps<{
+  items: FMenuItem[]
+  /** Accessible name of the trigger */
+  label: string
+  icon?: Component
+  variant?: 'ghost' | 'surface' | 'glass' | 'outline'
+  size?: 'sm' | 'md' | 'lg'
+  shape?: 'rounded' | 'circle'
+}>()
 
 const open = ref(false)
 const pos = ref({ top: 0, left: 0, up: false })

@@ -23,6 +23,7 @@ import {
   FMediaChip,
   FMenu,
   FModal,
+  FPageHero,
   FPillTabs,
   FProgress,
   FPromoBanner,
@@ -146,6 +147,14 @@ const demoImage = (from: string, to: string) =>
       <!-- Components -->
       <section aria-labelledby="ds-components" class="flex flex-col gap-10">
         <FHeading id="ds-components" as="h2" size="sm">Components</FHeading>
+
+        <FCard padding="lg">
+          <FPageHero as="h2" title="Your creative" accent="media hub.">
+            <template #badge><FBadge dot-tone="positive">Page hero</FBadge></template>
+            The intro every app page opens with: a badge, a two-tone headline, a lead line and actions.
+            <template #actions><FButton size="lg" arrow>Get started</FButton></template>
+          </FPageHero>
+        </FCard>
 
         <FCard padding="lg" class="flex flex-col gap-8">
           <div class="flex flex-wrap items-center gap-3">

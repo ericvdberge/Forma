@@ -70,10 +70,7 @@ export interface PendingUpload {
   sizeInBytes: number
   /** Local object URL, shown until the server's thumbnail is ready. */
   previewUrl: string
-  /** `processing`: all bytes sent, the API is still making the thumbnail. */
-  status: 'queued' | 'uploading' | 'processing' | 'failed'
-  /** 0–100 while uploading. */
-  progress: number
+  status: 'queued' | 'uploading' | 'failed'
   error?: string
 }
 
@@ -122,14 +119,7 @@ export function useMedia() {
   async function send(entry: PendingUpload, file: File) {
     entry.status = 'uploading'
     try {
-      const dto = await upload({
-        websiteId: entry.websiteId,
-        file,
-        onProgress: (percent) => {
-          entry.progress = percent
-          if (percent >= 100) entry.status = 'processing'
-        },
-      })
+      const dto = await upload({ body: { websiteId: entry.websiteId, file } })
       updateCachedMedia(entry.websiteId, (dtos) => [dto, ...dtos.filter((d) => d.id !== dto.id)])
       forget(entry.id)
       return true
@@ -152,7 +142,6 @@ export function useMedia() {
         sizeInBytes: file.size,
         previewUrl: error ? '' : URL.createObjectURL(file),
         status: error ? 'failed' : 'queued',
-        progress: 0,
         error,
       }
       uploads.unshift(entry)

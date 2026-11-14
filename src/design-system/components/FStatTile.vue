@@ -4,19 +4,16 @@ import { ArrowDown, ArrowUp } from 'lucide-vue-next'
 import { cn } from '../utils/cn'
 
 /** Icon, big number, label and an optional trend. Line several up in an `FStatGroup`. */
-withDefaults(
-  defineProps<{
-    icon: Component
-    value: string
-    label: string
-    /** e.g. "12%" or "+3"; the arrow follows `trend` */
-    change?: string
-    trend?: 'up' | 'down'
-    /** Screen-reader context for the change, e.g. "this week" */
-    changeLabel?: string
-  }>(),
-  { trend: 'up' },
-)
+const { trend = 'up' } = defineProps<{
+  icon: Component
+  value: string
+  label: string
+  /** e.g. "12%" or "+3"; the arrow follows `trend` */
+  change?: string
+  trend?: 'up' | 'down'
+  /** Screen-reader context for the change, e.g. "this week" */
+  changeLabel?: string
+}>()
 </script>
 
 <template>

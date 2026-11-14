@@ -3,19 +3,16 @@ import type { Component } from 'vue'
 import { cn } from '../utils/cn'
 
 /** Full-width outlined action with a leading icon, for action lists ("Download", "Copy link", …). */
-withDefaults(
-  defineProps<{
-    icon: Component
-    /** Renders an <a> when set */
-    href?: string
-    download?: string
-    target?: string
-    tone?: 'default' | 'danger'
-    size?: 'sm' | 'md'
-    disabled?: boolean
-  }>(),
-  { tone: 'default', size: 'md', disabled: false },
-)
+const { tone = 'default', size = 'md', disabled = false } = defineProps<{
+  icon: Component
+  /** Renders an <a> when set */
+  href?: string
+  download?: string
+  target?: string
+  tone?: 'default' | 'danger'
+  size?: 'sm' | 'md'
+  disabled?: boolean
+}>()
 
 const classes = (tone: string, size: string) =>
   cn(

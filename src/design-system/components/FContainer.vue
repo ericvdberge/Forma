@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { cn } from '../utils/cn'
 
-withDefaults(defineProps<{ as?: string; size?: 'md' | 'lg' | 'xl' }>(), { as: 'div', size: 'xl' })
+const { as = 'div', size = 'xl' } = defineProps<{ as?: string; size?: 'md' | 'lg' | 'xl' }>()
 const sizes = { md: 'max-w-3xl', lg: 'max-w-5xl', xl: 'max-w-[1240px]' }
 </script>
 

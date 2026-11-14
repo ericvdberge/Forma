@@ -4,17 +4,14 @@ import { ChevronDown } from 'lucide-vue-next'
 import { cn } from '../utils/cn'
 
 const model = defineModel<T>({ required: true })
-withDefaults(
-  defineProps<{
-    label: string
-    hideLabel?: boolean
-    options: Array<{ label: string; value: T }>
-    size?: 'sm' | 'md'
-    /** `plain` drops the field chrome, for inline controls like "Newest first ⌄" */
-    variant?: 'field' | 'plain'
-  }>(),
-  { hideLabel: false, size: 'md', variant: 'field' },
-)
+const { hideLabel = false, size = 'md', variant = 'field' } = defineProps<{
+  label: string
+  hideLabel?: boolean
+  options: Array<{ label: string; value: T }>
+  size?: 'sm' | 'md'
+  /** `plain` drops the field chrome, for inline controls like "Newest first ⌄" */
+  variant?: 'field' | 'plain'
+}>()
 const id = useId()
 </script>
 

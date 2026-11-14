@@ -4,15 +4,12 @@ import { FButton, FModal } from '@forma/design-system'
 
 /** Asks before something that can't be undone. */
 const open = defineModel<boolean>('open', { required: true })
-withDefaults(
-  defineProps<{
-    title: string
-    message?: string
-    confirmLabel?: string
-    busy?: boolean
-  }>(),
-  { confirmLabel: 'Delete', busy: false },
-)
+const { confirmLabel = 'Delete', busy = false } = defineProps<{
+  title: string
+  message?: string
+  confirmLabel?: string
+  busy?: boolean
+}>()
 const emit = defineEmits<{ confirm: [] }>()
 </script>
 

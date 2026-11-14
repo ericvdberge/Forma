@@ -2,21 +2,18 @@
 import type { Component } from 'vue'
 import { cn } from '../utils/cn'
 
-withDefaults(
-  defineProps<{
-    icon: Component
-    /** Accessible name, also used as tooltip */
-    label: string
-    /** `glass` sits on top of photos; `outline` is a hairline ring */
-    variant?: 'ghost' | 'surface' | 'dark' | 'glass' | 'outline'
-    size?: 'sm' | 'md' | 'lg'
-    shape?: 'rounded' | 'circle'
-    /** Small indicator dot, e.g. unread notifications */
-    dot?: boolean
-    active?: boolean
-  }>(),
-  { variant: 'ghost', size: 'md', shape: 'rounded', dot: false, active: false },
-)
+const { variant = 'ghost', size = 'md', shape = 'rounded', dot = false, active = false } = defineProps<{
+  icon: Component
+  /** Accessible name, also used as tooltip */
+  label: string
+  /** `glass` sits on top of photos; `outline` is a hairline ring */
+  variant?: 'ghost' | 'surface' | 'dark' | 'glass' | 'outline'
+  size?: 'sm' | 'md' | 'lg'
+  shape?: 'rounded' | 'circle'
+  /** Small indicator dot, e.g. unread notifications */
+  dot?: boolean
+  active?: boolean
+}>()
 
 const variants = {
   ghost: 'text-charcoal/75 hover:bg-charcoal/5 hover:text-charcoal',

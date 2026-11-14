@@ -25,7 +25,13 @@ public class FileSystemAssetStorage(string rootPath) : IAssetStorage
 
     public Task DeleteAsync(string key, CancellationToken cancellationToken = default)
     {
-        File.Delete(Resolve(key));
+        // File.Delete is a no-op for a missing file, but throws when its folder is missing too.
+        var path = Resolve(key);
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+
         return Task.CompletedTask;
     }
 
