@@ -19,18 +19,18 @@ defineEmits<{ upload: []; open: [id: string] }>()
 </script>
 
 <template>
-  <section class="relative grid items-center gap-8 pb-8 pt-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:pb-10">
-    <FPageHero class="relative z-10" title="Your creative" accent="media hub.">
+  <section class="relative grid items-center gap-6 pb-5 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+    <FPageHero compact class="relative z-10" title="Your creative" accent="media hub.">
       <template #badge><FBadge dot-tone="positive">Media Library</FBadge></template>
       Upload, organize and manage the images of your website in one sleek workspace.
       <template #actions>
-        <FButton size="lg" arrow :disabled="!canUpload" @click="$emit('upload')">
+        <FButton arrow :disabled="!canUpload" @click="$emit('upload')">
           <CloudUpload class="size-[1.125rem]" aria-hidden="true" /> Upload media
         </FButton>
       </template>
     </FPageHero>
 
-    <MediaCollage class="hidden h-[300px] md:block lg:h-[340px]" :items="latest" @open="$emit('open', $event)" />
+    <MediaCollage class="hidden h-[clamp(130px,22vh,190px)] md:block" :items="latest" @open="$emit('open', $event)" />
 
     <!-- Floating upload card -->
     <Transition enter-from-class="opacity-0 -translate-y-2" leave-to-class="opacity-0" enter-active-class="transition duration-300" leave-active-class="transition duration-200">

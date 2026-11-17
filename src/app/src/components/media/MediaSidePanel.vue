@@ -38,7 +38,7 @@ const canPaste = useSupported(() => !!navigator.clipboard?.read)
 </script>
 
 <template>
-  <aside class="flex flex-col gap-8 rounded-panel bg-white/85 p-5 ring-1 ring-charcoal/[0.06] shadow-soft backdrop-blur sm:p-6">
+  <aside class="flex flex-col gap-6 rounded-panel bg-white/85 p-5 ring-1 ring-charcoal/[0.06] shadow-soft backdrop-blur sm:p-6">
     <section aria-labelledby="upload-title">
       <h2 id="upload-title" class="mb-4 font-display text-xl font-bold tracking-[-0.02em]">Upload media</h2>
       <FDropzone

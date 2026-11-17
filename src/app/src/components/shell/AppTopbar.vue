@@ -28,7 +28,7 @@ const hasUnread = () => activity.value.some((a) => a.at > seenAt.value)
 </script>
 
 <template>
-  <header class="relative z-30 flex h-24 items-center gap-2 px-4 sm:gap-4 sm:px-8">
+  <header class="relative z-30 flex h-20 shrink-0 items-center gap-2 px-4 py-4 sm:gap-4 sm:px-8">
     <FIconButton :icon="Menu" label="Open menu" class="lg:hidden" @click="$emit('menu')" />
     <GlobalSearch />
 
@@ -65,7 +65,7 @@ const hasUnread = () => activity.value.some((a) => a.at > seenAt.value)
           aria-label="Account menu"
           @click="toggle('account')"
         >
-          <FAvatar :name="currentUser.name" size="lg" class="!size-10 sm:!size-12" />
+          <FAvatar :name="currentUser.name" size="lg" class="!size-10 sm:!size-11" />
           <ChevronDown :class="cn('hidden size-4 transition-transform sm:block', openMenu === 'account' && 'rotate-180')" aria-hidden="true" />
         </button>
         <div

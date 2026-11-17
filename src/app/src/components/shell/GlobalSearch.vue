@@ -98,7 +98,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onGlobalKey))
       role="combobox"
       :aria-expanded="open && results.length > 0"
       aria-controls="global-search-results"
-      class="h-12 w-full rounded-2xl bg-white/80 pl-13 pr-4 sm:pr-16 text-[0.9375rem] ring-1 ring-charcoal/[0.08] backdrop-blur outline-none transition-shadow placeholder:text-subtle focus:ring-2 focus:ring-accent"
+      class="h-11 w-full rounded-2xl bg-white/80 pl-13 pr-4 sm:pr-16 text-[0.9375rem] ring-1 ring-charcoal/[0.08] backdrop-blur outline-none transition-shadow placeholder:text-subtle focus:ring-2 focus:ring-accent"
       @focus="open = true"
       @input="open = true; highlighted = 0"
       @keydown="onKeydown"
