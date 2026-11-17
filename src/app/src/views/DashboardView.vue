@@ -13,7 +13,7 @@ const statIcons = [Eye, LayoutGrid, Layers, Users]
 
 <template>
   <!-- Pull up under the transparent top bar so the hero image reaches the top edge. -->
-  <div class="relative -mt-24 pt-24">
+  <div class="relative -mt-20 pt-20">
     <div
       aria-hidden="true"
       class="pointer-events-none absolute -right-4 top-0 h-[500px] w-[85%] sm:-right-8 sm:w-[72%] [mask-image:linear-gradient(to_right,transparent,black_35%),linear-gradient(to_bottom,black_70%,transparent)] [mask-composite:intersect]"

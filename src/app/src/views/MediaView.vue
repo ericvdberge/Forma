@@ -257,8 +257,8 @@ const uploadedOn = (ts: number) => new Intl.DateTimeFormat('en', { dateStyle: 'm
       aria-hidden="true"
     />
 
-    <div class="relative grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <div class="min-w-0">
+    <div class="relative grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px] 2xl:gap-8 2xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div class="@container min-w-0">
         <MediaHero
           :latest="media.slice(0, 3)"
           :upload="activeUploads[0]"
@@ -283,10 +283,10 @@ const uploadedOn = (ts: number) => new Intl.DateTimeFormat('en', { dateStyle: 'm
         </FStatGroup>
 
         <!-- Toolbar -->
-        <div class="mt-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="mt-5 flex flex-col gap-3 @4xl:flex-row @4xl:items-center @4xl:justify-between">
           <FPillTabs v-model="format" :options="tabs" label="Filter by format" />
-          <div class="flex flex-wrap items-center gap-2">
-            <div class="relative min-w-0 flex-1 sm:w-52 sm:flex-none">
+          <div class="flex items-center gap-2">
+            <div class="relative min-w-0 flex-1 @4xl:w-52 @4xl:flex-none">
               <Search class="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-subtle" aria-hidden="true" />
               <label for="media-search" class="sr-only">Search media by file name</label>
               <input
@@ -303,7 +303,7 @@ const uploadedOn = (ts: number) => new Intl.DateTimeFormat('en', { dateStyle: 'm
         </div>
 
         <!-- Loading -->
-        <div v-if="isPending" class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" aria-busy="true" aria-label="Loading media">
+        <div v-if="isPending" class="mt-4 grid grid-cols-1 gap-4 @lg:grid-cols-2 @2xl:grid-cols-3 @6xl:grid-cols-4" aria-busy="true" aria-label="Loading media">
           <FSkeleton v-for="i in 8" :key="i" class="aspect-[16/10] w-full" rounded="2xl" />
         </div>
 
@@ -340,7 +340,7 @@ const uploadedOn = (ts: number) => new Intl.DateTimeFormat('en', { dateStyle: 'm
         </div>
 
         <!-- Grid -->
-        <ul v-else-if="view === 'grid'" class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" aria-label="Images">
+        <ul v-else-if="view === 'grid'" class="mt-4 grid grid-cols-1 gap-4 @lg:grid-cols-2 @2xl:grid-cols-3 @6xl:grid-cols-4" aria-label="Images">
           <li v-for="m in visible" :key="m.id">
             <FMediaCard
               :src="m.thumbnailUrl"
@@ -397,7 +397,7 @@ const uploadedOn = (ts: number) => new Intl.DateTimeFormat('en', { dateStyle: 'm
       </div>
 
       <!-- Side panel -->
-      <div class="flex flex-col gap-4 xl:sticky xl:top-4 xl:self-start">
+      <div class="flex flex-col gap-4 xl:sticky xl:top-0 xl:self-start">
         <FSelect v-model="websiteId" label="Website" hide-label size="sm" :options="websiteOptions" />
         <MediaSidePanel
           ref="sidePanel"

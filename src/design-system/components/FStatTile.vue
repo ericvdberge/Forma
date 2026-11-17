@@ -17,13 +17,13 @@ const { trend = 'up' } = defineProps<{
 </script>
 
 <template>
-  <div class="flex min-w-0 items-center gap-3.5">
-    <span class="grid size-12 shrink-0 place-items-center rounded-full bg-canvas text-charcoal">
+  <div class="flex min-w-0 items-center gap-3">
+    <span class="grid size-10 shrink-0 2xl:size-12 place-items-center rounded-full bg-canvas text-charcoal">
       <component :is="icon" class="size-5" :stroke-width="1.6" aria-hidden="true" />
     </span>
     <div class="min-w-0">
       <div class="flex items-baseline gap-2.5">
-        <p class="font-display text-[1.375rem] font-bold leading-tight tracking-[-0.03em] tabular-nums">{{ value }}</p>
+        <p class="font-display text-[1.375rem] font-bold leading-tight tracking-[-0.03em] whitespace-nowrap tabular-nums">{{ value }}</p>
         <p v-if="change" :class="cn('inline-flex items-center gap-0.5 text-xs font-medium', trend === 'up' ? 'text-positive' : 'text-danger')">
           <component :is="trend === 'up' ? ArrowUp : ArrowDown" class="size-3" aria-hidden="true" />{{ change }}
           <span v-if="changeLabel" class="sr-only">{{ changeLabel }}</span>
