@@ -1,15 +1,12 @@
 <script setup lang="ts">
 import { cn } from '../utils/cn'
 
-withDefaults(
-  defineProps<{
-    as?: string
-    variant?: 'surface' | 'outline' | 'muted' | 'dark' | 'glass'
-    padding?: 'none' | 'sm' | 'md' | 'lg'
-    interactive?: boolean
-  }>(),
-  { as: 'div', variant: 'surface', padding: 'md', interactive: false },
-)
+const { as = 'div', variant = 'surface', padding = 'md', interactive = false } = defineProps<{
+  as?: string
+  variant?: 'surface' | 'outline' | 'muted' | 'dark' | 'glass'
+  padding?: 'none' | 'sm' | 'md' | 'lg'
+  interactive?: boolean
+}>()
 
 const variants = {
   surface: 'bg-white ring-1 ring-charcoal/[0.06] shadow-card',

@@ -2,7 +2,7 @@
 import { ArrowRight } from 'lucide-vue-next'
 import { cn } from '../utils/cn'
 
-withDefaults(defineProps<{ href: string; tone?: 'dark' | 'light' | 'accent' }>(), { tone: 'dark' })
+const { tone = 'dark' } = defineProps<{ href: string; tone?: 'dark' | 'light' | 'accent' }>()
 const tones = { dark: 'text-charcoal', light: 'text-warm-white', accent: 'text-accent' }
 </script>
 

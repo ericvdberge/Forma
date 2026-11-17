@@ -2,16 +2,13 @@
 import type { Component } from 'vue'
 import { cn } from '../utils/cn'
 
-withDefaults(
-  defineProps<{
-    icon: Component
-    title: string
-    description: string
-    align?: 'center' | 'start'
-    tone?: 'dark' | 'light'
-  }>(),
-  { align: 'center', tone: 'dark' },
-)
+const { align = 'center', tone = 'dark' } = defineProps<{
+  icon: Component
+  title: string
+  description: string
+  align?: 'center' | 'start'
+  tone?: 'dark' | 'light'
+}>()
 </script>
 
 <template>

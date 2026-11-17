@@ -2,24 +2,21 @@
 import { computed } from 'vue'
 import { cn } from '../utils/cn'
 
-const props = withDefaults(
-  defineProps<{
-    /** `wordmark` = "forma.", `mark` = "f." monogram */
-    variant?: 'wordmark' | 'mark'
-    tone?: 'dark' | 'light'
-    size?: 'sm' | 'md' | 'lg' | 'xl'
-    /** Colour the full stop in the accent blue */
-    accentDot?: boolean
-  }>(),
-  { variant: 'wordmark', tone: 'dark', size: 'md', accentDot: false },
-)
+const { variant = 'wordmark', tone = 'dark', size = 'md', accentDot = false } = defineProps<{
+  /** `wordmark` = "forma.", `mark` = "f." monogram */
+  variant?: 'wordmark' | 'mark'
+  tone?: 'dark' | 'light'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
+  /** Colour the full stop in the accent blue */
+  accentDot?: boolean
+}>()
 
 const sizes = { sm: 'text-xl', md: 'text-[1.75rem]', lg: 'text-5xl', xl: 'text-7xl md:text-8xl' }
 const classes = computed(() =>
   cn(
     'inline-flex items-baseline font-display font-bold leading-none tracking-[-0.06em] select-none',
-    sizes[props.size],
-    props.tone === 'dark' ? 'text-charcoal' : 'text-warm-white',
+    sizes[size],
+    tone === 'dark' ? 'text-charcoal' : 'text-warm-white',
   ),
 )
 </script>

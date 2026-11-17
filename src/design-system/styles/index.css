@@ -57,10 +57,20 @@
   /* Motion */
   --animate-float: float 8s ease-in-out infinite;
   --animate-fade-up: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-pop-in: pop-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-indeterminate: indeterminate 1.2s ease-in-out infinite;
 
   @keyframes float {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-10px); }
+  }
+  @keyframes pop-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes indeterminate {
+    from { left: -33%; }
+    to { left: 100%; }
   }
   @keyframes fade-up {
     from { opacity: 0; transform: translateY(16px); }

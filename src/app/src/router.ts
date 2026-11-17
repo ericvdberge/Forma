@@ -16,6 +16,7 @@ export const router = createRouter({
       children: [
         { path: '', name: 'dashboard', component: () => import('@/views/DashboardView.vue'), meta: { title: 'Dashboard' } },
         { path: 'pages', name: 'pages', component: () => import('@/views/PagesView.vue'), meta: { title: 'Pages' } },
+        { path: 'media', name: 'media', component: () => import('@/views/MediaView.vue'), meta: { title: 'Media' } },
         { path: 'websites', name: 'websites', component: () => import('@/views/WebsitesView.vue'), meta: { title: 'Websites' } },
         {
           path: 'websites/:id',
@@ -29,7 +30,6 @@ export const router = createRouter({
             ['studio', 'Design Studio'],
             ['templates', 'Templates'],
             ['blocks', 'Blocks'],
-            ['media', 'Media'],
             ['styles', 'Global Styles'],
             ['settings', 'Settings'],
             ['plugins', 'Plugins'],

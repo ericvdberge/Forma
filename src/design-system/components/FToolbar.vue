@@ -2,13 +2,10 @@
 import type { Component } from 'vue'
 import { cn } from '../utils/cn'
 
-withDefaults(
-  defineProps<{
-    items: Array<{ icon: Component; label: string; active?: boolean }>
-    orientation?: 'vertical' | 'horizontal'
-  }>(),
-  { orientation: 'vertical' },
-)
+const { orientation = 'vertical' } = defineProps<{
+  items: Array<{ icon: Component; label: string; active?: boolean }>
+  orientation?: 'vertical' | 'horizontal'
+}>()
 </script>
 
 <template>

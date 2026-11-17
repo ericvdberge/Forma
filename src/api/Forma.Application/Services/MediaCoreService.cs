@@ -110,7 +110,7 @@ public class MediaCoreService(
         }
         catch
         {
-            await DeleteFilesAsync(media, CancellationToken.None);
+            await TryDeleteFilesAsync(media);
             throw;
         }
 
@@ -155,5 +155,20 @@ public class MediaCoreService(
     {
         await assetStorage.DeleteAsync(media.ImagePath, cancellationToken);
         await assetStorage.DeleteAsync(media.ThumbnailPath, cancellationToken);
+    }
+
+    // Cleans up after a failed upload. Best effort: an error here must not hide the one that caused it.
+    private async Task TryDeleteFilesAsync(MediaItem media)
+    {
+        try
+        {
+            await DeleteFilesAsync(media, CancellationToken.None);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 }

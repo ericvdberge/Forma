@@ -6,6 +6,7 @@ import { FButton } from '@forma/design-system'
 import AppSidebar from '@/components/shell/AppSidebar.vue'
 import AppTopbar from '@/components/shell/AppTopbar.vue'
 import DashboardSkeleton from '@/components/skeletons/DashboardSkeleton.vue'
+import MediaSkeleton from '@/components/skeletons/MediaSkeleton.vue'
 import PagesSkeleton from '@/components/skeletons/PagesSkeleton.vue'
 import WebsitesSkeleton from '@/components/skeletons/WebsitesSkeleton.vue'
 import { useWebsites } from '@/composables/useWebsites'
@@ -20,6 +21,7 @@ const route = useRoute()
 const skeletons: Record<string, Component> = {
   dashboard: DashboardSkeleton,
   pages: PagesSkeleton,
+  media: MediaSkeleton,
   websites: WebsitesSkeleton,
   website: WebsitesSkeleton,
 }
@@ -99,7 +101,8 @@ watch(() => route.fullPath, () => (drawerOpen.value = false))
         role="status"
         class="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2.5 rounded-full bg-charcoal px-5 py-3 text-sm font-medium text-warm-white shadow-float"
       >
-        <Check class="size-4 text-sage" aria-hidden="true" />
+        <TriangleAlert v-if="toast.tone === 'error'" class="size-4 text-orange-300" aria-hidden="true" />
+        <Check v-else class="size-4 text-sage" aria-hidden="true" />
         {{ toast.message }}
       </div>
     </Transition>

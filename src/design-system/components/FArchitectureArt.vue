@@ -5,9 +5,9 @@ import { computed, useId } from 'vue'
  * Abstract architecture illustration used in product mockups and thumbnails.
  * `dark`: cantilevered villa at dusk. `light`: sculpted white facade on a pale sky.
  */
-const props = withDefaults(defineProps<{ id?: string; tone?: 'dark' | 'light' }>(), { tone: 'dark' })
+const { tone = 'dark', id } = defineProps<{ id?: string; tone?: 'dark' | 'light' }>()
 const autoId = useId()
-const uid = computed(() => props.id ?? `arch-${autoId}`)
+const uid = computed(() => id ?? `arch-${autoId}`)
 </script>
 
 <template>
