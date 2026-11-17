@@ -10,6 +10,7 @@ public static class DependencyInjection
         services.AddScoped<IWebsiteCoreService, WebsiteCoreService>();
         services.AddScoped<IPageCoreService, PageCoreService>();
         services.AddScoped<IMediaCoreService, MediaCoreService>();
+        services.AddScoped<IPageContentCoreService, PageContentCoreService>();
 
         return services;
     }

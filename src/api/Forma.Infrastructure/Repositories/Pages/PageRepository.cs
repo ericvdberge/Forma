@@ -12,4 +12,8 @@ public class PageRepository(FormaDbContext db) : IPageRepository
             .ApplyFilter(filter)
             .OrderByDescending(p => p.UpdatedAt)
             .ToListAsync(cancellationToken);
+
+    // Skeleton for review (page content, phase 1).
+    public Task<PageDao?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+        throw new NotImplementedException();
 }

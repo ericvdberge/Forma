@@ -1,9 +1,8 @@
 using System.Reflection;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using FluentValidation;
 using Forma.Api.Abstractions;
 using Forma.Application;
+using Forma.Application.Documents;
 using Forma.Infrastructure;
 using Forma.Infrastructure.Persistence;
 using Scalar.AspNetCore;
@@ -11,8 +10,10 @@ using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
-builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));
+// camelCase string enums and strict reading (unknown properties, missing values) for every JSON body;
+// page documents need exactly these rules, see PageDocumentJson.
+builder.Services.ConfigureHttpJsonOptions(options => PageDocumentJson.Configure(options.SerializerOptions));
+builder.Services.AddProblemDetails();
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
