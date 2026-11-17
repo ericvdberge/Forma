@@ -357,6 +357,121 @@
         }
       }
     },
+    "/pages/{pageId}/check": {
+      "post": {
+        "tags": [
+          "Page content"
+        ],
+        "summary": "Lists what to fix in a page's draft before it can be published.",
+        "description": "Runs the same rules as publishing, without publishing. Errors block publishing; warnings don't.",
+        "operationId": "CheckPageContent",
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "description": "The page's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The checked draft revision and its issues (empty when there is nothing to fix).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentCheckDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No page exists with this id."
+          }
+        }
+      }
+    },
+    "/pages/{pageId}/publish": {
+      "post": {
+        "tags": [
+          "Page content"
+        ],
+        "summary": "Publishes a page's draft: visitors see it from now on, and the page is marked published.",
+        "description": "Only the draft revision in the request is published, so nothing saved after the person chose Publish goes live\r\nunseen. Drafts with error-level issues are refused with the issues; warnings don't block.",
+        "operationId": "PublishPage",
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "description": "The page's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Cancels the request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishPageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Published; the body is the page's content now.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageContentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No page exists with this id."
+          },
+          "409": {
+            "description": "The draft is no longer at this revision; the body is the current content.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageContentDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The draft has errors to fix first; the body lists all its issues.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishRejectedDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/pages": {
       "get": {
         "tags": [
@@ -1110,6 +1225,86 @@
         },
         "additionalProperties": false
       },
+      "ContentCheckDto": {
+        "required": [
+          "draftRevision",
+          "issues"
+        ],
+        "type": "object",
+        "properties": {
+          "draftRevision": {
+            "type": "integer",
+            "description": "The draft revision that was checked.",
+            "format": "int32"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentIssueDto"
+            },
+            "description": "Errors first, then warnings, each in page order. Empty when there is nothing to fix."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The content issues of a page's draft."
+      },
+      "ContentIssueDto": {
+        "required": [
+          "severity",
+          "code",
+          "message",
+          "sectionId",
+          "blockId",
+          "field",
+          "itemIndex"
+        ],
+        "type": "object",
+        "properties": {
+          "severity": {
+            "description": "`error` blocks publishing; `warning` doesn't.",
+            "$ref": "#/components/schemas/IssueSeverity"
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable code, e.g. `image.missing` or `link.placeholder`."
+          },
+          "message": {
+            "type": "string",
+            "description": "What is wrong, in plain language."
+          },
+          "sectionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The section it is in; null when it is about the whole page."
+          },
+          "blockId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The block it is about; null when it is about a section or the page."
+          },
+          "field": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The block prop or section setting, e.g. `href` or `background.image`."
+          },
+          "itemIndex": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "The item of a list prop (a gallery image, a menu link), when it is about one.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A problem in a page's content that a person can fix."
+      },
       "ContentWidth": {
         "enum": [
           "narrow",
@@ -1438,6 +1633,12 @@
         },
         "additionalProperties": false
       },
+      "IssueSeverity": {
+        "enum": [
+          "error",
+          "warning"
+        ]
+      },
       "MapProps": {
         "required": [
           "address",
@@ -1762,6 +1963,38 @@
           }
         },
         "additionalProperties": false
+      },
+      "PublishPageRequest": {
+        "required": [
+          "revision"
+        ],
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "description": "The draft revision the person saw when they chose Publish.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Publishes a page's draft."
+      },
+      "PublishRejectedDto": {
+        "required": [
+          "issues"
+        ],
+        "type": "object",
+        "properties": {
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentIssueDto"
+            },
+            "description": "All issues of the draft, errors first; at least one is an error."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Why a page wasn't published."
       },
       "ResponsiveSpacing": {
         "required": [

@@ -13,7 +13,7 @@ import { textEditorKey, textPointerKey } from '@/studio/inject'
 import { mediaSrc } from '@/studio/media'
 import type { MediaItem } from '@/data/types'
 import type { Block, BlockType, Breakpoint, MediaAsset, PageDocument, SavedItem, Section, Selection, StudioPage } from '@/studio/types'
-import type { PageContentDto } from '@/api/generated'
+import type { ContentIssueDto, PageContentDto } from '@/api/generated'
 
 /** Something being dragged onto or around the canvas. */
 export type DragPayload =
@@ -554,11 +554,69 @@ export function createStudio(
   }
 
   /* ---------- Publishing ---------- */
-  function publish() {
-    const p = page.value
-    if (!p) return
-    writePage((old) => ({ ...old, published: clone(old.draft), publishedAt: Date.now() }))
-    setPageStatus(p.pageId, 'live')
+  const publishing = ref(false)
+  /** What to fix (or look at) before publishing; the publish dialog shows it while set. */
+  const issues = shallowRef<ContentIssueDto[] | null>(null)
+
+  /** Saves what's left and waits for it, so the server publishes exactly what's on screen. */
+  async function settle(): Promise<boolean> {
+    for (let i = 0; i < 3 && hasUnsavedChanges.value; i++) {
+      if (['conflict', 'invalid'].includes(saveState.value)) break
+      if (saveState.value === 'error') saveState.value = 'pending'
+      await saveNow()
+    }
+    return !hasUnsavedChanges.value
+  }
+
+  /**
+   * Publishes the draft through the API. Checks it first and shows the issues when there are any; `anyway` skips that
+   * step after the person has seen the warnings. Errors always stop publishing (the server checks again).
+   */
+  async function publish(anyway = false) {
+    if (!page.value || publishing.value) return
+    publishing.value = true
+    try {
+      if (!(await settle())) {
+        notify('Couldn’t save the latest changes, so nothing was published', 'error')
+        return
+      }
+      const p = page.value
+      if (!anyway) {
+        const check = await querier.checkPage(p.pageId)
+        if (!check) return void notify('Couldn’t check the page. Try again.', 'error')
+        if (check.issues.length) return void (issues.value = check.issues)
+      }
+
+      const outcome = await querier.publish(p.pageId, p.revision)
+      switch (outcome.kind) {
+        case 'published': {
+          const latest = toStudioPage(outcome.content)
+          writePage((old) => ({ ...old, published: latest.published, publishedAt: latest.publishedAt }), p.pageId)
+          issues.value = null
+          setPageStatus(p.pageId, 'live')
+          break
+        }
+        case 'rejected':
+          issues.value = outcome.issues
+          break
+        case 'conflict':
+          issues.value = null
+          conflict.value = outcome.current
+          saveState.value = 'conflict'
+          break
+        default:
+          notify('Couldn’t publish the page. Try again.', 'error')
+      }
+    } finally {
+      publishing.value = false
+    }
+  }
+
+  /** Selects what an issue is about, so its settings open. */
+  function showIssue(issue: ContentIssueDto) {
+    issues.value = null
+    if (issue.blockId && issue.sectionId) select({ kind: 'block', sectionId: issue.sectionId, blockId: issue.blockId })
+    else if (issue.sectionId) select({ kind: 'section', sectionId: issue.sectionId })
   }
 
   function discard() {
@@ -621,6 +679,9 @@ export function createStudio(
     removeSaved,
     uploadMedia,
     publish,
+    publishing,
+    issues,
+    showIssue,
     discard,
   }
 }

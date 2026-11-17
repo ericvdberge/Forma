@@ -9,6 +9,7 @@ import { useToast } from '@/composables/useToast'
 import { createStudio, provideStudio } from '@/composables/useStudio'
 import { StudioPageNotFoundError, type StudioPageSeed } from '@/queriers/useStudioQuerier'
 import AddDialog from './AddDialog.vue'
+import PublishDialog from './PublishDialog.vue'
 import StudioCanvas from './StudioCanvas.vue'
 import StudioInspector from './StudioInspector.vue'
 import StudioLibrary from './StudioLibrary.vue'
@@ -232,6 +233,7 @@ const notOnServer = computed(() => studio.query.error.value instanceof StudioPag
       @close="studio.adding.value = null"
       @pick="studio.addPicked($event); drawer = null"
     />
+    <PublishDialog />
     <FModal :open="!!studio.conflict.value" size="sm" labelledby="conflict-title" @update:open="!$event && studio.resolveConflict('theirs')">
       <div class="flex flex-col gap-5 p-6 sm:p-7">
         <div>

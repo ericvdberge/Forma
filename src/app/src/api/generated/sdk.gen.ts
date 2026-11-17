@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, GetMediaImageData, GetMediaImageErrors, GetMediaImageResponses, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaItemsData, GetMediaItemsResponses, GetMediaThumbnailData, GetMediaThumbnailErrors, GetMediaThumbnailResponses, GetPageContentData, GetPageContentErrors, GetPageContentResponses, GetPagesData, GetPagesResponses, GetWebsitesData, GetWebsitesResponses, SavePageDraftData, SavePageDraftErrors, SavePageDraftResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
+import type { CheckPageContentData, CheckPageContentErrors, CheckPageContentResponses, DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, GetMediaImageData, GetMediaImageErrors, GetMediaImageResponses, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaItemsData, GetMediaItemsResponses, GetMediaThumbnailData, GetMediaThumbnailErrors, GetMediaThumbnailResponses, GetPageContentData, GetPageContentErrors, GetPageContentResponses, GetPagesData, GetPagesResponses, GetWebsitesData, GetWebsitesResponses, PublishPageData, PublishPageErrors, PublishPageResponses, SavePageDraftData, SavePageDraftErrors, SavePageDraftResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -78,6 +78,28 @@ export const getPageContent = <ThrowOnError extends boolean = false>(options: Op
  */
 export const savePageDraft = <ThrowOnError extends boolean = false>(options: Options<SavePageDraftData, ThrowOnError>): RequestResult<SavePageDraftResponses, SavePageDraftErrors, ThrowOnError> => (options.client ?? client).put<SavePageDraftResponses, SavePageDraftErrors, ThrowOnError>({
     url: '/pages/{pageId}/draft',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Lists what to fix in a page's draft before it can be published.
+ *
+ * Runs the same rules as publishing, without publishing. Errors block publishing; warnings don't.
+ */
+export const checkPageContent = <ThrowOnError extends boolean = false>(options: Options<CheckPageContentData, ThrowOnError>): RequestResult<CheckPageContentResponses, CheckPageContentErrors, ThrowOnError> => (options.client ?? client).post<CheckPageContentResponses, CheckPageContentErrors, ThrowOnError>({ url: '/pages/{pageId}/check', ...options });
+
+/**
+ * Publishes a page's draft: visitors see it from now on, and the page is marked published.
+ *
+ * Only the draft revision in the request is published, so nothing saved after the person chose Publish goes live
+ * unseen. Drafts with error-level issues are refused with the issues; warnings don't block.
+ */
+export const publishPage = <ThrowOnError extends boolean = false>(options: Options<PublishPageData, ThrowOnError>): RequestResult<PublishPageResponses, PublishPageErrors, ThrowOnError> => (options.client ?? client).post<PublishPageResponses, PublishPageErrors, ThrowOnError>({
+    url: '/pages/{pageId}/publish',
     ...options,
     headers: {
         'Content-Type': 'application/json',

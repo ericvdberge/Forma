@@ -208,6 +208,54 @@ export type CarouselSlide = {
     caption: string;
 };
 
+/**
+ * The content issues of a page's draft.
+ */
+export type ContentCheckDto = {
+    /**
+     * The draft revision that was checked.
+     */
+    draftRevision: number;
+    /**
+     * Errors first, then warnings, each in page order. Empty when there is nothing to fix.
+     */
+    issues: Array<ContentIssueDto>;
+};
+
+/**
+ * A problem in a page's content that a person can fix.
+ */
+export type ContentIssueDto = {
+    /**
+     * `error` blocks publishing; `warning` doesn't.
+     */
+    severity: IssueSeverity;
+    /**
+     * Stable code, e.g. `image.missing` or `link.placeholder`.
+     */
+    code: string;
+    /**
+     * What is wrong, in plain language.
+     */
+    message: string;
+    /**
+     * The section it is in; null when it is about the whole page.
+     */
+    sectionId: null | string;
+    /**
+     * The block it is about; null when it is about a section or the page.
+     */
+    blockId: null | string;
+    /**
+     * The block prop or section setting, e.g. `href` or `background.image`.
+     */
+    field: null | string;
+    /**
+     * The item of a list prop (a gallery image, a menu link), when it is about one.
+     */
+    itemIndex: null | number;
+};
+
 export type ContentWidth = 'narrow' | 'normal' | 'wide' | 'full';
 
 export type DividerProps = {
@@ -296,6 +344,8 @@ export type ImageProps = {
     radius: number;
     caption: string;
 };
+
+export type IssueSeverity = 'error' | 'warning';
 
 export type MapProps = {
     address: string;
@@ -425,6 +475,26 @@ export type ProblemDetails = {
     status?: null | number;
     detail?: null | string;
     instance?: null | string;
+};
+
+/**
+ * Publishes a page's draft.
+ */
+export type PublishPageRequest = {
+    /**
+     * The draft revision the person saw when they chose Publish.
+     */
+    revision: number;
+};
+
+/**
+ * Why a page wasn't published.
+ */
+export type PublishRejectedDto = {
+    /**
+     * All issues of the draft, errors first; at least one is an error.
+     */
+    issues: Array<ContentIssueDto>;
 };
 
 export type ResponsiveSpacing = {
@@ -819,6 +889,79 @@ export type SavePageDraftResponses = {
 };
 
 export type SavePageDraftResponse = SavePageDraftResponses[keyof SavePageDraftResponses];
+
+export type CheckPageContentData = {
+    body?: never;
+    path: {
+        /**
+         * The page's id.
+         */
+        pageId: string;
+    };
+    query?: never;
+    url: '/pages/{pageId}/check';
+};
+
+export type CheckPageContentErrors = {
+    /**
+     * No page exists with this id.
+     */
+    404: unknown;
+};
+
+export type CheckPageContentResponses = {
+    /**
+     * The checked draft revision and its issues (empty when there is nothing to fix).
+     */
+    200: ContentCheckDto;
+};
+
+export type CheckPageContentResponse = CheckPageContentResponses[keyof CheckPageContentResponses];
+
+export type PublishPageData = {
+    /**
+     * Cancels the request.
+     */
+    body: PublishPageRequest;
+    path: {
+        /**
+         * The page's id.
+         */
+        pageId: string;
+    };
+    query?: never;
+    url: '/pages/{pageId}/publish';
+};
+
+export type PublishPageErrors = {
+    /**
+     * The request is malformed.
+     */
+    400: HttpValidationProblemDetails;
+    /**
+     * No page exists with this id.
+     */
+    404: unknown;
+    /**
+     * The draft is no longer at this revision; the body is the current content.
+     */
+    409: PageContentDto;
+    /**
+     * The draft has errors to fix first; the body lists all its issues.
+     */
+    422: PublishRejectedDto;
+};
+
+export type PublishPageError = PublishPageErrors[keyof PublishPageErrors];
+
+export type PublishPageResponses = {
+    /**
+     * Published; the body is the page's content now.
+     */
+    200: PageContentDto;
+};
+
+export type PublishPageResponse = PublishPageResponses[keyof PublishPageResponses];
 
 export type GetPagesData = {
     body?: never;

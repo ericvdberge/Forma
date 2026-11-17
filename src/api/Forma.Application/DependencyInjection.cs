@@ -2,6 +2,7 @@ using System.Text.Json;
 using FluentValidation;
 using FluentValidation.Internal;
 using Forma.Application.Documents;
+using Forma.Application.Documents.Checks;
 using Forma.Application.Documents.Validation;
 using Forma.Application.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<IMediaCoreService, MediaCoreService>();
         services.AddScoped<IPageContentCoreService, PageContentCoreService>();
 
+        services.AddScoped<IPageDocumentChecker, PageDocumentChecker>();
         services.AddSingleton<IRichTextSanitizer, RichTextSanitizer>();
         services.AddSingleton<IValidator<PageDocument>, PageDocumentValidator>();
 

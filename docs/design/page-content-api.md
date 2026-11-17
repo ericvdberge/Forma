@@ -1,6 +1,6 @@
 # Page content API
 
-Status: **phase 1 implemented**, phases 2–3 proposed. Design and rationale: [page-content.md](page-content.md).
+Status: **phases 1–2 implemented**, phase 3 proposed. Design and rationale: [page-content.md](page-content.md).
 
 Conventions (the same as the rest of the API):
 
@@ -180,7 +180,7 @@ Example `400`:
 
 ---
 
-## Phase 2 (sketch)
+## Phase 2
 
 ### `POST /pages/{pageId}/check`
 
@@ -191,7 +191,7 @@ Runs the publish rules on the current draft without publishing.
 `ContentIssue`:
 
 ```json
-{ "severity": "error", "code": "link.page_missing", "message": "This button links to /pricing, which doesn't exist.",
+{ "severity": "warning", "code": "link.page_missing", "message": "The button ‘Pricing’ links to /pricing, which isn’t a page of this website.",
   "sectionId": "s_cta", "blockId": "b_btn", "field": "href", "itemIndex": null }
 ```
 

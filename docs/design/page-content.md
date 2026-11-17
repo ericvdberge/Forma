@@ -1,6 +1,6 @@
 # Page content: backend design
 
-Status: **phase 1 implemented**, phases 2–5 proposed · Scope: storing, validating and publishing what the Design Studio edits.
+Status: **phases 1–2 implemented**, phases 3–5 proposed · Scope: storing, validating and publishing what the Design Studio edits.
 
 Related:
 
@@ -141,7 +141,7 @@ Malformed JSON (unknown type, bad enum, unknown or missing property) gets the sa
 
 Numbers are read strictly (`"12"` is not a number), and an OpenAPI schema transformer describes them as plain `integer`/`number`, so the generated TS types aren't `number | string`.
 
-### Level 2: content (publish → `422`, also `POST /pages/{id}/check`), phase 2
+### Level 2: content (publish → `422`, also `POST /pages/{id}/check`)
 
 These are problems a person can fix. They are returned as a list of issues, not as a ValidationProblem, so the studio can point at the block:
 
@@ -156,16 +156,25 @@ These are problems a person can fix. They are returned as a list of issues, not 
 
 | Code | Severity | Rule |
 |---|---|---|
-| `image.missing` | error | image, gallery or carousel item without `src` |
-| `media.not_found` | error | `/media/{id}` doesn't exist or belongs to another website |
-| `link.empty` | error | button, nav link or nav CTA without `href` |
-| `link.page_missing` | error | `/slug` that is not a page of this website |
+| `image.missing` | error | image, gallery image or carousel slide without `src` |
+| `media.not_found` | error | `/media/{id}` doesn't exist or belongs to another website (also section backgrounds) |
+| `gallery.empty` / `carousel.empty` | error | no images / slides |
+| `video.missing` | error | video without a link |
+| `link.empty` | error | button, nav link or nav CTA (when it has a label) without `href` |
 | `form.no_fields` | error | form without fields |
+| `page.not_saved` | error | publishing a page whose draft was never saved |
+| `link.placeholder` | warning | link is still `#` |
+| `link.page_missing` | warning | `/slug` that is not a page of this website (`/` is the home page) |
 | `image.alt_missing` | warning | image without `alt` |
+| `background.image_missing` | warning | background set to an image with none chosen |
 | `heading.multiple_h1` / `heading.skipped_level` | warning | heading order |
 | `section.empty` / `page.empty` | warning | nothing to show |
 
-Errors block publishing; warnings are shown but don't. These checks need lookups (media, page slugs, later collection fields), so they live in the core service as an `IPageDocumentChecker` with a `CheckContext` (website, page, later the collection scope; see [collections.md](collections.md#5-validation)).
+Errors block publishing; warnings are shown but don't. **Calibrated on the sample content:** the studio's defaults and sample pages use `#` as a placeholder everywhere, and the sample home page links to `/signup` and `/templates`, which aren't pages. Both are therefore warnings, not errors. Otherwise no sample page could be published, and pages can't be created through the API yet. Once they can, `link.page_missing` can become an error.
+
+Issues come errors first, then in page order. The studio's **Publish** button saves what's left, calls `/check`, and publishes straight away when there are no issues. Otherwise it shows the issues: choosing one selects its block or section, and when there are only warnings, **Publish anyway** publishes. The server checks again on publish, so errors can never go live.
+
+Publishing copies the stored draft at the requested revision inside one transaction. A no-op write on the draft row takes SQLite's write lock first, so a save can't slip in between the check and the copy. These checks need lookups (media, page slugs, later collection fields), so they live in the core service as an `IPageDocumentChecker` with a `CheckContext` (website, page, later the collection scope; see [collections.md](collections.md#5-validation)).
 
 ### Contract test (keeps C# and TS in step)
 
@@ -184,7 +193,7 @@ Errors block publishing; warnings are shown but don't. These checks need lookups
 | Phase | Backend | Frontend |
 |---|---|---|
 | **1** ✅ | Document model, `PageDocuments`, `GET /pages/{id}/content`, `PUT /pages/{id}/draft`, level 1 validation, sanitiser, seeding, contract test | Load from the API, autosave, conflict dialog, relative media URLs, types from the generated client |
-| 2 | `POST /pages/{id}/publish`, `POST /pages/{id}/check`, level 2 issues | Publish through the API, issues panel that selects the block |
+| 2 ✅ | `POST /pages/{id}/publish`, `POST /pages/{id}/check`, level 2 issues | Publish through the API, issues panel that selects the block |
 | 3 | `SavedItems` endpoints, `PageMediaUsages`, `409` on deleting used media | Saved tab through the API, "used on N pages" on the Media page |
 | 4 | `PageRevisions`, shared header/footer, public renderer | History panel |
 | 5 | Collections (see [collections.md](collections.md)) | Collection editor, bindings in the studio |

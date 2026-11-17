@@ -1,6 +1,6 @@
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { getPageContent, savePageDraft, type PageContentDto } from '@/api/generated'
+import { checkPageContent, getPageContent, publishPage, savePageDraft, type ContentIssueDto, type PageContentDto } from '@/api/generated'
 import pageJson from '@/data/studio/page.json'
 import savedJson from '@/data/studio/saved.json'
 import { fromApiDocument, toApiDocument } from '@/studio/contract'
@@ -56,6 +56,12 @@ export type SaveDraftOutcome =
   | { kind: 'not-found' }
   | { kind: 'failed' }
 
+export type PublishOutcome =
+  | { kind: 'published'; content: PageContentDto }
+  | { kind: 'rejected'; issues: ContentIssueDto[] }
+  | { kind: 'conflict'; current: PageContentDto }
+  | { kind: 'failed' }
+
 /**
  * TanStack Query calls for the Design Studio. Page content comes from the API; the Saved tab is still mock data
  * (phase 3). A page's cache entry is the editor's working copy, so it is never refetched in the background.
@@ -98,6 +104,29 @@ export function useStudioQuerier() {
     }
   }
 
+  /** POST /pages/{pageId}/check: what to fix before publishing. Undefined when the request failed. */
+  async function checkPage(pageId: string): Promise<{ draftRevision: number; issues: ContentIssueDto[] } | undefined> {
+    try {
+      const { data } = await checkPageContent({ path: { pageId } })
+      return data
+    } catch {
+      return undefined
+    }
+  }
+
+  /** POST /pages/{pageId}/publish */
+  async function publish(pageId: string, revision: number): Promise<PublishOutcome> {
+    try {
+      const { data, error, response } = await publishPage({ path: { pageId }, body: { revision } })
+      if (data) return { kind: 'published', content: data }
+      if (response?.status === 422) return { kind: 'rejected', issues: (error as { issues: ContentIssueDto[] }).issues }
+      if (response?.status === 409) return { kind: 'conflict', current: error as PageContentDto }
+      return { kind: 'failed' }
+    } catch {
+      return { kind: 'failed' }
+    }
+  }
+
   function getSaved() {
     return useQuery({
       queryKey: studioSavedQueryKey,
@@ -122,6 +151,8 @@ export function useStudioQuerier() {
   return {
     getStudioPage,
     saveDraft,
+    checkPage,
+    publish,
     getSaved,
   }
 }

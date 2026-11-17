@@ -26,8 +26,10 @@ public class PageContentEndpoints : IEndpoints
             .WithValidation<SaveDraftRequest>()
             .WithMetadata(new RequestSizeLimitAttribute(MaxDraftRequestBytes))
             .ProducesProblem(StatusCodes.Status413PayloadTooLarge);
-
-        // Phase 2: POST /check and POST /publish.
+        group.MapPost("/check", CheckAsync).WithName("CheckPageContent");
+        group.MapPost("/publish", PublishAsync)
+            .WithName("PublishPage")
+            .WithValidation<PublishPageRequest>();
     }
 
     /// <summary>Gets a page's draft and published document.</summary>
@@ -77,6 +79,57 @@ public class PageContentEndpoints : IEndpoints
             SaveDraftResult.PageNotFound => TypedResults.NotFound(),
             SaveDraftResult.Conflict conflict => TypedResults.Conflict(conflict.Current.ToDto()),
             _ => throw new InvalidOperationException($"Unhandled save result {result.GetType().Name}."),
+        };
+    }
+
+    /// <summary>Lists what to fix in a page's draft before it can be published.</summary>
+    /// <remarks>Runs the same rules as publishing, without publishing. Errors block publishing; warnings don't.</remarks>
+    /// <param name="pageId">The page's id.</param>
+    /// <param name="pageContentCoreService">Service that checks the draft.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>The draft's issues, or 404 when the page does not exist.</returns>
+    /// <response code="200">The checked draft revision and its issues (empty when there is nothing to fix).</response>
+    /// <response code="404">No page exists with this id.</response>
+    internal static async Task<Results<Ok<ContentCheckDto>, NotFound>> CheckAsync(
+        Guid pageId,
+        IPageContentCoreService pageContentCoreService,
+        CancellationToken cancellationToken)
+    {
+        var check = await pageContentCoreService.CheckAsync(pageId, cancellationToken);
+        return check is null ? TypedResults.NotFound() : TypedResults.Ok(check.ToDto());
+    }
+
+    /// <summary>Publishes a page's draft: visitors see it from now on, and the page is marked published.</summary>
+    /// <remarks>
+    /// Only the draft revision in the request is published, so nothing saved after the person chose Publish goes live
+    /// unseen. Drafts with error-level issues are refused with the issues; warnings don't block.
+    /// </remarks>
+    /// <param name="pageId">The page's id.</param>
+    /// <param name="request">The draft revision to publish.</param>
+    /// <param name="pageContentCoreService">Service that checks and publishes the draft.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>The page's content after publishing, 404, 409 with the current content, or 422 with the issues.</returns>
+    /// <response code="200">Published; the body is the page's content now.</response>
+    /// <response code="400">The request is malformed.</response>
+    /// <response code="404">No page exists with this id.</response>
+    /// <response code="409">The draft is no longer at this revision; the body is the current content.</response>
+    /// <response code="422">The draft has errors to fix first; the body lists all its issues.</response>
+    /// <exception cref="InvalidOperationException">The core service returned a result this endpoint does not handle.</exception>
+    internal static async Task<Results<Ok<PageContentDto>, ValidationProblem, NotFound, Conflict<PageContentDto>, UnprocessableEntity<PublishRejectedDto>>> PublishAsync(
+        Guid pageId,
+        PublishPageRequest request,
+        IPageContentCoreService pageContentCoreService,
+        CancellationToken cancellationToken)
+    {
+        var result = await pageContentCoreService.PublishAsync(pageId, request.Revision, cancellationToken);
+
+        return result switch
+        {
+            PublishResult.Published published => TypedResults.Ok(published.Content.ToDto()),
+            PublishResult.PageNotFound => TypedResults.NotFound(),
+            PublishResult.Conflict conflict => TypedResults.Conflict(conflict.Current.ToDto()),
+            PublishResult.Rejected rejected => TypedResults.UnprocessableEntity(rejected.Issues.ToRejectedDto()),
+            _ => throw new InvalidOperationException($"Unhandled publish result {result.GetType().Name}."),
         };
     }
 }

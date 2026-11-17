@@ -1,4 +1,5 @@
 using Forma.Application.Documents;
+using Forma.Application.Documents.Checks;
 using Forma.Application.Entities;
 using Forma.Infrastructure.Daos;
 using Forma.Infrastructure.Repositories.PageDocuments;
@@ -7,7 +8,7 @@ using Forma.Infrastructure.Repositories.Pages;
 namespace Forma.Application.Services;
 
 /// <summary>Reads and saves the Design Studio's page documents.</summary>
-/// <remarks>Phase 2 adds <c>CheckAsync</c> and <c>PublishAsync</c>; see <c>docs/design/page-content.md</c>.</remarks>
+/// <remarks>See <c>docs/design/page-content.md</c>.</remarks>
 public interface IPageContentCoreService
 {
     /// <summary>The page's draft and published document, or null when the page does not exist.</summary>
@@ -18,11 +19,20 @@ public interface IPageContentCoreService
     /// current draft revision. The document has passed structural validation in the API before this is called.
     /// </summary>
     Task<SaveDraftResult> SaveDraftAsync(Guid pageId, PageDocument document, int baseRevision, CancellationToken cancellationToken = default);
+
+    /// <summary>The content issues of the page's current draft, or null when the page does not exist.</summary>
+    Task<ContentCheck?> CheckAsync(Guid pageId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Publishes the page's draft when it is still at <paramref name="draftRevision"/> and has no error-level issues.
+    /// </summary>
+    Task<PublishResult> PublishAsync(Guid pageId, int draftRevision, CancellationToken cancellationToken = default);
 }
 
 public class PageContentCoreService(
     IPageRepository pageRepository,
     IPageDocumentRepository pageDocumentRepository,
+    IPageDocumentChecker checker,
     TimeProvider timeProvider) : IPageContentCoreService
 {
     public async Task<PageContent?> GetContentAsync(Guid pageId, CancellationToken cancellationToken = default)
@@ -70,6 +80,48 @@ public class PageContentCoreService(
         }
 
         return new SaveDraftResult.Saved(revision.Value, updatedAt, HasUnpublishedChanges(hash, published));
+    }
+
+    public async Task<ContentCheck?> CheckAsync(Guid pageId, CancellationToken cancellationToken = default)
+    {
+        if (await pageRepository.GetByIdAsync(pageId, cancellationToken) is not { } page)
+        {
+            return null;
+        }
+
+        var content = await ReadContentAsync(pageId, cancellationToken);
+        var issues = await checker.CheckAsync(content.Draft, new CheckContext(page.WebsiteId, pageId), cancellationToken);
+        return new ContentCheck(content.DraftRevision, issues);
+    }
+
+    public async Task<PublishResult> PublishAsync(Guid pageId, int draftRevision, CancellationToken cancellationToken = default)
+    {
+        if (await pageRepository.GetByIdAsync(pageId, cancellationToken) is not { } page)
+        {
+            return new PublishResult.PageNotFound();
+        }
+
+        var content = await ReadContentAsync(pageId, cancellationToken);
+        if (content.DraftRevision != draftRevision)
+        {
+            return new PublishResult.Conflict(content);
+        }
+
+        // Nothing saved yet: there is no draft to copy.
+        if (draftRevision == 0)
+        {
+            return new PublishResult.Rejected([new(IssueSeverity.Error, "page.not_saved", "The page has no saved content to publish yet.")]);
+        }
+
+        var issues = await checker.CheckAsync(content.Draft, new CheckContext(page.WebsiteId, pageId), cancellationToken);
+        if (issues.Any(i => i.Severity == IssueSeverity.Error))
+        {
+            return new PublishResult.Rejected(issues);
+        }
+
+        var published = await pageDocumentRepository.PublishDraftAsync(pageId, draftRevision, timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
+        var current = await ReadContentAsync(pageId, cancellationToken);
+        return published ? new PublishResult.Published(current) : new PublishResult.Conflict(current);
     }
 
     private async Task<PageContent> ReadContentAsync(Guid pageId, CancellationToken cancellationToken)

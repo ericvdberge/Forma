@@ -121,10 +121,12 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 | `DELETE /media/{id}`        | Deletes a media item and its files, `204`                       |
 | `GET /pages/{id}/content`   | A page's Design Studio draft and published document             |
 | `PUT /pages/{id}/draft`     | Saves the draft (`{ document, baseRevision }`), `200`, `400` or `409` |
+| `POST /pages/{id}/check`   | What to fix before publishing: errors and warnings, each pointing at a block |
+| `POST /pages/{id}/publish` | Publishes a draft revision (`{ revision }`), `200`, `409` or `422` with the issues |
 
 #### Page content
 
-A page's Design Studio content is one JSON document per version (draft and published) in the `PageDocuments` table. Every save is checked against the document model and its rules (block types, ranges, safe links, allowed rich text) and carries the draft revision it was edited from, so a save made elsewhere in the meantime answers `409`. Design and full spec: [`docs/design/page-content.md`](docs/design/page-content.md) and [`docs/design/page-content-api.md`](docs/design/page-content-api.md); future collection pages: [`docs/design/collections.md`](docs/design/collections.md).
+A page's Design Studio content is one JSON document per version (draft and published) in the `PageDocuments` table. Every save is checked against the document model and its rules (block types, ranges, safe links, allowed rich text) and carries the draft revision it was edited from, so a save made elsewhere in the meantime answers `409`. Publishing runs content checks first (missing images, links that go nowhere, deleted media…): errors block it, warnings don't. Design and full spec: [`docs/design/page-content.md`](docs/design/page-content.md) and [`docs/design/page-content-api.md`](docs/design/page-content-api.md); future collection pages: [`docs/design/collections.md`](docs/design/collections.md).
 
 #### Media
 
