@@ -122,16 +122,19 @@ export function useMedia() {
       const dto = await upload({ body: { websiteId: entry.websiteId, file } })
       updateCachedMedia(entry.websiteId, (dtos) => [dto, ...dtos.filter((d) => d.id !== dto.id)])
       forget(entry.id)
-      return true
+      return toMediaItem(dto)
     } catch (error) {
       entry.status = 'failed'
       entry.error = uploadErrorMessage(error)
-      return false
+      return undefined
     }
   }
 
-  /** Checks and uploads files to a website, a few at a time. Files that fail stay listed with the reason. */
-  async function uploadFiles(websiteId: string, files: Iterable<File>) {
+  /**
+   * Checks and uploads files to a website, a few at a time. Files that fail stay listed with the reason.
+   * Resolves to the uploaded items, in the order the files were given.
+   */
+  async function uploadFiles(websiteId: string, files: Iterable<File>): Promise<MediaItem[]> {
     const work: Array<[PendingUpload, File]> = []
     for (const file of files) {
       const error = checkFile(file)
@@ -148,23 +151,27 @@ export function useMedia() {
       // Work on the reactive copy so status changes show up.
       if (!error) work.push([uploads[0]!, file])
     }
-    if (!work.length) return
+    if (!work.length) return []
 
-    let uploaded = 0
+    const results = new Map<PendingUpload, MediaItem>()
     const queue = [...work]
     await Promise.all(
       Array.from({ length: Math.min(PARALLEL_UPLOADS, queue.length) }, async () => {
         for (let next = queue.shift(); next; next = queue.shift()) {
-          if (await send(...next)) uploaded++
+          const item = await send(...next)
+          if (item) results.set(next[0], item)
         }
       }),
     )
 
-    if (!uploaded) return
+    const uploaded = results.size
+    const items = work.flatMap(([entry]) => results.get(entry) ?? [])
+    if (!uploaded) return items
     const first = work.find(([entry]) => !uploads.includes(entry))?.[1].name
     const label = uploaded === 1 ? `‘${first}’` : `${uploaded} images`
     logActivity(`You uploaded ${label}`, 'media')
     notify(work.length === 1 ? `${label} uploaded` : `${uploaded} of ${work.length} images uploaded`)
+    return items
   }
 
   /** Clears one failed upload. */

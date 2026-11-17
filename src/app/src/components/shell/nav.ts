@@ -5,7 +5,6 @@ import {
   Image,
   LayoutGrid,
   LayoutTemplate,
-  PenTool,
   Puzzle,
   Settings,
   User,
@@ -15,7 +14,6 @@ import {
 export const nav = [
   { to: '/', label: 'Dashboard', icon: House },
   { to: '/websites', label: 'Websites', icon: Globe },
-  { to: '/studio', label: 'Design Studio', icon: PenTool },
   { to: '/pages', label: 'Pages', icon: FileText },
   { to: '/templates', label: 'Templates', icon: LayoutTemplate },
   { to: '/blocks', label: 'Blocks', icon: LayoutGrid },

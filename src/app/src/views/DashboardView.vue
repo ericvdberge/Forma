@@ -34,7 +34,7 @@ const statIcons = [Eye, LayoutGrid, Layers, Users]
           </template>
           Your creative journey starts here. Design, build and publish stunning websites with Forma.
           <template #actions>
-            <LinkButton to="/studio" arrow>Open Design Studio</LinkButton>
+            <LinkButton to="/pages" arrow>Edit your pages</LinkButton>
             <LinkButton to="/templates" variant="secondary" class="bg-white/60 backdrop-blur">Browse Templates</LinkButton>
           </template>
         </FPageHero>

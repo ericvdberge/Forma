@@ -1,0 +1,62 @@
+{
+  "sections": [
+    {
+      "id": "s_header",
+      "settings": {
+        "type": "header",
+        "padding": { "desktop": { "top": 20, "bottom": 20, "left": 32, "right": 32 }, "mobile": { "left": 16, "right": 16 } }
+      },
+      "blocks": [{ "id": "b_nav", "type": "nav" }]
+    },
+    {
+      "id": "s_intro",
+      "settings": {
+        "type": "hero",
+        "align": "center",
+        "contentWidth": "normal",
+        "gap": 16,
+        "radius": 16,
+        "padding": {
+          "desktop": { "top": 112, "bottom": 112, "left": 48, "right": 48 },
+          "tablet": { "top": 88, "bottom": 88, "left": 32, "right": 32 },
+          "mobile": { "top": 64, "bottom": 64, "left": 20, "right": 20 }
+        },
+        "background": { "kind": "gradient", "gradientFrom": "#f5f4f0", "gradientTo": "#ffffff", "gradientAngle": 180 },
+        "animation": { "entrance": "fade-up", "delay": 0 }
+      },
+      "blocks": [
+        { "id": "b_badge", "type": "badge", "props": { "text": "{{website}}" } },
+        { "id": "b_title", "type": "heading", "props": { "html": "<p>{{title}}</p>", "level": 1, "size": "xl" } },
+        {
+          "id": "b_intro",
+          "type": "text",
+          "props": { "html": "<p>This page is ready for your content. Drag blocks in from the library, or click one to add it.</p>", "size": "lg" },
+          "style": { "maxWidth": "sm" }
+        }
+      ]
+    },
+    {
+      "id": "s_footer",
+      "settings": {
+        "type": "footer",
+        "theme": "dark",
+        "gap": 20,
+        "radius": 16,
+        "padding": {
+          "desktop": { "top": 48, "bottom": 32, "left": 48, "right": 48 },
+          "mobile": { "top": 40, "left": 20, "right": 20 }
+        },
+        "background": { "kind": "color", "color": "#0b0b0f" }
+      },
+      "blocks": [
+        {
+          "id": "b_footer_nav",
+          "type": "nav",
+          "props": { "links": [{ "label": "Product", "href": "#" }, { "label": "Docs", "href": "#" }, { "label": "Contact", "href": "#" }], "ctaLabel": "" }
+        },
+        { "id": "b_footer_line", "type": "divider" },
+        { "id": "b_footer_text", "type": "text", "props": { "html": "<p>© 2026 {{website}}.</p>", "size": "sm" } }
+      ]
+    }
+  ]
+}
