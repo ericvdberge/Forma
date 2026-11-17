@@ -83,17 +83,18 @@ More in [`src/landing/README.md`](src/landing/README.md).
 
 ### App
 
-The Forma CMS, where you manage your websites and their pages.
+The Forma CMS, where you manage your websites, their pages and their media.
 
 | Route            | What it does                                                    |
 | ---------------- | --------------------------------------------------------------- |
 | `/`              | Dashboard: websites, stats, recent activity                     |
 | `/pages`         | Pages of the active website: filter, create, publish, archive   |
+| `/media`         | Media library of the active website: stats, upload (button, drag & drop or paste), grid or list, preview, delete |
 | `/websites/:id?` | Switch the active website and edit its details                  |
 | `/pages/:id/edit` | Design Studio: drag & drop editor for one page (mock content for now) |
 | everything else  | Sections that are designed but not built yet show "coming soon" |
 
-Websites and pages load from the API through a typed client generated from its OpenAPI document (`@hey-api/openapi-ts` + TanStack Vue Query). Recent activity is still seed data. Until write endpoints exist, edits only update the query cache. In development Vite proxies `/api/*` to the API. Set `FORMA_API_URL` to proxy somewhere else, or `VITE_API_URL` to call a different base URL directly.
+Websites, pages and media load from the API through a typed client generated from its OpenAPI document (`@hey-api/openapi-ts` + TanStack Vue Query). Recent activity is still seed data. Media uploads and deletes go to the API; other edits only update the query cache until their write endpoints exist. In development Vite proxies `/api/*` to the API. Set `FORMA_API_URL` to proxy somewhere else, or `VITE_API_URL` to call a different base URL directly.
 
 More in [`src/app/README.md`](src/app/README.md).
 
@@ -105,12 +106,24 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 | ---------------------- | -------------------------------------------------------------------- |
 | `Forma.Api`            | Minimal API endpoints, DTOs and Mapperly mappers, OpenAPI + Scalar   |
 | `Forma.Application`    | Domain entities and core services                                    |
-| `Forma.Infrastructure` | EF Core `DbContext`, SQLite, migrations, seeding and repositories    |
+| `Forma.Infrastructure` | EF Core `DbContext`, SQLite, migrations, seeding, repositories, media file storage and image processing |
 
-| Endpoint                    | Returns                  |
-| --------------------------- | ------------------------ |
-| `GET /websites`             | All websites             |
-| `GET /pages?websiteId={id}` | The pages of one website |
+| Endpoint                    | Returns                                                         |
+| --------------------------- | --------------------------------------------------------------- |
+| `GET /websites`             | All websites                                                    |
+| `GET /pages?websiteId={id}` | The pages of one website                                        |
+| `GET /media?websiteId={id}` | The media library of one website                                |
+| `GET /media/{id}`           | One media item                                                  |
+| `GET /media/{id}/image`     | The original image's bytes                                      |
+| `GET /media/{id}/thumbnail` | The WebP thumbnail's bytes                                      |
+| `POST /media`               | Uploads an image (multipart: `websiteId`, `file`), `201` or `400` |
+| `DELETE /media/{id}`        | Deletes a media item and its files, `204`                       |
+
+#### Media
+
+Uploads are images only: JPEG, PNG, GIF or WebP, at most 10 MB. A FluentValidation validator checks the size, file name and extension before the upload reaches the core service, which then checks the format from the file's bytes, so anything else (SVG included) is rejected with `400`. The API keeps the original unchanged and renders a WebP thumbnail of at most 400 px on its longest side, with EXIF rotation applied, using [NetVips](https://github.com/kleisauke/net-vips) (libvips).
+
+Files are stored as plain files in the folder `Assets:Path` (default `assets`, `/app/assets` in Docker), under `{websiteId}/originals/{id}.{ext}` and `{websiteId}/thumbnails/{id}.webp`. Storage sits behind `IAssetStorage`, so an S3-compatible store can be added later without touching the rest of the API. Files are served through the API's `/media/{id}/image` and `/media/{id}/thumbnail` routes, which each media item's `imageUrl` and `thumbnailUrl` point to.
 
 In development the API applies migrations and seeds sample data on startup into `forma.db`, which is git-ignored. It serves interactive docs at **http://localhost:5134/scalar**. Each `dotnet build` writes the OpenAPI document to `src/api/Forma.Api/OpenApi/forma-api.json`, and the app's client is generated from that file.
 
@@ -143,6 +156,22 @@ npm run dev:app -- --port 5174                                 # app → :5174 (
 
 After you change an API endpoint or DTO, run `npm run generate:api` and commit the updated OpenAPI document and generated client. Don't edit `src/app/src/api/generated` by hand.
 
+### Docker
+
+The [`Dockerfile`](Dockerfile) builds Forma into one image. [supervisord](http://supervisord.org) runs and restarts two processes:
+
+| Process   | What it does                                                                 |
+| --------- | ---------------------------------------------------------------------------- |
+| `nginx`   | Serves the CMS app on port 8080 and proxies `/api` to the API                 |
+| `api`     | The Forma API, with its SQLite database in `/app/data` (a volume)             |
+
+```bash
+docker build -t forma .
+docker run -p 8080:8080 -v forma-assets:/app/assets -v forma-data:/app/data forma
+```
+
+Or run `docker compose up --build forma` ([`docker-compose.yml`](docker-compose.yml)). Run `docker exec <container> supervisorctl -c /etc/supervisor/forma.conf status` to see the processes. Uploaded media are plain files in `/app/assets`, a volume. The API applies database migrations on start. Because websites can't be created yet, an empty database gets the sample websites and pages; set `FORMA_SAMPLE_DATA=false` to start without them.
+
 ## Project structure
 
 ```text
@@ -150,11 +179,13 @@ Forma/
 ├── src/
 │   ├── design-system/   @forma/design-system: brand tokens + Vue components
 │   ├── landing/         Marketing site (Vue 3 + Vite)
-│   ├── app/             The Forma CMS: dashboard, websites & pages (Vue 3 + Vue Router)
+│   ├── app/             The Forma CMS: dashboard, websites, pages & media (Vue 3 + Vue Router)
 │   └── api/             .NET 10 backend (Forma.Api.slnx)
 │       ├── Forma.Api/             endpoints, DTOs, OpenAPI document
 │       ├── Forma.Application/     entities + core services
-│       └── Forma.Infrastructure/  EF Core, SQLite, repositories
+│       └── Forma.Infrastructure/  EF Core, SQLite, repositories, media storage
+├── docker/              nginx, supervisord and entrypoint for the image
+├── Dockerfile           app + API in one image
 └── package.json         npm workspaces root
 ```
 
@@ -225,6 +256,8 @@ Forma speaks with clarity and quiet confidence. No hype, no jargon, no exaggerat
 - [x] Dashboard & website management
 - [x] Pages list
 - [x] API: read websites & pages
+- [x] API: media library (image uploads with thumbnails)
+- [x] Media library
 - [ ] API: create, update & publish
 - [x] Design Studio: drag & drop editor (frontend, mock content)
 - [ ] Templates, blocks & global styles

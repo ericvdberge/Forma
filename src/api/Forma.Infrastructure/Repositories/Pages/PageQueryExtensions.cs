@@ -1,4 +1,4 @@
-using Forma.Infrastructure.DataAccessObjects.Pages;
+using Forma.Infrastructure.Daos;
 using Forma.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,12 +13,12 @@ internal static class PageQueryExtensions
             .WithTitleContaining(filter.Title)
             .WithSlug(filter.Slug);
 
-    public static IQueryable<PageDao> WithWebsiteId(this IQueryable<PageDao> query, Guid? websiteId) =>
+    private static IQueryable<PageDao> WithWebsiteId(this IQueryable<PageDao> query, Guid? websiteId) =>
         query.WhereIf(websiteId.HasValue, p => p.WebsiteId == websiteId);
 
-    public static IQueryable<PageDao> WithTitleContaining(this IQueryable<PageDao> query, string? title) =>
+    private static IQueryable<PageDao> WithTitleContaining(this IQueryable<PageDao> query, string? title) =>
         query.WhereIf(!string.IsNullOrWhiteSpace(title), p => EF.Functions.Like(p.Title, $"%{title!.Trim()}%"));
 
-    public static IQueryable<PageDao> WithSlug(this IQueryable<PageDao> query, string? slug) =>
+    private static IQueryable<PageDao> WithSlug(this IQueryable<PageDao> query, string? slug) =>
         query.WhereIf(!string.IsNullOrWhiteSpace(slug), p => p.Slug == slug!.Trim());
 }

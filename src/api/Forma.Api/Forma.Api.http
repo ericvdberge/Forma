@@ -9,3 +9,36 @@ GET {{Forma.Api_HostAddress}}/pages?websiteId=00000000-0000-0000-0000-0000000000
 Accept: application/json
 
 ###
+
+GET {{Forma.Api_HostAddress}}/media?websiteId=00000000-0000-0000-0000-000000000000
+Accept: application/json
+
+###
+
+POST {{Forma.Api_HostAddress}}/media
+Content-Type: multipart/form-data; boundary=FormaBoundary
+
+--FormaBoundary
+Content-Disposition: form-data; name="websiteId"
+
+00000000-0000-0000-0000-000000000000
+--FormaBoundary
+Content-Disposition: form-data; name="file"; filename="image.png"
+Content-Type: image/png
+
+< ./path/to/image.png
+--FormaBoundary--
+
+###
+
+GET {{Forma.Api_HostAddress}}/media/00000000-0000-0000-0000-000000000000/image
+
+###
+
+GET {{Forma.Api_HostAddress}}/media/00000000-0000-0000-0000-000000000000/thumbnail
+
+###
+
+DELETE {{Forma.Api_HostAddress}}/media/00000000-0000-0000-0000-000000000000
+
+###

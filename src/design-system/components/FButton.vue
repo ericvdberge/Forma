@@ -3,20 +3,24 @@ import { computed } from 'vue'
 import { ArrowRight } from 'lucide-vue-next'
 import { cn } from '../utils/cn'
 
-const props = withDefaults(
-  defineProps<{
-    variant?: 'primary' | 'secondary' | 'accent' | 'ghost' | 'inverse'
-    size?: 'sm' | 'md' | 'lg'
-    /** Renders an <a> when set */
-    href?: string
-    type?: 'button' | 'submit' | 'reset'
-    /** Show the trailing arrow used across the brand */
-    arrow?: boolean
-    block?: boolean
-    disabled?: boolean
-  }>(),
-  { variant: 'primary', size: 'md', type: 'button', arrow: false, block: false, disabled: false },
-)
+const {
+  variant = 'primary',
+  size = 'md',
+  type = 'button',
+  arrow = false,
+  block = false,
+  disabled = false,
+} = defineProps<{
+  variant?: 'primary' | 'secondary' | 'accent' | 'ghost' | 'inverse'
+  size?: 'sm' | 'md' | 'lg'
+  /** Renders an <a> when set */
+  href?: string
+  type?: 'button' | 'submit' | 'reset'
+  /** Show the trailing arrow used across the brand */
+  arrow?: boolean
+  block?: boolean
+  disabled?: boolean
+}>()
 
 const variants = {
   primary: 'bg-charcoal text-warm-white hover:bg-ink shadow-[0_8px_20px_-8px_rgb(11_11_15/0.5)]',
@@ -36,9 +40,9 @@ const classes = computed(() =>
     'group inline-flex items-center justify-center rounded-full font-medium whitespace-nowrap',
     'transition-all duration-200 ease-out active:scale-[0.98]',
     'disabled:pointer-events-none disabled:opacity-50',
-    variants[props.variant],
-    sizes[props.size],
-    props.block && 'w-full',
+    variants[variant],
+    sizes[size],
+    block && 'w-full',
   ),
 )
 </script>

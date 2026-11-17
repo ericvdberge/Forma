@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check } from 'lucide-vue-next'
+import { Check, TriangleAlert } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
 
 /** The confirmation toast from `useToast()`, shown by the app shell and by full-screen views. */
@@ -19,7 +19,8 @@ const { toast } = useToast()
       role="status"
       class="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2.5 rounded-full bg-charcoal px-5 py-3 text-sm font-medium text-warm-white shadow-float"
     >
-      <Check class="size-4 text-sage" aria-hidden="true" />
+      <TriangleAlert v-if="toast.tone === 'error'" class="size-4 text-orange-300" aria-hidden="true" />
+      <Check v-else class="size-4 text-sage" aria-hidden="true" />
       {{ toast.message }}
     </div>
   </Transition>

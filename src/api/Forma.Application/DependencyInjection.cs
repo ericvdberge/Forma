@@ -1,5 +1,4 @@
-using Forma.Application.Services.Pages;
-using Forma.Application.Services.Websites;
+using Forma.Application.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Forma.Application;
@@ -10,6 +9,7 @@ public static class DependencyInjection
     {
         services.AddScoped<IWebsiteCoreService, WebsiteCoreService>();
         services.AddScoped<IPageCoreService, PageCoreService>();
+        services.AddScoped<IMediaCoreService, MediaCoreService>();
 
         return services;
     }

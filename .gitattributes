@@ -1,0 +1,5 @@
+# Files that run or are parsed inside the Linux container must keep LF line endings,
+# even on a Windows checkout (a CRLF shebang makes the entrypoint fail to start).
+*.sh text eol=lf
+Dockerfile text eol=lf
+docker/** text eol=lf

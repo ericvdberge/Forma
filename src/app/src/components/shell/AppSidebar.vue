@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { ArrowLeft, ArrowRight } from 'lucide-vue-next'
-import { FArchitectureArt, FButton, FLogo, cn } from '@forma/design-system'
+import { FLogo, cn } from '@forma/design-system'
 import { nav } from './nav'
 
 defineProps<{ collapsed: boolean }>()
@@ -21,7 +21,7 @@ const isCurrent = (to: string) => (to === '/' ? route.path === '/' : route.path 
       )
     "
   >
-    <RouterLink to="/" :class="cn('flex h-24 items-center', collapsed ? 'justify-center' : 'px-7')" @click="$emit('navigate')">
+    <RouterLink to="/" :class="cn('flex h-20 shrink-0 items-center', collapsed ? 'justify-center' : 'px-7')" @click="$emit('navigate')">
       <FLogo :variant="collapsed ? 'mark' : 'wordmark'" />
     </RouterLink>
 
@@ -56,22 +56,11 @@ const isCurrent = (to: string) => (to === '/' ? route.path === '/' : route.path 
       </ul>
     </nav>
 
-    <div v-if="!collapsed" class="px-4 pb-2">
-      <div class="overflow-hidden rounded-card bg-white ring-1 ring-charcoal/[0.06] shadow-soft">
-        <div class="h-20"><FArchitectureArt tone="light" /></div>
-        <div class="p-4">
-          <p class="text-sm font-bold">Upgrade to Pro</p>
-          <p class="mt-1 text-xs leading-relaxed text-muted">Unlock more features and take your websites further.</p>
-          <FButton size="sm" arrow class="mt-3">View plans</FButton>
-        </div>
-      </div>
-    </div>
-
     <button
       type="button"
       :class="
         cn(
-          'flex h-14 items-center gap-3 text-[0.8125rem] text-muted transition-colors hover:text-charcoal',
+          'flex h-14 shrink-0 items-center gap-3 text-[0.8125rem] text-muted transition-colors hover:text-charcoal',
           collapsed ? 'justify-center' : 'px-7',
         )
       "
