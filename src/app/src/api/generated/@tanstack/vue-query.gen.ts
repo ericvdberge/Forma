@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/vue-query';
 
 import { client } from '../client.gen';
-import { deleteMedia, getMediaImage, getMediaItem, getMediaItems, getMediaThumbnail, getPages, getWebsites, type Options, uploadMedia } from '../sdk.gen';
-import type { DeleteMediaData, DeleteMediaResponse, GetMediaImageData, GetMediaImageResponse, GetMediaItemData, GetMediaItemResponse, GetMediaItemsData, GetMediaItemsResponse, GetMediaThumbnailData, GetMediaThumbnailResponse, GetPagesData, GetPagesResponse, GetWebsitesData, GetWebsitesResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
+import { deleteMedia, getMediaImage, getMediaItem, getMediaItems, getMediaThumbnail, getPageContent, getPages, getWebsites, type Options, savePageDraft, uploadMedia } from '../sdk.gen';
+import type { DeleteMediaData, DeleteMediaResponse, GetMediaImageData, GetMediaImageResponse, GetMediaItemData, GetMediaItemResponse, GetMediaItemsData, GetMediaItemsResponse, GetMediaThumbnailData, GetMediaThumbnailResponse, GetPageContentData, GetPageContentResponse, GetPagesData, GetPagesResponse, GetWebsitesData, GetWebsitesResponse, SavePageDraftData, SavePageDraftError, SavePageDraftResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -151,6 +151,46 @@ export const getMediaThumbnailOptions = (options: Options<GetMediaThumbnailData>
     },
     queryKey: getMediaThumbnailQueryKey(options)
 });
+
+export const getPageContentQueryKey = (options: Options<GetPageContentData>) => createQueryKey('getPageContent', options);
+
+/**
+ * Gets a page's draft and published document.
+ *
+ * A page without saved content gets an empty draft at revision 0 and no published version.
+ */
+export const getPageContentOptions = (options: Options<GetPageContentData>) => queryOptions<GetPageContentResponse, DefaultError, GetPageContentResponse, ReturnType<typeof getPageContentQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPageContent({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPageContentQueryKey(options)
+});
+
+/**
+ * Replaces a page's draft. The Design Studio's autosave calls this.
+ *
+ * The document must be complete and pass the structural rules (block types, ranges, safe links, allowed rich text).
+ * Saving a document identical to the current draft returns the same revision, so retries are harmless.
+ */
+export const savePageDraftMutation = (options?: Partial<Options<SavePageDraftData>>): UseMutationOptions<SavePageDraftResponse, SavePageDraftError, Options<SavePageDraftData>> => {
+    const mutationOptions: UseMutationOptions<SavePageDraftResponse, SavePageDraftError, Options<SavePageDraftData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await savePageDraft({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const getPagesQueryKey = (options: Options<GetPagesData>) => createQueryKey('getPages', options);
 

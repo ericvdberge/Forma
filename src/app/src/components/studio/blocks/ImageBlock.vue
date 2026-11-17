@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { imageUrl } from '@/studio/media'
 import { ImageOff } from 'lucide-vue-next'
 import type { RenderContext } from '@/studio/render'
 import type { Block } from '@/studio/types'
@@ -10,7 +11,7 @@ defineProps<{ block: Block<'image'>; ctx: RenderContext }>()
   <figure>
     <img
       v-if="block.props.src"
-      :src="block.props.src"
+      :src="imageUrl(block.props.src)"
       :alt="block.props.alt"
       class="w-full object-cover"
       :style="{ aspectRatio: block.props.aspect === 'auto' ? undefined : block.props.aspect, borderRadius: `${block.props.radius}px` }"

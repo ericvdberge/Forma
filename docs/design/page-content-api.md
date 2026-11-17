@@ -1,6 +1,6 @@
 # Page content API
 
-Status: **draft for review**. Design and rationale: [page-content.md](page-content.md).
+Status: **phase 1 implemented**, phases 2–3 proposed. Design and rationale: [page-content.md](page-content.md).
 
 Conventions (the same as the rest of the API):
 
@@ -157,6 +157,8 @@ Request (max 1 MB):
 | `413` | | Body larger than 1 MB |
 
 Rules:
+
+- Malformed JSON gets the same `400` shape, keyed by the JSON path of the offending value.
 
 - `baseRevision` must be ≥ 0. `0` means "there is no saved draft yet"; if one exists, the result is `409`.
 - Saving a document identical to the current draft still returns `200` with the **same** revision (no new revision, no `UpdatedAt` change). Autosave retries are therefore harmless.

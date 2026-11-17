@@ -1,0 +1,1116 @@
+{
+  "version": 1,
+  "sections": [
+    {
+      "id": "s_hero",
+      "settings": {
+        "type": "hero",
+        "name": "",
+        "layout": "stack",
+        "splitRatio": 45,
+        "splitAt": 1,
+        "verticalAlign": "start",
+        "padding": {
+          "desktop": {
+            "top": 20,
+            "bottom": 72,
+            "left": 24,
+            "right": 24
+          },
+          "tablet": {
+            "bottom": 56,
+            "left": 20,
+            "right": 20
+          },
+          "mobile": {
+            "top": 12,
+            "bottom": 40,
+            "left": 12,
+            "right": 12
+          }
+        },
+        "background": {
+          "kind": "image",
+          "color": "#ffffff",
+          "image": "/media/hero.svg",
+          "position": "left center",
+          "gradientFrom": "#f5f4f0",
+          "gradientTo": "#ffffff",
+          "gradientAngle": 180,
+          "overlayColor": "#ffffff",
+          "overlayOpacity": 0
+        },
+        "contentWidth": "wide",
+        "align": "left",
+        "theme": "light",
+        "minHeight": 560,
+        "gap": 18,
+        "radius": 16,
+        "animation": {
+          "entrance": "fade-up",
+          "delay": 0
+        },
+        "anchor": "",
+        "className": "",
+        "visibility": {
+          "desktop": true,
+          "tablet": true,
+          "mobile": true
+        }
+      },
+      "blocks": [
+        {
+          "id": "b_nav",
+          "type": "nav",
+          "props": {
+            "logo": "forma.",
+            "links": [
+              {
+                "label": "Solutions",
+                "href": "#",
+                "menu": true
+              },
+              {
+                "label": "Resources",
+                "href": "#",
+                "menu": true
+              },
+              {
+                "label": "Pricing",
+                "href": "#"
+              }
+            ],
+            "ctaLabel": "Get started",
+            "ctaHref": "#",
+            "orientation": "horizontal",
+            "card": true
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 56,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_badge",
+          "type": "badge",
+          "props": {
+            "text": "Design with ease"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 8,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_title",
+          "type": "heading",
+          "props": {
+            "html": "<p>Build beautiful <span data-muted=\"\">experiences.</span></p>",
+            "level": 1,
+            "size": "xl"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "md",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_intro",
+          "type": "text",
+          "props": {
+            "html": "<p>A modern, flexible design system for building stunning websites and apps.</p>",
+            "size": "lg",
+            "tone": "default"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "sm",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_cta1",
+          "type": "button",
+          "props": {
+            "label": "Start creating",
+            "href": "/signup",
+            "variant": "primary",
+            "arrow": true,
+            "size": "md"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 12,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_cta2",
+          "type": "button",
+          "props": {
+            "label": "Explore templates",
+            "href": "/templates",
+            "variant": "secondary",
+            "arrow": false,
+            "size": "md"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 12,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "s_features",
+      "settings": {
+        "type": "features",
+        "name": "Highlights",
+        "layout": "stack",
+        "splitRatio": 45,
+        "splitAt": 1,
+        "verticalAlign": "center",
+        "padding": {
+          "desktop": {
+            "top": 16,
+            "bottom": 16,
+            "left": 0,
+            "right": 0
+          }
+        },
+        "background": {
+          "kind": "none",
+          "color": "#ffffff",
+          "image": "",
+          "position": "center",
+          "gradientFrom": "#f5f4f0",
+          "gradientTo": "#ffffff",
+          "gradientAngle": 180,
+          "overlayColor": "#000000",
+          "overlayOpacity": 0
+        },
+        "contentWidth": "wide",
+        "align": "left",
+        "theme": "light",
+        "minHeight": 0,
+        "gap": 20,
+        "radius": 0,
+        "animation": {
+          "entrance": "fade-up",
+          "delay": 0.1
+        },
+        "anchor": "",
+        "className": "",
+        "visibility": {
+          "desktop": true,
+          "tablet": true,
+          "mobile": true
+        }
+      },
+      "blocks": [
+        {
+          "id": "b_features",
+          "type": "features",
+          "props": {
+            "items": [
+              {
+                "icon": "wand",
+                "title": "Visual Freedom",
+                "text": "Drag, drop and customize with ease."
+              },
+              {
+                "icon": "layers",
+                "title": "Modern Components",
+                "text": "A rich library of blocks."
+              },
+              {
+                "icon": "zap",
+                "title": "Blazing Fast",
+                "text": "Optimized for performance."
+              },
+              {
+                "icon": "scale",
+                "title": "Built for Scale",
+                "text": "Grow without limits."
+              }
+            ],
+            "columns": 4,
+            "card": true
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "s_platform",
+      "settings": {
+        "type": "split",
+        "name": "Our platform",
+        "layout": "split",
+        "splitRatio": 40,
+        "splitAt": 1,
+        "verticalAlign": "center",
+        "padding": {
+          "desktop": {
+            "top": 24,
+            "bottom": 24,
+            "left": 24,
+            "right": 64
+          },
+          "tablet": {
+            "right": 32
+          },
+          "mobile": {
+            "top": 20,
+            "bottom": 32,
+            "left": 20,
+            "right": 20
+          }
+        },
+        "background": {
+          "kind": "color",
+          "color": "#ffffff",
+          "image": "",
+          "position": "center",
+          "gradientFrom": "#f5f4f0",
+          "gradientTo": "#ffffff",
+          "gradientAngle": 180,
+          "overlayColor": "#000000",
+          "overlayOpacity": 0
+        },
+        "contentWidth": "wide",
+        "align": "left",
+        "theme": "light",
+        "minHeight": 0,
+        "gap": 16,
+        "radius": 16,
+        "animation": {
+          "entrance": "fade-up",
+          "delay": 0
+        },
+        "anchor": "",
+        "className": "",
+        "visibility": {
+          "desktop": true,
+          "tablet": true,
+          "mobile": true
+        }
+      },
+      "blocks": [
+        {
+          "id": "b_facade",
+          "type": "image",
+          "props": {
+            "src": "/media/facade.svg",
+            "alt": "A white sculpted building facade",
+            "aspect": "4/3",
+            "radius": 12,
+            "caption": ""
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_platform_badge",
+          "type": "badge",
+          "props": {
+            "text": "Our platform"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_platform_title",
+          "type": "heading",
+          "props": {
+            "html": "<p>Create without <span data-muted=\"\">limits.</span></p>",
+            "level": 2,
+            "size": "lg"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_platform_text",
+          "type": "text",
+          "props": {
+            "html": "<p>From landing pages to complex web apps, Forma gives you the tools to bring your ideas to life.</p>",
+            "size": "lg",
+            "tone": "muted"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_platform_link",
+          "type": "button",
+          "props": {
+            "label": "See how it works",
+            "href": "#",
+            "variant": "secondary",
+            "arrow": true,
+            "size": "sm"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 8,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "s_gallery",
+      "settings": {
+        "type": "content",
+        "name": "Showcase",
+        "layout": "stack",
+        "splitRatio": 45,
+        "splitAt": 1,
+        "verticalAlign": "center",
+        "padding": {
+          "desktop": {
+            "top": 88,
+            "bottom": 56,
+            "left": 48,
+            "right": 48
+          },
+          "tablet": {
+            "top": 64,
+            "left": 32,
+            "right": 32
+          },
+          "mobile": {
+            "top": 48,
+            "bottom": 40,
+            "left": 20,
+            "right": 20
+          }
+        },
+        "background": {
+          "kind": "none",
+          "color": "#ffffff",
+          "image": "",
+          "position": "center",
+          "gradientFrom": "#f5f4f0",
+          "gradientTo": "#ffffff",
+          "gradientAngle": 180,
+          "overlayColor": "#000000",
+          "overlayOpacity": 0
+        },
+        "contentWidth": "wide",
+        "align": "center",
+        "theme": "light",
+        "minHeight": 0,
+        "gap": 16,
+        "radius": 0,
+        "animation": {
+          "entrance": "fade",
+          "delay": 0
+        },
+        "anchor": "",
+        "className": "",
+        "visibility": {
+          "desktop": true,
+          "tablet": true,
+          "mobile": true
+        }
+      },
+      "blocks": [
+        {
+          "id": "b_gallery_badge",
+          "type": "badge",
+          "props": {
+            "text": "Showcase"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_gallery_title",
+          "type": "heading",
+          "props": {
+            "html": "<p>Made with Forma</p>",
+            "level": 2,
+            "size": "lg"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_gallery_text",
+          "type": "text",
+          "props": {
+            "html": "<p>Studios, shops and storytellers build their home on the web with Forma.</p>",
+            "size": "md",
+            "tone": "muted"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 16,
+            "maxWidth": "sm",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_carousel",
+          "type": "carousel",
+          "props": {
+            "slides": [
+              {
+                "src": "/media/arch-light.svg",
+                "caption": "Sculpted light"
+              },
+              {
+                "src": "/media/arch-dark.svg",
+                "caption": "Evening villa"
+              },
+              {
+                "src": "/media/courtyard.svg",
+                "caption": "Quiet courtyard"
+              }
+            ],
+            "autoplay": false,
+            "aspect": "21/9",
+            "radius": 16
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "s_testimonials",
+      "settings": {
+        "type": "content",
+        "name": "Testimonials",
+        "layout": "stack",
+        "splitRatio": 45,
+        "splitAt": 1,
+        "verticalAlign": "center",
+        "padding": {
+          "desktop": {
+            "top": 40,
+            "bottom": 80,
+            "left": 48,
+            "right": 48
+          },
+          "tablet": {
+            "left": 32,
+            "right": 32
+          },
+          "mobile": {
+            "top": 24,
+            "bottom": 48,
+            "left": 20,
+            "right": 20
+          }
+        },
+        "background": {
+          "kind": "none",
+          "color": "#ffffff",
+          "image": "",
+          "position": "center",
+          "gradientFrom": "#f5f4f0",
+          "gradientTo": "#ffffff",
+          "gradientAngle": 180,
+          "overlayColor": "#000000",
+          "overlayOpacity": 0
+        },
+        "contentWidth": "wide",
+        "align": "left",
+        "theme": "light",
+        "minHeight": 0,
+        "gap": 20,
+        "radius": 0,
+        "animation": {
+          "entrance": "none",
+          "delay": 0
+        },
+        "anchor": "",
+        "className": "",
+        "visibility": {
+          "desktop": true,
+          "tablet": true,
+          "mobile": true
+        }
+      },
+      "blocks": [
+        {
+          "id": "b_testimonials",
+          "type": "testimonials",
+          "props": {
+            "items": [
+              {
+                "quote": "Forma let our team ship a new site in a week. It feels like designing, not configuring.",
+                "name": "Maya Chen",
+                "role": "Design lead, Northwind"
+              },
+              {
+                "quote": "The calmest website builder we have used. Our clients edit content without calling us.",
+                "name": "Tom Okafor",
+                "role": "Founder, Studio Ten"
+              }
+            ],
+            "columns": 2
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "s_faq",
+      "settings": {
+        "type": "content",
+        "name": "FAQ",
+        "layout": "stack",
+        "splitRatio": 45,
+        "splitAt": 1,
+        "verticalAlign": "center",
+        "padding": {
+          "desktop": {
+            "top": 64,
+            "bottom": 80,
+            "left": 48,
+            "right": 48
+          },
+          "tablet": {
+            "left": 32,
+            "right": 32
+          },
+          "mobile": {
+            "top": 40,
+            "bottom": 48,
+            "left": 20,
+            "right": 20
+          }
+        },
+        "background": {
+          "kind": "color",
+          "color": "#ffffff",
+          "image": "",
+          "position": "center",
+          "gradientFrom": "#f5f4f0",
+          "gradientTo": "#ffffff",
+          "gradientAngle": 180,
+          "overlayColor": "#000000",
+          "overlayOpacity": 0
+        },
+        "contentWidth": "normal",
+        "align": "left",
+        "theme": "light",
+        "minHeight": 0,
+        "gap": 16,
+        "radius": 16,
+        "animation": {
+          "entrance": "none",
+          "delay": 0
+        },
+        "anchor": "",
+        "className": "",
+        "visibility": {
+          "desktop": true,
+          "tablet": true,
+          "mobile": true
+        }
+      },
+      "blocks": [
+        {
+          "id": "b_faq_title",
+          "type": "heading",
+          "props": {
+            "html": "<p>Questions, <span data-muted=\"\">answered.</span></p>",
+            "level": 2,
+            "size": "md"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_faq",
+          "type": "faq",
+          "props": {
+            "items": [
+              {
+                "question": "Do I need to know how to code?",
+                "answer": "No. Everything in Forma is visual — drag, drop and customise."
+              },
+              {
+                "question": "Can I use my own domain?",
+                "answer": "Yes, connect any domain you own from the website settings."
+              },
+              {
+                "question": "Is Forma open source?",
+                "answer": "Yes. Self-host it on your own server, or use Forma Cloud."
+              }
+            ]
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "s_cta",
+      "settings": {
+        "type": "cta",
+        "name": "",
+        "layout": "stack",
+        "splitRatio": 45,
+        "splitAt": 1,
+        "verticalAlign": "center",
+        "padding": {
+          "desktop": {
+            "top": 88,
+            "bottom": 88,
+            "left": 48,
+            "right": 48
+          },
+          "tablet": {
+            "top": 72,
+            "bottom": 72,
+            "left": 32,
+            "right": 32
+          },
+          "mobile": {
+            "top": 56,
+            "bottom": 56,
+            "left": 20,
+            "right": 20
+          }
+        },
+        "background": {
+          "kind": "image",
+          "color": "#ffffff",
+          "image": "/media/arch-dark.svg",
+          "position": "center",
+          "gradientFrom": "#f5f4f0",
+          "gradientTo": "#ffffff",
+          "gradientAngle": 180,
+          "overlayColor": "#0b0b0f",
+          "overlayOpacity": 55
+        },
+        "contentWidth": "normal",
+        "align": "center",
+        "theme": "dark",
+        "minHeight": 0,
+        "gap": 20,
+        "radius": 16,
+        "animation": {
+          "entrance": "zoom",
+          "delay": 0
+        },
+        "anchor": "",
+        "className": "",
+        "visibility": {
+          "desktop": true,
+          "tablet": true,
+          "mobile": true
+        }
+      },
+      "blocks": [
+        {
+          "id": "b_cta_title",
+          "type": "heading",
+          "props": {
+            "html": "<p>Ready to build something beautiful?</p>",
+            "level": 2,
+            "size": "lg"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_cta_text",
+          "type": "text",
+          "props": {
+            "html": "<p>Start for free. No credit card required.</p>",
+            "size": "md",
+            "tone": "muted"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_cta_button",
+          "type": "button",
+          "props": {
+            "label": "Get started",
+            "href": "#",
+            "variant": "accent",
+            "arrow": true,
+            "size": "md"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 8,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "s_footer",
+      "settings": {
+        "type": "footer",
+        "name": "",
+        "layout": "stack",
+        "splitRatio": 45,
+        "splitAt": 1,
+        "verticalAlign": "center",
+        "padding": {
+          "desktop": {
+            "top": 48,
+            "bottom": 32,
+            "left": 48,
+            "right": 48
+          },
+          "tablet": {
+            "left": 32,
+            "right": 32
+          },
+          "mobile": {
+            "top": 40,
+            "left": 20,
+            "right": 20
+          }
+        },
+        "background": {
+          "kind": "none",
+          "color": "#ffffff",
+          "image": "",
+          "position": "center",
+          "gradientFrom": "#f5f4f0",
+          "gradientTo": "#ffffff",
+          "gradientAngle": 180,
+          "overlayColor": "#000000",
+          "overlayOpacity": 0
+        },
+        "contentWidth": "wide",
+        "align": "left",
+        "theme": "light",
+        "minHeight": 0,
+        "gap": 20,
+        "radius": 0,
+        "animation": {
+          "entrance": "none",
+          "delay": 0
+        },
+        "anchor": "",
+        "className": "",
+        "visibility": {
+          "desktop": true,
+          "tablet": true,
+          "mobile": true
+        }
+      },
+      "blocks": [
+        {
+          "id": "b_footer_nav",
+          "type": "nav",
+          "props": {
+            "logo": "forma.",
+            "links": [
+              {
+                "label": "Product",
+                "href": "#"
+              },
+              {
+                "label": "Templates",
+                "href": "#"
+              },
+              {
+                "label": "Docs",
+                "href": "#"
+              },
+              {
+                "label": "Contact",
+                "href": "#"
+              }
+            ],
+            "ctaLabel": "",
+            "ctaHref": "#",
+            "orientation": "horizontal",
+            "card": false
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_footer_line",
+          "type": "divider",
+          "props": {
+            "style": "solid",
+            "thickness": 1
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_footer_text",
+          "type": "text",
+          "props": {
+            "html": "<p>© 2026 Forma. Built with Forma.</p>",
+            "size": "sm",
+            "tone": "muted"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

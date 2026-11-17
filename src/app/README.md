@@ -39,7 +39,7 @@ src/
   components/dashboard/  dashboard sections
   components/studio/     Design Studio: library, canvas, inspector, block renderers
   components/skeletons/  loading placeholders per view
-  data/                  types + seed content; data/studio/ holds the studio's mock JSON
+  data/                  types + seed content; data/studio/ holds the starter page, sample home page and saved items
   studio/                page document model, block registry, section templates
   queriers/              TanStack Query per resource, e.g. useWebsitesQuerier().getWebsites() (activity serves seed data for now)
   composables/           view-facing composables on top of the queriers: useWebsites, usePages, useActivity, useActiveWebsite, useToast
@@ -52,8 +52,9 @@ Websites and pages are loaded from the API. Activity is seed data served through
 
 `/pages/:id/edit` (the **Edit** button on the Pages list) edits a page as a document of **sections**, each holding **blocks** (`src/studio/types.ts`). Each block type is registered once in `src/studio/blocks.ts` with its defaults and inspector fields; the inspector's forms are generated from those fields, and `components/studio/blocks/` holds the component that draws each type.
 
-- **Data**: page documents, the media library and saved items come from the JSON in `src/data/studio/` through `useStudioQuerier` (mock latency included). `home.json` is used for a page with the `home` slug, `page.json` for every other page.
-- **Cache**: every edit writes a new draft to the Vue Query cache (`['studio', 'page', id]`, alongside the last published version). Drafts survive navigating around the app, reset on reload, and are what the API will receive once it has a content endpoint.
+- **Data**: a page's draft and published document come from `GET /pages/{id}/content` through `useStudioQuerier`; a page without content starts from `src/data/studio/page.json`. The media library is the website's real media (`GET /media`); saved items are still mock JSON. Images from the library are stored in documents as the API route `/media/{id}/image` and resolved when drawn (`src/studio/media.ts`).
+- **Saving**: every edit writes a new draft to the Vue Query cache (`['studio', 'page', id]`) and autosaves it 1.5 s later with `PUT /pages/{id}/draft`; leaving the editor saves right away. The top bar shows Saving… / Saved / Couldn't save. When the page was saved elsewhere in the meantime, a dialog offers to load that version or keep this one. Publishing is still local to the browser until the publish endpoint exists.
+- **Contract**: `npm run studio:fixtures -w forma-app` writes every block, template and sample page to `src/api/Contracts/Studio`; the API's tests check that it accepts all of them. Run it after changing block defaults or templates.
 - **Layout**: the editor is full-screen (outside the app shell) so the page gets the room. "Pages" in the top bar goes back.
 - **Simple and Advanced mode** (remembered per browser, Simple by default): Simple hides the block library and technical settings (padding, animation, corner radius…), adds labelled actions (Move up, Duplicate, Remove…) and a plain-language **Add** dialog, opened from the top bar, the "Add a section" button under the page, between sections, or inside the selected section. Block fields marked `advanced` in `src/studio/blocks.ts` only show in Advanced mode.
 - **Editing**: one click on text puts the cursor there; drag blocks and templates from the library (or click to add after the selection), drag the grip to move things, edit text in place with Tiptap, and set padding per device: tablet and mobile inherit from desktop until overridden. Undo/redo covers every change, text included.

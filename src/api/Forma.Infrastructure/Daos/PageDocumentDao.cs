@@ -4,10 +4,6 @@ namespace Forma.Infrastructure.Daos;
 /// One version (draft or published) of a page's Design Studio document as it is stored in the database.
 /// The content is opaque JSON here; its model lives in <c>Forma.Application.Documents</c>.
 /// </summary>
-/// <remarks>
-/// Not part of <c>FormaDbContext</c> yet: the configuration and migration (table <c>PageDocuments</c>,
-/// key <c>(PageId, Kind)</c>, cascade on page delete) come with the implementation after review.
-/// </remarks>
 public class PageDocumentDao
 {
     public Guid PageId { get; set; }

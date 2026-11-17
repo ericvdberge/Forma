@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, GetMediaImageData, GetMediaImageErrors, GetMediaImageResponses, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaItemsData, GetMediaItemsResponses, GetMediaThumbnailData, GetMediaThumbnailErrors, GetMediaThumbnailResponses, GetPagesData, GetPagesResponses, GetWebsitesData, GetWebsitesResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
+import type { DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, GetMediaImageData, GetMediaImageErrors, GetMediaImageResponses, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaItemsData, GetMediaItemsResponses, GetMediaThumbnailData, GetMediaThumbnailErrors, GetMediaThumbnailResponses, GetPageContentData, GetPageContentErrors, GetPageContentResponses, GetPagesData, GetPagesResponses, GetWebsitesData, GetWebsitesResponses, SavePageDraftData, SavePageDraftErrors, SavePageDraftResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -62,6 +62,28 @@ export const getMediaImage = <ThrowOnError extends boolean = false>(options: Opt
  * The response may be cached indefinitely, because a media item's files never change.
  */
 export const getMediaThumbnail = <ThrowOnError extends boolean = false>(options: Options<GetMediaThumbnailData, ThrowOnError>): RequestResult<GetMediaThumbnailResponses, GetMediaThumbnailErrors, ThrowOnError> => (options.client ?? client).get<GetMediaThumbnailResponses, GetMediaThumbnailErrors, ThrowOnError>({ url: '/media/{id}/thumbnail', ...options });
+
+/**
+ * Gets a page's draft and published document.
+ *
+ * A page without saved content gets an empty draft at revision 0 and no published version.
+ */
+export const getPageContent = <ThrowOnError extends boolean = false>(options: Options<GetPageContentData, ThrowOnError>): RequestResult<GetPageContentResponses, GetPageContentErrors, ThrowOnError> => (options.client ?? client).get<GetPageContentResponses, GetPageContentErrors, ThrowOnError>({ url: '/pages/{pageId}/content', ...options });
+
+/**
+ * Replaces a page's draft. The Design Studio's autosave calls this.
+ *
+ * The document must be complete and pass the structural rules (block types, ranges, safe links, allowed rich text).
+ * Saving a document identical to the current draft returns the same revision, so retries are harmless.
+ */
+export const savePageDraft = <ThrowOnError extends boolean = false>(options: Options<SavePageDraftData, ThrowOnError>): RequestResult<SavePageDraftResponses, SavePageDraftErrors, ThrowOnError> => (options.client ?? client).put<SavePageDraftResponses, SavePageDraftErrors, ThrowOnError>({
+    url: '/pages/{pageId}/draft',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Lists the pages of a website, most recently updated first.

@@ -15,4 +15,7 @@ public interface IPageDocumentRepository
     /// </summary>
     /// <returns>The new revision, or null when the stored revision was a different one.</returns>
     Task<int?> SaveDraftAsync(PageDocumentDao draft, int expectedRevision, CancellationToken cancellationToken = default);
+
+    /// <summary>Adds documents for pages that have none yet, e.g. sample content.</summary>
+    Task AddAsync(IEnumerable<PageDocumentDao> documents, CancellationToken cancellationToken = default);
 }

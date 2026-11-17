@@ -1,5 +1,6 @@
 using Forma.Application.Documents;
 using Forma.Application.Entities;
+using Forma.Infrastructure.Daos;
 using Forma.Infrastructure.Repositories.PageDocuments;
 using Forma.Infrastructure.Repositories.Pages;
 
@@ -19,27 +20,74 @@ public interface IPageContentCoreService
     Task<SaveDraftResult> SaveDraftAsync(Guid pageId, PageDocument document, int baseRevision, CancellationToken cancellationToken = default);
 }
 
-// Skeleton for review: the shape of the class is final, the bodies come with the implementation.
 public class PageContentCoreService(
     IPageRepository pageRepository,
-    IPageDocumentRepository pageDocumentRepository) : IPageContentCoreService
+    IPageDocumentRepository pageDocumentRepository,
+    TimeProvider timeProvider) : IPageContentCoreService
 {
-    private readonly IPageRepository _pageRepository = pageRepository;
-    private readonly IPageDocumentRepository _pageDocumentRepository = pageDocumentRepository;
+    public async Task<PageContent?> GetContentAsync(Guid pageId, CancellationToken cancellationToken = default)
+    {
+        if (await pageRepository.GetByIdAsync(pageId, cancellationToken) is null)
+        {
+            return null;
+        }
 
-    /// <remarks>
-    /// Plan: page exists? → load both document rows → deserialise (upgrading older schema versions) →
-    /// draft defaults to <see cref="PageDocument.Empty"/>; HasUnpublishedChanges compares the content hashes.
-    /// </remarks>
-    public Task<PageContent?> GetContentAsync(Guid pageId, CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException();
+        return await ReadContentAsync(pageId, cancellationToken);
+    }
 
-    /// <remarks>
-    /// Plan: page exists? → serialise canonically with <see cref="PageDocumentJson.Options"/> and hash →
-    /// same hash as the current draft: return Saved with the current revision →
-    /// otherwise <see cref="IPageDocumentRepository.SaveDraftAsync"/> with the base revision (null = Conflict) →
-    /// touch Pages.UpdatedAt.
-    /// </remarks>
-    public Task<SaveDraftResult> SaveDraftAsync(Guid pageId, PageDocument document, int baseRevision, CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException();
+    public async Task<SaveDraftResult> SaveDraftAsync(Guid pageId, PageDocument document, int baseRevision, CancellationToken cancellationToken = default)
+    {
+        if (await pageRepository.GetByIdAsync(pageId, cancellationToken) is null)
+        {
+            return new SaveDraftResult.PageNotFound();
+        }
+
+        var (json, hash) = PageDocumentSerializer.Serialize(document);
+        var stored = await pageDocumentRepository.GetDocumentsAsync(pageId, cancellationToken);
+        var draft = stored.FirstOrDefault(d => d.Kind == PageDocumentDaoKind.Draft);
+        var published = stored.FirstOrDefault(d => d.Kind == PageDocumentDaoKind.Published);
+
+        // An autosave retry, or a save after undoing back to the saved state: nothing to write.
+        if (draft is not null && draft.Revision == baseRevision && draft.ContentHash == hash)
+        {
+            return new SaveDraftResult.Saved(draft.Revision, draft.UpdatedAt, HasUnpublishedChanges(hash, published));
+        }
+
+        var updatedAt = timeProvider.GetUtcNow().UtcDateTime;
+        var revision = await pageDocumentRepository.SaveDraftAsync(new PageDocumentDao
+        {
+            PageId = pageId,
+            Kind = PageDocumentDaoKind.Draft,
+            SchemaVersion = document.Version,
+            Content = json,
+            ContentHash = hash,
+            UpdatedAt = updatedAt,
+        }, baseRevision, cancellationToken);
+
+        if (revision is null)
+        {
+            return new SaveDraftResult.Conflict(await ReadContentAsync(pageId, cancellationToken));
+        }
+
+        return new SaveDraftResult.Saved(revision.Value, updatedAt, HasUnpublishedChanges(hash, published));
+    }
+
+    private async Task<PageContent> ReadContentAsync(Guid pageId, CancellationToken cancellationToken)
+    {
+        var stored = await pageDocumentRepository.GetDocumentsAsync(pageId, cancellationToken);
+        var draft = stored.FirstOrDefault(d => d.Kind == PageDocumentDaoKind.Draft);
+        var published = stored.FirstOrDefault(d => d.Kind == PageDocumentDaoKind.Published);
+
+        return new PageContent(
+            pageId,
+            draft is null ? PageDocument.Empty : PageDocumentSerializer.Deserialize(draft.Content, draft.SchemaVersion),
+            draft?.Revision ?? 0,
+            draft?.UpdatedAt,
+            published is null ? null : PageDocumentSerializer.Deserialize(published.Content, published.SchemaVersion),
+            published?.UpdatedAt,
+            HasUnpublishedChanges(draft?.ContentHash ?? PageDocumentSerializer.Serialize(PageDocument.Empty).Hash, published));
+    }
+
+    private static bool HasUnpublishedChanges(string draftHash, PageDocumentDao? published) =>
+        published is null || published.ContentHash != draftHash;
 }

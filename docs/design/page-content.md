@@ -1,6 +1,6 @@
 # Page content: backend design
 
-Status: **draft for review** · Scope: storing, validating and publishing what the Design Studio edits.
+Status: **phase 1 implemented**, phases 2–5 proposed · Scope: storing, validating and publishing what the Design Studio edits.
 
 Related:
 
@@ -50,7 +50,7 @@ The existing flow stays the same: Endpoint → CoreService → Repository → Da
 
 **An exception to the DTO rule.** Elsewhere, Api DTOs are separate records mapped from Application entities. The document model (`Forma.Application.Documents`) is used **as is** in the DTOs. Mirroring 16 block types and their props as DTOs, plus two mappers, would only add drift. The document *is* the contract.
 
-**One source of truth for the shape.** The C# document model drives the OpenAPI document (`Forma.Api/OpenApi/forma-api.json`), and the app's generated client (`openapi-ts`) creates the TS types from it. `src/app/src/studio/types.ts` is then reduced to re-exports of the generated types. UI-only metadata (labels, icons, `advanced`) stays in `blocks.ts`.
+**One source of truth for the shape.** The C# document model drives the OpenAPI document (`Forma.Api/OpenApi/forma-api.json`), and the app's generated client (`openapi-ts`) creates TS types from it. The studio keeps its own hand-written types (`src/app/src/studio/types.ts`: generic blocks and literal unions the editor relies on), and `src/app/src/studio/contract.ts` asserts at compile time that a studio document is assignable to the generated `PageDocument`. TypeScript's structural typing lets extra properties through, so the contract test below covers those. UI-only metadata (labels, icons, `advanced`) stays in `blocks.ts`.
 
 ## 4. Database
 
@@ -71,7 +71,7 @@ PageDocuments
 - **No row yet** means an empty draft at revision 0, and "never published".
 - **`hasUnpublishedChanges`** = no published row, or `Draft.ContentHash != Published.ContentHash`. Nothing is diffed at runtime.
 - **`publishedAt`** = `Published.UpdatedAt`. `Pages.Status` stays what the Pages list shows (`Published` once there is a published row).
-- **Seeding.** `PageSeeder` writes a draft and published document for the sample pages: `home.json` for `home`, the starter page for the others. The frontend mocks can then go.
+- **Seeding.** `PageContentSeeder` (Forma.Application, run with the sample data) gives the sample pages content from `src/api/Contracts/Studio`: `home.json` for `home`, the starter `page.json` for `about` and `contact`, plus a published copy for published pages. It reads each one into the model and writes it back, so stored JSON and hashes are canonical. Pages that already have content are left alone.
 
 ### Later phases
 
@@ -121,7 +121,7 @@ If this fails, the **frontend** has a bug, so it is rejected and logged. A user 
 |---|---|
 | Document | `version == 1`; at most 100 sections; serialised size ≤ 512 KB (the request limit is 1 MB) |
 | Ids | Section and block ids match `^[a-z]+_[A-Za-z0-9_-]{1,40}$` and are unique within the document |
-| Section | At most 60 blocks; `splitRatio` 20–80; `0 ≤ splitAt ≤ blocks.Count`; `gap` 0–64; `minHeight` 0–900; `radius` 0–40; `animation.delay` 0–2 |
+| Section | At most 60 blocks; `splitRatio` 20–80; `splitAt` 0–60 (past the last block means everything is in the first column, e.g. a new empty section); `gap` 0–64; `minHeight` 0–900; `radius` 0–40; `animation.delay` 0–2 |
 | Padding | Every side 0–400, desktop and the tablet/mobile overrides |
 | Background | Colours match `^#([0-9a-fA-F]{3,4}\|[0-9a-fA-F]{6}\|[0-9a-fA-F]{8})$`; `image` is a valid image source (§5); `position` matches `^(left\|center\|right\|top\|bottom)( (left\|center\|right\|top\|bottom))?$`; `gradientAngle` 0–360; `overlayOpacity` 0–100 |
 | Block style | `marginTop`/`marginBottom` 0–160 |
@@ -133,13 +133,13 @@ If this fails, the **frontend** has a bug, so it is rejected and logged. A user 
 | Per type | heading `level` 1–4; divider `thickness` 1–6; spacer `height` 8–240; map `zoom` 3–19 and `height` 160–640; `radius`/`gap` 0–40; feature `icon` from the icon list |
 | Rich text | `IRichTextSanitizer.IsClean(html)`: sanitising with the allowlist would change nothing |
 
-**Rich text allowlist** (what the studio's Tiptap setup produces): `p, br, strong, em, s, a[href], ul, ol, li, span[data-muted]`. `href` follows the URL rule above. The server **rejects** anything outside it, so what is stored is exactly what was sent, and the client never has to reconcile a changed document. The renderer sanitises again before output (defence in depth). Implementation: Ganss.Xss `HtmlSanitizer` behind `IRichTextSanitizer`.
+**Rich text allowlist** (what the studio's Tiptap setup produces): `p, br, strong, em, u, s, a[href, rel], ul, ol[start], li, blockquote, span[data-muted]`. `href` allows `http(s)`, `mailto`, `tel` and relative links. The server **rejects** anything outside it: `IRichTextSanitizer.IsClean` parses the html and compares it with the sanitised version, so differences in how the same markup is written (entities, quoting) don't count. What is stored is exactly what was sent, so the client never has to reconcile a changed document. The renderer sanitises again before output (defence in depth). Implementation: Ganss.Xss `HtmlSanitizer` (`RichTextSanitizer`).
 
 **Error format.** A `ValidationProblem` (`400`), keyed by JSON path:
 `"document.sections[2].blocks[0].props.radius": ["Must be between 0 and 40."]`.
-Malformed JSON (unknown type, bad enum, unknown or missing property) is also a `400` problem, because phase 1 adds `AddProblemDetails()`. In the skeleton that problem only says "Failed to read parameter"; the implementation adds a small endpoint filter or exception handler that turns the `JsonException`'s `Path` into the same `errors` dictionary (`"document.sections[0].blocks[2].type": ["Unknown block type 'marquee'."]`).
+Malformed JSON (unknown type, bad enum, unknown or missing property) gets the same `400` shape: `JsonBodyExceptionHandler` turns the serializer's error into an `errors` entry keyed by the JSON path, e.g. `"document.sections[0].blocks[2]": ["Read unrecognized type discriminator id 'marquee'."]`.
 
-**Known gap.** The OpenAPI document still describes integers as `integer | string` (ASP.NET's schema generator does this whatever the serializer's `NumberHandling` is), so the generated TS types would read `number | string`. Fix with a small OpenAPI schema transformer before the frontend switches to the generated types.
+Numbers are read strictly (`"12"` is not a number), and an OpenAPI schema transformer describes them as plain `integer`/`number`, so the generated TS types aren't `number | string`.
 
 ### Level 2: content (publish → `422`, also `POST /pages/{id}/check`), phase 2
 
@@ -169,8 +169,8 @@ Errors block publishing; warnings are shown but don't. These checks need lookups
 
 ### Contract test (keeps C# and TS in step)
 
-- `npm run studio:fixtures` (app) writes `src/contracts/studio-fixtures/*.json`: every block's default props, every section template, and `home.json` / `page.json` / `saved.json`.
-- An xUnit test deserialises and validates each fixture with level 1.
+- `npm run studio:fixtures -w forma-app` writes `src/api/Contracts/Studio/*.json` (`src/app/src/studio/fixtures.ts`): every block type with its defaults, every section template, the saved items, and the sample pages `home.json` / `page.json`.
+- `Forma.Tests` (`StudioContractTests`) deserialises each fixture, validates it with level 1 and checks it round-trips through storage without losing anything.
 - CI runs both, so a slider whose max goes past the server rule fails the build.
 
 ## 7. Saving, concurrency and schema versions
@@ -183,7 +183,7 @@ Errors block publishing; warnings are shown but don't. These checks need lookups
 
 | Phase | Backend | Frontend |
 |---|---|---|
-| **1** | Document model, `PageDocuments`, `GET /pages/{id}/content`, `PUT /pages/{id}/draft`, level 1 validation, sanitiser, seeding, contract test | Load from the API, autosave, conflict dialog, relative media URLs, types from the generated client |
+| **1** ✅ | Document model, `PageDocuments`, `GET /pages/{id}/content`, `PUT /pages/{id}/draft`, level 1 validation, sanitiser, seeding, contract test | Load from the API, autosave, conflict dialog, relative media URLs, types from the generated client |
 | 2 | `POST /pages/{id}/publish`, `POST /pages/{id}/check`, level 2 issues | Publish through the API, issues panel that selects the block |
 | 3 | `SavedItems` endpoints, `PageMediaUsages`, `409` on deleting used media | Saved tab through the API, "used on N pages" on the Media page |
 | 4 | `PageRevisions`, shared header/footer, public renderer | History panel |

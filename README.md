@@ -105,8 +105,9 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 | Project                | Responsibility                                                       |
 | ---------------------- | -------------------------------------------------------------------- |
 | `Forma.Api`            | Minimal API endpoints, DTOs and Mapperly mappers, OpenAPI + Scalar   |
-| `Forma.Application`    | Domain entities and core services                                    |
+| `Forma.Application`    | Domain entities, core services, the page document model and its validation |
 | `Forma.Infrastructure` | EF Core `DbContext`, SQLite, migrations, seeding, repositories, media file storage and image processing |
+| `Forma.Tests`          | xUnit: studio contract tests, validation and API tests (`dotnet test src/api/Forma.Api.slnx`) |
 
 | Endpoint                    | Returns                                                         |
 | --------------------------- | --------------------------------------------------------------- |
@@ -118,6 +119,12 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 | `GET /media/{id}/thumbnail` | The WebP thumbnail's bytes                                      |
 | `POST /media`               | Uploads an image (multipart: `websiteId`, `file`), `201` or `400` |
 | `DELETE /media/{id}`        | Deletes a media item and its files, `204`                       |
+| `GET /pages/{id}/content`   | A page's Design Studio draft and published document             |
+| `PUT /pages/{id}/draft`     | Saves the draft (`{ document, baseRevision }`), `200`, `400` or `409` |
+
+#### Page content
+
+A page's Design Studio content is one JSON document per version (draft and published) in the `PageDocuments` table. Every save is checked against the document model and its rules (block types, ranges, safe links, allowed rich text) and carries the draft revision it was edited from, so a save made elsewhere in the meantime answers `409`. Design and full spec: [`docs/design/page-content.md`](docs/design/page-content.md) and [`docs/design/page-content-api.md`](docs/design/page-content-api.md); future collection pages: [`docs/design/collections.md`](docs/design/collections.md).
 
 #### Media
 

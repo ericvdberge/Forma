@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { imageUrl } from '@/studio/media'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { EyeOff, Plus } from 'lucide-vue-next'
 import { cn } from '@forma/design-system'
@@ -34,7 +35,7 @@ const sectionStyle = computed(() => {
       : bg.kind === 'gradient'
         ? `linear-gradient(${bg.gradientAngle}deg, ${bg.gradientFrom}, ${bg.gradientTo})`
         : bg.kind === 'image' && bg.image
-          ? `url("${bg.image}") ${bg.position} / cover no-repeat`
+          ? `url("${imageUrl(bg.image)}") ${bg.position} / cover no-repeat`
           : undefined
   return {
     padding: `${pad.top}px ${pad.right}px ${pad.bottom}px ${pad.left}px`,
