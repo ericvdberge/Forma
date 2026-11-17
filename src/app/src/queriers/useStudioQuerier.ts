@@ -2,13 +2,11 @@ import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import homeJson from '@/data/studio/home.json'
 import pageJson from '@/data/studio/page.json'
-import mediaJson from '@/data/studio/media.json'
 import savedJson from '@/data/studio/saved.json'
 import { normalizeDocument, type PageDocumentJson } from '@/studio/sections'
-import type { MediaAsset, SavedItem, StudioPage } from '@/studio/types'
+import type { SavedItem, StudioPage } from '@/studio/types'
 
 export const studioPageQueryKey = (pageId: string) => ['studio', 'page', pageId] as const
-export const studioMediaQueryKey = ['studio', 'media'] as const
 export const studioSavedQueryKey = ['studio', 'saved'] as const
 
 /** Mock latency so loading states are visible, like the real API will be. */
@@ -61,18 +59,6 @@ export function useStudioQuerier() {
     )
   }
 
-  function getMedia() {
-    return useQuery({
-      queryKey: studioMediaQueryKey,
-      queryFn: async (): Promise<MediaAsset[]> => {
-        await delay(150)
-        return structuredClone(mediaJson)
-      },
-      staleTime: Infinity,
-      gcTime: Infinity,
-    })
-  }
-
   function getSaved() {
     return useQuery({
       queryKey: studioSavedQueryKey,
@@ -96,7 +82,6 @@ export function useStudioQuerier() {
 
   return {
     getStudioPage,
-    getMedia,
     getSaved,
   }
 }

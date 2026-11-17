@@ -113,13 +113,14 @@ function onDrop(e: DragEvent) {
   drag.value = null
   if (!payload || !target) return
   if (isFileDrag(e) && e.dataTransfer) {
-    // Each dropped image becomes an Image block, in order.
-    const assets = studio.uploadMedia(e.dataTransfer.files)
-    assets.reverse().forEach((a) => {
-      const block = createBlock('image', { src: a.src, alt: a.name.replace(/\.[^.]+$/, '') })
-      if (target.kind === 'block') studio.addBlock(block, target.sectionId, target.index, target.column)
-      else studio.addBlockAsSection(block, target.index)
-    })
+    // Each dropped image is uploaded to the media library and becomes an Image block, in order.
+    studio.uploadMedia(e.dataTransfer.files).then((assets) =>
+      assets.reverse().forEach((a) => {
+        const block = createBlock('image', { src: a.src, alt: a.name.replace(/\.[^.]+$/, '') })
+        if (target.kind === 'block') studio.addBlock(block, target.sectionId, target.index, target.column)
+        else studio.addBlockAsSection(block, target.index)
+      }),
+    )
     return
   }
   studio.drop(payload, target)

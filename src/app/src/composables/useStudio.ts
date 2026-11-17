@@ -1,14 +1,16 @@
 import { computed, inject, provide, ref, shallowRef, toValue, watch, type InjectionKey, type MaybeRefOrGetter } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import type { Editor } from '@tiptap/vue-3'
-import { studioMediaQueryKey, studioPageQueryKey, studioSavedQueryKey, useStudioQuerier, type StudioPageSeed } from '@/queriers/useStudioQuerier'
+import { studioPageQueryKey, studioSavedQueryKey, useStudioQuerier, type StudioPageSeed } from '@/queriers/useStudioQuerier'
 import { usePages } from '@/composables/usePages'
 import { useActivity } from '@/composables/useActivity'
+import { useMedia } from '@/composables/useMedia'
 import { useToast } from '@/composables/useToast'
 import { clone } from '@/studio/defaults'
 import { createBlock } from '@/studio/blocks'
 import { createSection, globalElements, sectionTemplates, withFreshIds } from '@/studio/sections'
 import { textEditorKey, textPointerKey } from '@/studio/inject'
+import type { MediaItem } from '@/data/types'
 import type { Block, BlockType, Breakpoint, MediaAsset, PageDocument, SavedItem, Section, Selection, StudioPage } from '@/studio/types'
 
 /** Something being dragged onto or around the canvas. */
@@ -70,7 +72,11 @@ export function isSectionPayload(p: DragPayload, saved: SavedItem[]) {
  * vue-query cache (`['studio', 'page', id]`); every edit writes a new draft there, so leaving and
  * coming back to the studio keeps unpublished work. Selection, device and history are editor state.
  */
-export function createStudio(pageId: MaybeRefOrGetter<string>, seed: MaybeRefOrGetter<StudioPageSeed | undefined>) {
+export function createStudio(
+  pageId: MaybeRefOrGetter<string>,
+  seed: MaybeRefOrGetter<StudioPageSeed | undefined>,
+  websiteId: MaybeRefOrGetter<string>,
+) {
   const queryClient = useQueryClient()
   const querier = useStudioQuerier()
   const { setPageStatus } = usePages()
@@ -78,12 +84,14 @@ export function createStudio(pageId: MaybeRefOrGetter<string>, seed: MaybeRefOrG
   const { notify } = useToast()
 
   const query = querier.getStudioPage(pageId, seed)
-  const mediaQuery = querier.getMedia()
+  const mediaApi = useMedia()
+  /** The website's media library (GET /media): the same images as the Media page. */
+  const mediaQuery = mediaApi.getMediaItems(websiteId)
   const savedQuery = querier.getSaved()
 
   const page = computed(() => query.data.value)
   const doc = computed(() => page.value?.draft)
-  const media = computed(() => mediaQuery.data.value ?? [])
+  const media = computed(() => mediaQuery.media.value.map(toAsset))
   const saved = computed(() => savedQuery.data.value ?? [])
 
   /* ---------- Editor state ---------- */
@@ -403,13 +411,19 @@ export function createStudio(pageId: MaybeRefOrGetter<string>, seed: MaybeRefOrG
     queryClient.setQueryData<SavedItem[]>(studioSavedQueryKey, (old) => old?.filter((s) => s.id !== id))
   }
 
-  /** Adds images from the user's computer to the media library for this session. */
-  function uploadMedia(files: FileList | File[]) {
-    const assets: MediaAsset[] = [...files]
-      .filter((f) => f.type.startsWith('image/'))
-      .map((f) => ({ id: crypto.randomUUID(), name: f.name, src: URL.createObjectURL(f), uploaded: true }))
-    if (assets.length) queryClient.setQueryData<MediaAsset[]>(studioMediaQueryKey, (old) => [...assets, ...(old ?? [])])
-    return assets
+  /** Uploads images from the user's computer to the website's media library (POST /media). */
+  async function uploadMedia(files: FileList | File[]): Promise<MediaAsset[]> {
+    const images = [...files].filter((f) => f.type.startsWith('image/'))
+    if (!images.length) return []
+    const id = toValue(websiteId)
+    const items = await mediaApi.uploadFiles(id, images)
+    // The studio has no upload list like the Media page, so report a failure here and clear it.
+    const failed = mediaApi.getUploads(id).value.find((u) => u.status === 'failed')
+    if (failed) {
+      notify(failed.error ?? 'The upload failed. Try again.', 'error')
+      mediaApi.dismissFailed(id)
+    }
+    return items.map(toAsset)
   }
 
   /* ---------- Publishing ---------- */
@@ -434,6 +448,7 @@ export function createStudio(pageId: MaybeRefOrGetter<string>, seed: MaybeRefOrG
     page,
     doc,
     media,
+    mediaQuery,
     saved,
     selection,
     selectedSection,
@@ -474,6 +489,10 @@ export function createStudio(pageId: MaybeRefOrGetter<string>, seed: MaybeRefOrG
     publish,
     discard,
   }
+}
+
+function toAsset(m: MediaItem): MediaAsset {
+  return { id: m.id, name: m.fileName, src: m.imageUrl, thumbnailUrl: m.thumbnailUrl }
 }
 
 export type Studio = ReturnType<typeof createStudio>

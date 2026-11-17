@@ -137,9 +137,10 @@ export interface StudioPage {
 export interface MediaAsset {
   id: string
   name: string
+  /** Full-size image, used as the block's `src`. */
   src: string
-  /** Set for files added from the user's computer in this session. */
-  uploaded?: boolean
+  /** Small preview for the media picker. */
+  thumbnailUrl: string
 }
 
 /** A section or block the user saved to reuse later (the library's Saved tab). */

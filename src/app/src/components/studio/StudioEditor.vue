@@ -49,7 +49,7 @@ const seed = computed<StudioPageSeed | undefined>(() =>
     ? { title: page.value.title, slug: page.value.slug, websiteName: activeWebsite.value.name, published: page.value.status === 'live' }
     : undefined,
 )
-const studio = createStudio(() => (page.value ? pageId.value : ''), seed)
+const studio = createStudio(() => (page.value ? pageId.value : ''), seed, () => activeWebsite.value.id)
 provideStudio(studio)
 
 
