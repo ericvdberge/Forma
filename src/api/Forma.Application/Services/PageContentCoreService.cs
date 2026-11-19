@@ -1,6 +1,7 @@
 using Forma.Application.Documents;
 using Forma.Application.Documents.Checks;
 using Forma.Application.Entities;
+using Forma.Application.Plugins;
 using Forma.Infrastructure.Daos;
 using Forma.Infrastructure.Repositories.PageDocuments;
 using Forma.Infrastructure.Repositories.Pages;
@@ -33,6 +34,7 @@ public class PageContentCoreService(
     IPageRepository pageRepository,
     IPageDocumentRepository pageDocumentRepository,
     IPageDocumentChecker checker,
+    IPluginEventPublisher pluginEvents,
     TimeProvider timeProvider) : IPageContentCoreService
 {
     public async Task<PageContent?> GetContentAsync(Guid pageId, CancellationToken cancellationToken = default)
@@ -47,7 +49,7 @@ public class PageContentCoreService(
 
     public async Task<SaveDraftResult> SaveDraftAsync(Guid pageId, PageDocument document, int baseRevision, CancellationToken cancellationToken = default)
     {
-        if (await pageRepository.GetByIdAsync(pageId, cancellationToken) is null)
+        if (await pageRepository.GetByIdAsync(pageId, cancellationToken) is not { } page)
         {
             return new SaveDraftResult.PageNotFound();
         }
@@ -79,6 +81,7 @@ public class PageContentCoreService(
             return new SaveDraftResult.Conflict(await ReadContentAsync(pageId, cancellationToken));
         }
 
+        pluginEvents.Publish(PluginEvents.PageDraftSaved, new PageDraftSavedData(PageInfo(page), revision.Value, document));
         return new SaveDraftResult.Saved(revision.Value, updatedAt, HasUnpublishedChanges(hash, published));
     }
 
@@ -121,7 +124,13 @@ public class PageContentCoreService(
 
         var published = await pageDocumentRepository.PublishDraftAsync(pageId, draftRevision, timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
         var current = await ReadContentAsync(pageId, cancellationToken);
-        return published ? new PublishResult.Published(current) : new PublishResult.Conflict(current);
+        if (!published)
+        {
+            return new PublishResult.Conflict(current);
+        }
+
+        pluginEvents.Publish(PluginEvents.PagePublished, new PagePublishedData(PageInfo(page), draftRevision, content.Draft));
+        return new PublishResult.Published(current);
     }
 
     private async Task<PageContent> ReadContentAsync(Guid pageId, CancellationToken cancellationToken)
@@ -139,6 +148,8 @@ public class PageContentCoreService(
             published?.UpdatedAt,
             HasUnpublishedChanges(draft?.ContentHash ?? PageDocumentSerializer.Serialize(PageDocument.Empty).Hash, published));
     }
+
+    private static PluginPageInfo PageInfo(PageDao page) => new(page.Id, page.WebsiteId, page.Title, page.Slug);
 
     private static bool HasUnpublishedChanges(string draftHash, PageDocumentDao? published) =>
         published is null || published.ContentHash != draftHash;

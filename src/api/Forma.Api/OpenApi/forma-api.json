@@ -45,7 +45,7 @@
           "Media"
         ],
         "summary": "Uploads an image to a website's media library and creates its thumbnail.",
-        "description": "Accepts JPEG, PNG, GIF and WebP files up to 10 MB and 100 megapixels. The file's contents are checked\r\nas well as its extension, so a file that is not really a supported image, or is damaged, is rejected.",
+        "description": "Accepts JPEG, PNG, GIF and WebP files up to 10 MB and 100 megapixels. The file's contents are checked\nas well as its extension, so a file that is not really a supported image, or is damaged, is rejected.",
         "operationId": "UploadMedia",
         "requestBody": {
           "description": "Cancels the request.",
@@ -285,7 +285,7 @@
           "Page content"
         ],
         "summary": "Replaces a page's draft. The Design Studio's autosave calls this.",
-        "description": "The document must be complete and pass the structural rules (block types, ranges, safe links, allowed rich text).\r\nSaving a document identical to the current draft returns the same revision, so retries are harmless.",
+        "description": "The document must be complete and pass the structural rules (block types, ranges, safe links, allowed rich text).\nSaving a document identical to the current draft returns the same revision, so retries are harmless.",
         "operationId": "SavePageDraft",
         "parameters": [
           {
@@ -400,7 +400,7 @@
           "Page content"
         ],
         "summary": "Publishes a page's draft: visitors see it from now on, and the page is marked published.",
-        "description": "Only the draft revision in the request is published, so nothing saved after the person chose Publish goes live\r\nunseen. Drafts with error-level issues are refused with the issues; warnings don't block.",
+        "description": "Only the draft revision in the request is published, so nothing saved after the person chose Publish goes live\nunseen. Drafts with error-level issues are refused with the issues; warnings don't block.",
         "operationId": "PublishPage",
         "parameters": [
           {
@@ -504,6 +504,69 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/plugins": {
+      "get": {
+        "tags": [
+          "Plugins"
+        ],
+        "summary": "Lists the installed plugins, including ones that couldn't be loaded and why.",
+        "operationId": "GetPlugins",
+        "responses": {
+          "200": {
+            "description": "The installed plugins; empty when there are none.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PluginDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/plugins/{pluginId}/runs": {
+      "get": {
+        "tags": [
+          "Plugins"
+        ],
+        "summary": "Lists a plugin's recent runs, newest first, with what it logged and why a run failed.",
+        "description": "Kept in memory: the last 25 runs per plugin since the API started.",
+        "operationId": "GetPluginRuns",
+        "parameters": [
+          {
+            "name": "pluginId",
+            "in": "path",
+            "description": "The plugin's id.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The plugin's recent runs; empty when it hasn't run yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PluginRunDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No plugin is installed with this id."
           }
         }
       }
@@ -1927,6 +1990,166 @@
           "published"
         ]
       },
+      "PluginDto": {
+        "required": [
+          "id",
+          "name",
+          "version",
+          "description",
+          "events",
+          "loaded",
+          "error",
+          "moduleSha256"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The plugin's id, e.g. `secure-links`."
+          },
+          "name": {
+            "type": "string",
+            "description": "The plugin's name."
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The plugin's version; null when its manifest couldn't be read."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What it does."
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The events it runs for, e.g. `page.published` or the `page.check` hook."
+          },
+          "loaded": {
+            "type": "boolean",
+            "description": "False when it couldn't be loaded; it isn't run then."
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why it couldn't be loaded."
+          },
+          "moduleSha256": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "SHA-256 of its WebAssembly module, to tell builds apart."
+          }
+        },
+        "additionalProperties": false,
+        "description": "An installed plugin."
+      },
+      "PluginLogLevel": {
+        "enum": [
+          "debug",
+          "info",
+          "warning",
+          "error"
+        ]
+      },
+      "PluginLogLineDto": {
+        "required": [
+          "level",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "level": {
+            "$ref": "#/components/schemas/PluginLogLevel"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A line a plugin logged."
+      },
+      "PluginRunDto": {
+        "required": [
+          "id",
+          "event",
+          "eventId",
+          "startedAt",
+          "succeeded",
+          "error",
+          "durationMs",
+          "fuelConsumed",
+          "logs",
+          "droppedLogLines"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The run's id.",
+            "format": "uuid"
+          },
+          "event": {
+            "type": "string",
+            "description": "The event it ran for."
+          },
+          "eventId": {
+            "type": "string",
+            "description": "The event's id; plugins that ran for the same event share it.",
+            "format": "uuid"
+          },
+          "startedAt": {
+            "type": "string",
+            "description": "When it started (UTC).",
+            "format": "date-time"
+          },
+          "succeeded": {
+            "type": "boolean",
+            "description": "False when it crashed, hit a sandbox limit or returned bad output."
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why it failed."
+          },
+          "durationMs": {
+            "type": "number",
+            "description": "How long it took, in milliseconds.",
+            "format": "double"
+          },
+          "fuelConsumed": {
+            "type": "integer",
+            "description": "Roughly how many WebAssembly instructions it ran.",
+            "format": "int64"
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PluginLogLineDto"
+            },
+            "description": "What it logged."
+          },
+          "droppedLogLines": {
+            "type": "integer",
+            "description": "Lines it logged past the limit.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One time a plugin ran."
+      },
       "ProblemDetails": {
         "type": "object",
         "properties": {
@@ -2510,6 +2733,9 @@
     },
     {
       "name": "Pages"
+    },
+    {
+      "name": "Plugins"
     },
     {
       "name": "Websites"

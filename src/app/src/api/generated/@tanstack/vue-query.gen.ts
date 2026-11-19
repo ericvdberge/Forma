@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/vue-query';
 
 import { client } from '../client.gen';
-import { checkPageContent, deleteMedia, getMediaImage, getMediaItem, getMediaItems, getMediaThumbnail, getPageContent, getPages, getWebsites, type Options, publishPage, savePageDraft, uploadMedia } from '../sdk.gen';
-import type { CheckPageContentData, CheckPageContentResponse, DeleteMediaData, DeleteMediaResponse, GetMediaImageData, GetMediaImageResponse, GetMediaItemData, GetMediaItemResponse, GetMediaItemsData, GetMediaItemsResponse, GetMediaThumbnailData, GetMediaThumbnailResponse, GetPageContentData, GetPageContentResponse, GetPagesData, GetPagesResponse, GetWebsitesData, GetWebsitesResponse, PublishPageData, PublishPageError, PublishPageResponse, SavePageDraftData, SavePageDraftError, SavePageDraftResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
+import { checkPageContent, deleteMedia, getMediaImage, getMediaItem, getMediaItems, getMediaThumbnail, getPageContent, getPages, getPluginRuns, getPlugins, getWebsites, type Options, publishPage, savePageDraft, uploadMedia } from '../sdk.gen';
+import type { CheckPageContentData, CheckPageContentResponse, DeleteMediaData, DeleteMediaResponse, GetMediaImageData, GetMediaImageResponse, GetMediaItemData, GetMediaItemResponse, GetMediaItemsData, GetMediaItemsResponse, GetMediaThumbnailData, GetMediaThumbnailResponse, GetPageContentData, GetPageContentResponse, GetPagesData, GetPagesResponse, GetPluginRunsData, GetPluginRunsResponse, GetPluginsData, GetPluginsResponse, GetWebsitesData, GetWebsitesResponse, PublishPageData, PublishPageError, PublishPageResponse, SavePageDraftData, SavePageDraftError, SavePageDraftResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -247,6 +247,44 @@ export const getPagesOptions = (options: Options<GetPagesData>) => queryOptions<
         return data;
     },
     queryKey: getPagesQueryKey(options)
+});
+
+export const getPluginsQueryKey = (options?: Options<GetPluginsData>) => createQueryKey('getPlugins', options);
+
+/**
+ * Lists the installed plugins, including ones that couldn't be loaded and why.
+ */
+export const getPluginsOptions = (options?: Options<GetPluginsData>) => queryOptions<GetPluginsResponse, DefaultError, GetPluginsResponse, ReturnType<typeof getPluginsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPlugins({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPluginsQueryKey(options)
+});
+
+export const getPluginRunsQueryKey = (options: Options<GetPluginRunsData>) => createQueryKey('getPluginRuns', options);
+
+/**
+ * Lists a plugin's recent runs, newest first, with what it logged and why a run failed.
+ *
+ * Kept in memory: the last 25 runs per plugin since the API started.
+ */
+export const getPluginRunsOptions = (options: Options<GetPluginRunsData>) => queryOptions<GetPluginRunsResponse, DefaultError, GetPluginRunsResponse, ReturnType<typeof getPluginRunsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPluginRuns({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPluginRunsQueryKey(options)
 });
 
 export const getWebsitesQueryKey = (options?: Options<GetWebsitesData>) => createQueryKey('getWebsites', options);

@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { CheckPageContentData, CheckPageContentErrors, CheckPageContentResponses, DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, GetMediaImageData, GetMediaImageErrors, GetMediaImageResponses, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaItemsData, GetMediaItemsResponses, GetMediaThumbnailData, GetMediaThumbnailErrors, GetMediaThumbnailResponses, GetPageContentData, GetPageContentErrors, GetPageContentResponses, GetPagesData, GetPagesResponses, GetWebsitesData, GetWebsitesResponses, PublishPageData, PublishPageErrors, PublishPageResponses, SavePageDraftData, SavePageDraftErrors, SavePageDraftResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
+import type { CheckPageContentData, CheckPageContentErrors, CheckPageContentResponses, DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, GetMediaImageData, GetMediaImageErrors, GetMediaImageResponses, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaItemsData, GetMediaItemsResponses, GetMediaThumbnailData, GetMediaThumbnailErrors, GetMediaThumbnailResponses, GetPageContentData, GetPageContentErrors, GetPageContentResponses, GetPagesData, GetPagesResponses, GetPluginRunsData, GetPluginRunsErrors, GetPluginRunsResponses, GetPluginsData, GetPluginsResponses, GetWebsitesData, GetWebsitesResponses, PublishPageData, PublishPageErrors, PublishPageResponses, SavePageDraftData, SavePageDraftErrors, SavePageDraftResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -111,6 +111,18 @@ export const publishPage = <ThrowOnError extends boolean = false>(options: Optio
  * Lists the pages of a website, most recently updated first.
  */
 export const getPages = <ThrowOnError extends boolean = false>(options: Options<GetPagesData, ThrowOnError>): RequestResult<GetPagesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetPagesResponses, unknown, ThrowOnError>({ url: '/pages', ...options });
+
+/**
+ * Lists the installed plugins, including ones that couldn't be loaded and why.
+ */
+export const getPlugins = <ThrowOnError extends boolean = false>(options?: Options<GetPluginsData, ThrowOnError>): RequestResult<GetPluginsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetPluginsResponses, unknown, ThrowOnError>({ url: '/plugins', ...options });
+
+/**
+ * Lists a plugin's recent runs, newest first, with what it logged and why a run failed.
+ *
+ * Kept in memory: the last 25 runs per plugin since the API started.
+ */
+export const getPluginRuns = <ThrowOnError extends boolean = false>(options: Options<GetPluginRunsData, ThrowOnError>): RequestResult<GetPluginRunsResponses, GetPluginRunsErrors, ThrowOnError> => (options.client ?? client).get<GetPluginRunsResponses, GetPluginRunsErrors, ThrowOnError>({ url: '/plugins/{pluginId}/runs', ...options });
 
 /**
  * Lists all websites, most recently updated first.

@@ -469,6 +469,100 @@ export type PageDto = {
 
 export type PageStatus = 'draft' | 'published';
 
+/**
+ * An installed plugin.
+ */
+export type PluginDto = {
+    /**
+     * The plugin's id, e.g. `secure-links`.
+     */
+    id: string;
+    /**
+     * The plugin's name.
+     */
+    name: string;
+    /**
+     * The plugin's version; null when its manifest couldn't be read.
+     */
+    version: null | string;
+    /**
+     * What it does.
+     */
+    description: null | string;
+    /**
+     * The events it runs for, e.g. `page.published` or the `page.check` hook.
+     */
+    events: Array<string>;
+    /**
+     * False when it couldn't be loaded; it isn't run then.
+     */
+    loaded: boolean;
+    /**
+     * Why it couldn't be loaded.
+     */
+    error: null | string;
+    /**
+     * SHA-256 of its WebAssembly module, to tell builds apart.
+     */
+    moduleSha256: null | string;
+};
+
+export type PluginLogLevel = 'debug' | 'info' | 'warning' | 'error';
+
+/**
+ * A line a plugin logged.
+ */
+export type PluginLogLineDto = {
+    level: PluginLogLevel;
+    message: string;
+};
+
+/**
+ * One time a plugin ran.
+ */
+export type PluginRunDto = {
+    /**
+     * The run's id.
+     */
+    id: string;
+    /**
+     * The event it ran for.
+     */
+    event: string;
+    /**
+     * The event's id; plugins that ran for the same event share it.
+     */
+    eventId: string;
+    /**
+     * When it started (UTC).
+     */
+    startedAt: string;
+    /**
+     * False when it crashed, hit a sandbox limit or returned bad output.
+     */
+    succeeded: boolean;
+    /**
+     * Why it failed.
+     */
+    error: null | string;
+    /**
+     * How long it took, in milliseconds.
+     */
+    durationMs: number;
+    /**
+     * Roughly how many WebAssembly instructions it ran.
+     */
+    fuelConsumed: number;
+    /**
+     * What it logged.
+     */
+    logs: Array<PluginLogLineDto>;
+    /**
+     * Lines it logged past the limit.
+     */
+    droppedLogLines: number;
+};
+
 export type ProblemDetails = {
     type?: null | string;
     title?: null | string;
@@ -983,6 +1077,50 @@ export type GetPagesResponses = {
 };
 
 export type GetPagesResponse = GetPagesResponses[keyof GetPagesResponses];
+
+export type GetPluginsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/plugins';
+};
+
+export type GetPluginsResponses = {
+    /**
+     * The installed plugins; empty when there are none.
+     */
+    200: Array<PluginDto>;
+};
+
+export type GetPluginsResponse = GetPluginsResponses[keyof GetPluginsResponses];
+
+export type GetPluginRunsData = {
+    body?: never;
+    path: {
+        /**
+         * The plugin's id.
+         */
+        pluginId: string;
+    };
+    query?: never;
+    url: '/plugins/{pluginId}/runs';
+};
+
+export type GetPluginRunsErrors = {
+    /**
+     * No plugin is installed with this id.
+     */
+    404: unknown;
+};
+
+export type GetPluginRunsResponses = {
+    /**
+     * The plugin's recent runs; empty when it hasn't run yet.
+     */
+    200: Array<PluginRunDto>;
+};
+
+export type GetPluginRunsResponse = GetPluginRunsResponses[keyof GetPluginRunsResponses];
 
 export type GetWebsitesData = {
     body?: never;

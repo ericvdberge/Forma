@@ -6,6 +6,7 @@ using Forma.Application.Documents;
 using Forma.Application.Seeding;
 using Forma.Infrastructure;
 using Forma.Infrastructure.Persistence;
+using Forma.Infrastructure.Plugins;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 
@@ -59,6 +60,9 @@ if (Assembly.GetEntryAssembly()?.GetName().Name != "GetDocument.Insider")
     {
         await app.Services.SeedPageContentAsync();
     }
+
+    // Load and compile the plugins now, so a broken one shows up in the startup log rather than on the first save.
+    _ = app.Services.GetRequiredService<IPluginCatalog>().Plugins;
 }
 
 app.UseHttpsRedirection();
