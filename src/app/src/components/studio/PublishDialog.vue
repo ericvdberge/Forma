@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ChevronRight, CircleAlert, TriangleAlert } from 'lucide-vue-next'
+import { ChevronRight, CircleAlert, Puzzle, TriangleAlert } from 'lucide-vue-next'
 import { FButton, FModal } from '@forma/design-system'
 import type { ContentIssueDto } from '@/api/generated'
+import { issuePluginId, usePlugins } from '@/composables/usePlugins'
 import { useStudio } from '@/composables/useStudio'
 import { blockDefinition } from '@/studio/blocks'
 import { sectionTypeLabels } from '@/studio/sections'
@@ -12,6 +13,14 @@ import { sectionTypeLabels } from '@/studio/sections'
  * publish. Choosing an issue selects the block or section it is about.
  */
 const studio = useStudio()
+const { pluginName } = usePlugins().getPlugins()
+
+/** "From Secure links" for issues a plugin raised (codes are `{pluginId}:{code}`). */
+function source(issue: ContentIssueDto) {
+  if (issue.code === 'plugin.failed') return 'Plugin'
+  const id = issuePluginId(issue)
+  return id ? pluginName(id) : null
+}
 
 const open = computed({
   get: () => !!studio.issues.value,
@@ -65,7 +74,12 @@ function where(issue: ContentIssueDto) {
                 <CircleAlert class="mt-0.5 size-4 shrink-0 text-danger" aria-hidden="true" />
                 <span class="min-w-0 flex-1">
                   <span class="block text-sm font-medium">{{ issue.message }}</span>
-                  <span class="block text-xs text-muted">{{ where(issue) }}</span>
+                  <span class="flex flex-wrap items-center gap-x-2 text-xs text-muted">
+                    {{ where(issue) }}
+                    <span v-if="source(issue)" class="inline-flex items-center gap-1 rounded-full bg-white px-1.5 py-px text-[0.6875rem] font-medium text-charcoal ring-1 ring-charcoal/10" :title="`Raised by the ${source(issue)} plugin (${issue.code})`">
+                      <Puzzle class="size-3" aria-hidden="true" /> {{ source(issue) }}
+                    </span>
+                  </span>
                 </span>
                 <ChevronRight class="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
               </button>
@@ -87,7 +101,12 @@ function where(issue: ContentIssueDto) {
                 <TriangleAlert class="mt-0.5 size-4 shrink-0 text-accent" aria-hidden="true" />
                 <span class="min-w-0 flex-1">
                   <span class="block text-sm">{{ issue.message }}</span>
-                  <span class="block text-xs text-muted">{{ where(issue) }}</span>
+                  <span class="flex flex-wrap items-center gap-x-2 text-xs text-muted">
+                    {{ where(issue) }}
+                    <span v-if="source(issue)" class="inline-flex items-center gap-1 rounded-full bg-white px-1.5 py-px text-[0.6875rem] font-medium text-charcoal ring-1 ring-charcoal/10" :title="`Raised by the ${source(issue)} plugin (${issue.code})`">
+                      <Puzzle class="size-3" aria-hidden="true" /> {{ source(issue) }}
+                    </span>
+                  </span>
                 </span>
                 <ChevronRight class="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
               </button>
