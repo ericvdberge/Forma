@@ -48,10 +48,10 @@ public static class PageContentSeeder
     }
 
     /// <summary>Text safe to put inside the template's JSON strings and rich text.</summary>
-    private static string Plain(string text) =>
+    internal static string Plain(string text) =>
         JsonEncodedText.Encode(text.Replace("<", "").Replace(">", "")).ToString();
 
-    private static string ReadResource(string name)
+    internal static string ReadResource(string name)
     {
         using var stream = typeof(PageContentSeeder).Assembly.GetManifestResourceStream($"Forma.Application.Seeding.{name}")
             ?? throw new InvalidOperationException($"The sample content '{name}' is not embedded.");

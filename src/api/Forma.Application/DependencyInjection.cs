@@ -18,9 +18,13 @@ public static class DependencyInjection
         services.AddScoped<IPageCoreService, PageCoreService>();
         services.AddScoped<IMediaCoreService, MediaCoreService>();
         services.AddScoped<IPageContentCoreService, PageContentCoreService>();
+        services.AddScoped<ICollectionCoreService, CollectionCoreService>();
+        services.AddScoped<ICollectionItemCoreService, CollectionItemCoreService>();
 
         // Supporting services: rules and workflows built on the core services.
         services.AddScoped<IPageContentValidationService, PageContentValidationService>();
+        services.AddScoped<ICollectionValidationService, CollectionValidationService>();
+        services.AddScoped<ICollectionItemValidationService, CollectionItemValidationService>();
 
         services.AddSingleton<IRichTextSanitizer, RichTextSanitizer>();
         services.AddSingleton<IValidator<PageDocument>, PageDocumentValidator>();

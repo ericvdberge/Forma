@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/vue-query';
 
 import { client } from '../client.gen';
-import { deleteMedia, getMediaImage, getMediaItem, getMediaItems, getMediaThumbnail, getPageContent, getPages, getWebsites, type Options, publishPageContent, uploadMedia } from '../sdk.gen';
-import type { DeleteMediaData, DeleteMediaResponse, GetMediaImageData, GetMediaImageResponse, GetMediaItemData, GetMediaItemResponse, GetMediaItemsData, GetMediaItemsResponse, GetMediaThumbnailData, GetMediaThumbnailResponse, GetPageContentData, GetPageContentResponse, GetPagesData, GetPagesResponse, GetWebsitesData, GetWebsitesResponse, PublishPageContentData, PublishPageContentError, PublishPageContentResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
+import { createCollection, createCollectionItem, deleteCollection, deleteCollectionItem, deleteMedia, getCollection, getCollectionItem, getCollectionItems, getCollections, getMediaImage, getMediaItem, getMediaItems, getMediaThumbnail, getPageContent, getPages, getWebsites, type Options, publishPageContent, saveCollectionItem, updateCollection, uploadMedia } from '../sdk.gen';
+import type { CreateCollectionData, CreateCollectionError, CreateCollectionItemData, CreateCollectionItemError, CreateCollectionItemResponse, CreateCollectionResponse, DeleteCollectionData, DeleteCollectionItemData, DeleteCollectionItemResponse, DeleteCollectionResponse, DeleteMediaData, DeleteMediaResponse, GetCollectionData, GetCollectionItemData, GetCollectionItemResponse, GetCollectionItemsData, GetCollectionItemsResponse, GetCollectionResponse, GetCollectionsData, GetCollectionsResponse, GetMediaImageData, GetMediaImageResponse, GetMediaItemData, GetMediaItemResponse, GetMediaItemsData, GetMediaItemsResponse, GetMediaThumbnailData, GetMediaThumbnailResponse, GetPageContentData, GetPageContentResponse, GetPagesData, GetPagesResponse, GetWebsitesData, GetWebsitesResponse, PublishPageContentData, PublishPageContentError, PublishPageContentResponse, SaveCollectionItemData, SaveCollectionItemError, SaveCollectionItemResponse, UpdateCollectionData, UpdateCollectionError, UpdateCollectionResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -37,6 +37,187 @@ const createQueryKey = <TOptions extends Options>(id: string, options?: TOptions
         params.query = options.query;
     }
     return [params];
+};
+
+export const getCollectionsQueryKey = (options: Options<GetCollectionsData>) => createQueryKey('getCollections', options);
+
+/**
+ * Lists the collections of a website, by name.
+ */
+export const getCollectionsOptions = (options: Options<GetCollectionsData>) => queryOptions<GetCollectionsResponse, DefaultError, GetCollectionsResponse, ReturnType<typeof getCollectionsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getCollections({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getCollectionsQueryKey(options)
+});
+
+/**
+ * Creates a collection and the detail page its items are shown with.
+ *
+ * The detail page starts empty; design it in the studio like any page.
+ */
+export const createCollectionMutation = (options?: Partial<Options<CreateCollectionData>>): UseMutationOptions<CreateCollectionResponse, CreateCollectionError, Options<CreateCollectionData>> => {
+    const mutationOptions: UseMutationOptions<CreateCollectionResponse, CreateCollectionError, Options<CreateCollectionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createCollection({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Deletes a collection, its items and its detail page.
+ */
+export const deleteCollectionMutation = (options?: Partial<Options<DeleteCollectionData>>): UseMutationOptions<DeleteCollectionResponse, DefaultError, Options<DeleteCollectionData>> => {
+    const mutationOptions: UseMutationOptions<DeleteCollectionResponse, DefaultError, Options<DeleteCollectionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteCollection({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getCollectionQueryKey = (options: Options<GetCollectionData>) => createQueryKey('getCollection', options);
+
+/**
+ * Gets a collection with its fields.
+ */
+export const getCollectionOptions = (options: Options<GetCollectionData>) => queryOptions<GetCollectionResponse, DefaultError, GetCollectionResponse, ReturnType<typeof getCollectionQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getCollection({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getCollectionQueryKey(options)
+});
+
+/**
+ * Changes a collection's names, slug and fields.
+ *
+ * Items keep their values for fields that stay. Values of removed fields are dropped the next time an item is saved.
+ * Pages that show a removed field report it when they are next published.
+ */
+export const updateCollectionMutation = (options?: Partial<Options<UpdateCollectionData>>): UseMutationOptions<UpdateCollectionResponse, UpdateCollectionError, Options<UpdateCollectionData>> => {
+    const mutationOptions: UseMutationOptions<UpdateCollectionResponse, UpdateCollectionError, Options<UpdateCollectionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updateCollection({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getCollectionItemsQueryKey = (options: Options<GetCollectionItemsData>) => createQueryKey('getCollectionItems', options);
+
+/**
+ * Lists a collection's items, newest first.
+ */
+export const getCollectionItemsOptions = (options: Options<GetCollectionItemsData>) => queryOptions<GetCollectionItemsResponse, DefaultError, GetCollectionItemsResponse, ReturnType<typeof getCollectionItemsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getCollectionItems({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getCollectionItemsQueryKey(options)
+});
+
+/**
+ * Adds an item to a collection.
+ *
+ * Values are checked against the collection's fields: types, required fields, links, images and rich text.
+ */
+export const createCollectionItemMutation = (options?: Partial<Options<CreateCollectionItemData>>): UseMutationOptions<CreateCollectionItemResponse, CreateCollectionItemError, Options<CreateCollectionItemData>> => {
+    const mutationOptions: UseMutationOptions<CreateCollectionItemResponse, CreateCollectionItemError, Options<CreateCollectionItemData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await createCollectionItem({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Deletes an item.
+ */
+export const deleteCollectionItemMutation = (options?: Partial<Options<DeleteCollectionItemData>>): UseMutationOptions<DeleteCollectionItemResponse, DefaultError, Options<DeleteCollectionItemData>> => {
+    const mutationOptions: UseMutationOptions<DeleteCollectionItemResponse, DefaultError, Options<DeleteCollectionItemData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteCollectionItem({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getCollectionItemQueryKey = (options: Options<GetCollectionItemData>) => createQueryKey('getCollectionItem', options);
+
+/**
+ * Gets one item of a collection.
+ */
+export const getCollectionItemOptions = (options: Options<GetCollectionItemData>) => queryOptions<GetCollectionItemResponse, DefaultError, GetCollectionItemResponse, ReturnType<typeof getCollectionItemQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getCollectionItem({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getCollectionItemQueryKey(options)
+});
+
+/**
+ * Saves an item: its slug, values and status. Publishing is saving with status `published`.
+ */
+export const saveCollectionItemMutation = (options?: Partial<Options<SaveCollectionItemData>>): UseMutationOptions<SaveCollectionItemResponse, SaveCollectionItemError, Options<SaveCollectionItemData>> => {
+    const mutationOptions: UseMutationOptions<SaveCollectionItemResponse, SaveCollectionItemError, Options<SaveCollectionItemData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await saveCollectionItem({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
 };
 
 export const getMediaItemsQueryKey = (options: Options<GetMediaItemsData>) => createQueryKey('getMediaItems', options);

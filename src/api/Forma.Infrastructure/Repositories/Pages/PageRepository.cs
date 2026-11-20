@@ -12,4 +12,21 @@ public class PageRepository(FormaDbContext db) : IPageRepository
             .ApplyFilter(filter)
             .OrderByDescending(p => p.UpdatedAt)
             .ToListAsync(cancellationToken);
+
+    public async Task AddAsync(PageDao page, CancellationToken cancellationToken = default)
+    {
+        db.Pages.Add(page);
+        await db.SaveChangesAsync(cancellationToken);
+        db.ChangeTracker.Clear();
+    }
+
+    public async Task UpdateAsync(PageDao page, CancellationToken cancellationToken = default)
+    {
+        db.Pages.Update(page);
+        await db.SaveChangesAsync(cancellationToken);
+        db.ChangeTracker.Clear();
+    }
+
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default) =>
+        await db.Pages.Where(p => p.Id == id).ExecuteDeleteAsync(cancellationToken) > 0;
 }

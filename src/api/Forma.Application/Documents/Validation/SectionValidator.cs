@@ -32,6 +32,7 @@ public class SectionValidator : AbstractValidator<Section>
             .Add(new FaqBlockValidator())
             .Add(new TestimonialsBlockValidator())
             .Add(new FeaturesBlockValidator())
-            .Add(new NavBlockValidator()));
+            .Add(new NavBlockValidator())
+            .Add(new CollectionCardsBlockValidator()));
     }
 }

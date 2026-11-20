@@ -87,7 +87,7 @@ public class PageContentEndpoints : IEndpoints
         if (page is null)
             return TypedResults.NotFound();
 
-        var issues = await validationService.ValidateAsync(request.Document, page.WebsiteId, cancellationToken);
+        var issues = await validationService.ValidateAsync(request.Document, page, cancellationToken);
         var errors = issues.Where(i => i.Severity == IssueSeverity.Error).ToList();
         if (errors.Count > 0)
             return ToValidationProblem(errors);

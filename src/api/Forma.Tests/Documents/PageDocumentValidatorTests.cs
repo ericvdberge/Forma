@@ -107,4 +107,28 @@ public class PageDocumentValidatorTests
 
         Assert.Equal("Colours must be hex, e.g. #1a1a1a.", Errors(document)["Sections[0].Settings.Background.Color"]);
     }
+
+    [Fact]
+    public void Rejects_bindings_on_props_that_cant_show_a_field()
+    {
+        var document = new PageDocumentBuilder()
+            .WithSection("s_a", section => section.WithHeading(
+                "b_title",
+                bindings: new Dictionary<string, Binding> { ["level"] = new(BindingScope.Page, "fld_title") }))
+            .Build();
+
+        Assert.Equal("‘level’ can't be connected to a collection field.", Errors(document)["Sections[0].Blocks[0].bindings[0]"]);
+    }
+
+    [Fact]
+    public void Accepts_bindings_on_bindable_props()
+    {
+        var document = new PageDocumentBuilder()
+            .WithSection("s_a", section => section.WithImage(
+                "b_cover",
+                bindings: new Dictionary<string, Binding> { ["src"] = new(BindingScope.Page, "fld_cover") }))
+            .Build();
+
+        Assert.Empty(Errors(document));
+    }
 }

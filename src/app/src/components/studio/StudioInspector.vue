@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { ArrowDown, ArrowUp, Copy, ImageIcon, MousePointerClick, Plus, Trash2, Type } from 'lucide-vue-next'
+import { ArrowDown, ArrowUp, Copy, Database, ImageIcon, MousePointerClick, Plus, Trash2, Type } from 'lucide-vue-next'
 import { cn } from '@forma/design-system'
 import { useStudio } from '@/composables/useStudio'
+import { bindableProps } from '@/studio/bindings'
 import { blockDefinition, type Field } from '@/studio/blocks'
+import type { Binding } from '@/studio/types'
 import { sectionTypeLabels } from '@/studio/sections'
 import { breakpoints } from '@/studio/types'
 import FieldControl from './inspector/FieldControl.vue'
@@ -16,7 +18,84 @@ const section = computed(() => studio.selectedSection.value)
 const block = computed(() => studio.selectedBlock.value)
 const def = computed(() => (block.value ? blockDefinition(block.value.type) : null))
 const advanced = computed(() => studio.mode.value === 'advanced')
-const contentFields = computed(() => (def.value?.fields ?? []).filter((f) => advanced.value || !f.advanced))
+/* ---------- Collections ---------- */
+const pageCollection = computed(() => studio.pageCollection.value)
+/** On a collection's detail page: the block's props that can show one of its fields. */
+const bindable = computed(() => (pageCollection.value && block.value ? (bindableProps[block.value.type] ?? []) : []))
+const bindings = computed<Record<string, Binding>>(() => block.value?.bindings ?? {})
+
+function bindingField(b: (typeof bindable.value)[number]): Field {
+  const fields = pageCollection.value?.fields.filter((f) => b.types.includes(f.type)) ?? []
+  return {
+    key: `binding-${b.prop}`,
+    label: b.label,
+    kind: 'select',
+    options: [{ value: '', label: 'Not connected: type it in' }, ...fields.map((f) => ({ value: f.id, label: f.label }))],
+  }
+}
+
+function setBinding(prop: string, fieldId: unknown) {
+  const next = { ...bindings.value }
+  if (typeof fieldId === 'string' && fieldId) next[prop] = { scope: 'page', field: fieldId }
+  else delete next[prop]
+  setBlock('bindings', Object.keys(next).length ? next : undefined)
+}
+
+/** The Collection cards' collection, for its field pickers. */
+const listedCollection = computed(() => {
+  const b = block.value
+  return b?.type === 'collectionCards' ? studio.collections.value.find((c) => c.id === b.props.collectionId) : undefined
+})
+
+/** Collection and collection-field pickers become selects with the website's collections and fields as choices. */
+function resolveField(f: Field): Field {
+  if (f.kind === 'collection')
+    return {
+      key: f.key,
+      label: f.label,
+      kind: 'select',
+      options: [{ value: '', label: 'Choose a collection…' }, ...studio.collections.value.map((c) => ({ value: c.id, label: c.name }))],
+    }
+  if (f.kind === 'collectionField')
+    return {
+      key: f.key,
+      label: f.label,
+      kind: 'select',
+      options: [
+        { value: '', label: f.noneLabel },
+        ...(listedCollection.value?.fields ?? []).filter((x) => f.fieldTypes.includes(x.type)).map((x) => ({ value: x.id, label: x.label })),
+      ],
+    }
+  return f
+}
+
+function contentValue(f: Field) {
+  const v = blockValue(`props.${f.key}`)
+  return f.kind === 'collection' ? (v ?? '') : v
+}
+
+/** Choosing a collection also picks its first fitting fields, so the cards show something right away. */
+function setContent(f: Field, v: unknown) {
+  if (f.kind !== 'collection' || block.value?.type !== 'collectionCards') return setBlock(`props.${f.key}`, v)
+  const c = studio.collections.value.find((x) => x.id === v)
+  const first = (...types: string[]) => c?.fields.find((x) => types.includes(x.type))?.id ?? ''
+  setBlock('props', {
+    ...block.value.props,
+    collectionId: c?.id ?? null,
+    imageField: first('image'),
+    titleField: first('text'),
+    textField: c?.fields.find((x) => x.type === 'text' && x.id !== first('text'))?.id ?? first('richText'),
+  })
+}
+
+const contentFields = computed(() =>
+  (def.value?.fields ?? [])
+    .filter((f) => advanced.value || !f.advanced)
+    // A bound prop gets its value from the item; its literal input is only the placeholder.
+    .filter((f) => !bindings.value[f.key])
+    // Field pickers wait for a collection.
+    .filter((f) => f.kind !== 'collectionField' || !!listedCollection.value),
+)
 const title = computed(() =>
   block.value ? def.value!.label : section.value ? section.value.settings.name || sectionTypeLabels[section.value.settings.type] : '',
 )
@@ -142,16 +221,33 @@ const deviceLabels = { desktop: 'Desktop', tablet: 'Tablet', mobile: 'Mobile' }
         <template v-if="block && def">
           <template v-if="tab === 'content'">
             <InspectorGroup :title="advanced ? def.label : 'Content'">
-              <p v-if="def.richText" class="flex gap-2 rounded-xl bg-accent-50 p-3 text-xs leading-relaxed text-accent-700">
+              <p v-if="def.richText && !bindings.html" class="flex gap-2 rounded-xl bg-accent-50 p-3 text-xs leading-relaxed text-accent-700">
                 <Type class="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
                 Type directly on the canvas. Select text to make it bold, italic, a link or a softer colour.
               </p>
               <FieldControl
                 v-for="f in contentFields"
                 :key="f.key"
-                :field="f"
-                :model-value="blockValue(`props.${f.key}`)"
-                @update:model-value="setBlock(`props.${f.key}`, $event)"
+                :field="resolveField(f)"
+                :model-value="contentValue(f)"
+                @update:model-value="setContent(f, $event)"
+              />
+              <p v-if="block.type === 'collectionCards' && !studio.collections.value.length" class="rounded-xl bg-canvas p-3 text-xs leading-relaxed text-muted">
+                This website has no collections yet.
+                <RouterLink :to="{ name: 'collection-new' }" class="font-medium text-charcoal underline">Create one</RouterLink>, then come back to show it here.
+              </p>
+            </InspectorGroup>
+            <InspectorGroup v-if="bindable.length && pageCollection" :title="`Show from the ${pageCollection.singularName.toLowerCase()}`">
+              <p class="flex gap-2 rounded-xl bg-accent-50 p-3 text-xs leading-relaxed text-accent-700">
+                <Database class="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                Connect this to a field and every {{ pageCollection.singularName.toLowerCase() }} shows its own value here.
+              </p>
+              <FieldControl
+                v-for="b in bindable"
+                :key="b.prop"
+                :field="bindingField(b)"
+                :model-value="bindings[b.prop]?.field ?? ''"
+                @update:model-value="setBinding(b.prop, $event)"
               />
             </InspectorGroup>
           </template>

@@ -106,12 +106,43 @@ export interface BlockPropsMap {
   testimonials: { items: Array<{ quote: string; name: string; role: string }>; columns: number }
   features: { items: Array<{ icon: string; title: string; text: string }>; columns: number; card: boolean }
   nav: { logo: string; links: LinkItem[]; ctaLabel: string; ctaHref: string; orientation: 'horizontal' | 'vertical'; card: boolean }
+  collectionCards: {
+    /** Null until a collection is chosen. */
+    collectionId: string | null
+    /** Field ids; empty for none. */
+    imageField: string
+    titleField: string
+    textField: string
+    sort: 'newest' | 'oldest'
+    limit: number
+    columns: number
+    gap: number
+    radius: number
+    card: boolean
+    /** Empty hides the link. */
+    buttonLabel: string
+    emptyText: string
+  }
 }
 
 export type BlockType = keyof BlockPropsMap
 
+/** A prop that shows a field of the item a collection's detail page is showing. */
+export interface Binding {
+  scope: 'page'
+  /** The collection field's id. */
+  field: string
+}
+
 export type Block<T extends BlockType = BlockType> = {
-  [K in T]: { id: string; type: K; props: BlockPropsMap[K]; style: BlockStyle }
+  [K in T]: {
+    id: string
+    type: K
+    props: BlockPropsMap[K]
+    style: BlockStyle
+    /** Bound props by name (`html`, `src`…). The literal prop stays the placeholder. Left out when nothing is bound. */
+    bindings?: Record<string, Binding>
+  }
 }[T]
 
 export interface Section {

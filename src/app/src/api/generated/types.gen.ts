@@ -22,6 +22,13 @@ export type BadgeProps = {
     text: string;
 };
 
+export type Binding = {
+    scope: BindingScope;
+    field: string;
+};
+
+export type BindingScope = 'page';
+
 export type Block = ({
     type: 'heading';
 } & BlockHeadingBlock) | ({
@@ -54,7 +61,9 @@ export type Block = ({
     type: 'features';
 } & BlockFeaturesBlock) | ({
     type: 'nav';
-} & BlockNavBlock);
+} & BlockNavBlock) | ({
+    type: 'collectionCards';
+} & BlockCollectionCardsBlock);
 
 export type BlockAlign = 'inherit' | 'left' | 'center' | 'right';
 
@@ -63,6 +72,9 @@ export type BlockBadgeBlock = {
     props: BadgeProps;
     id: string;
     style: BlockStyle;
+    bindings?: null | {
+        [key: string]: Binding;
+    };
 };
 
 export type BlockButtonBlock = {
@@ -70,6 +82,9 @@ export type BlockButtonBlock = {
     props: ButtonProps;
     id: string;
     style: BlockStyle;
+    bindings?: null | {
+        [key: string]: Binding;
+    };
 };
 
 export type BlockCarouselBlock = {
@@ -77,6 +92,19 @@ export type BlockCarouselBlock = {
     props: CarouselProps;
     id: string;
     style: BlockStyle;
+    bindings?: null | {
+        [key: string]: Binding;
+    };
+};
+
+export type BlockCollectionCardsBlock = {
+    type?: 'collectionCards';
+    props: CollectionCardsProps;
+    id: string;
+    style: BlockStyle;
+    bindings?: null | {
+        [key: string]: Binding;
+    };
 };
 
 export type BlockDividerBlock = {
@@ -84,6 +112,9 @@ export type BlockDividerBlock = {
     props: DividerProps;
     id: string;
     style: BlockStyle;
+    bindings?: null | {
+        [key: string]: Binding;
+    };
 };
 
 export type BlockFaqBlock = {
@@ -91,6 +122,9 @@ export type BlockFaqBlock = {
     props: FaqProps;
     id: string;
     style: BlockStyle;
+    bindings?: null | {
+        [key: string]: Binding;
+    };
 };
 
 export type BlockFeaturesBlock = {
@@ -98,6 +132,9 @@ export type BlockFeaturesBlock = {
     props: FeaturesProps;
     id: string;
     style: BlockStyle;
+    bindings?: null | {
+        [key: string]: Binding;
+    };
 };
 
 export type BlockFormBlock = {
@@ -105,6 +142,9 @@ export type BlockFormBlock = {
     props: FormProps;
     id: string;
     style: BlockStyle;
+    bindings?: null | {
+        [key: string]: Binding;
+    };
 };
 
 export type BlockGalleryBlock = {
@@ -112,6 +152,9 @@ export type BlockGalleryBlock = {
     props: GalleryProps;
     id: string;
     style: BlockStyle;
+    bindings?: null | {
+        [key: string]: Binding;
+    };
 };
 
 export type BlockHeadingBlock = {
@@ -119,6 +162,9 @@ export type BlockHeadingBlock = {
     props: HeadingProps;
     id: string;
     style: BlockStyle;
+    bindings?: null | {
+        [key: string]: Binding;
+    };
 };
 
 export type BlockImageBlock = {
@@ -126,6 +172,9 @@ export type BlockImageBlock = {
     props: ImageProps;
     id: string;
     style: BlockStyle;
+    bindings?: null | {
+        [key: string]: Binding;
+    };
 };
 
 export type BlockMapBlock = {
@@ -133,6 +182,9 @@ export type BlockMapBlock = {
     props: MapProps;
     id: string;
     style: BlockStyle;
+    bindings?: null | {
+        [key: string]: Binding;
+    };
 };
 
 export type BlockMaxWidth = 'none' | 'sm' | 'md' | 'lg';
@@ -142,6 +194,9 @@ export type BlockNavBlock = {
     props: NavProps;
     id: string;
     style: BlockStyle;
+    bindings?: null | {
+        [key: string]: Binding;
+    };
 };
 
 export type BlockSpacerBlock = {
@@ -149,6 +204,9 @@ export type BlockSpacerBlock = {
     props: SpacerProps;
     id: string;
     style: BlockStyle;
+    bindings?: null | {
+        [key: string]: Binding;
+    };
 };
 
 export type BlockStyle = {
@@ -166,6 +224,9 @@ export type BlockTestimonialsBlock = {
     props: TestimonialsProps;
     id: string;
     style: BlockStyle;
+    bindings?: null | {
+        [key: string]: Binding;
+    };
 };
 
 export type BlockTextBlock = {
@@ -173,6 +234,9 @@ export type BlockTextBlock = {
     props: TextProps;
     id: string;
     style: BlockStyle;
+    bindings?: null | {
+        [key: string]: Binding;
+    };
 };
 
 export type BlockVideoBlock = {
@@ -180,6 +244,9 @@ export type BlockVideoBlock = {
     props: VideoProps;
     id: string;
     style: BlockStyle;
+    bindings?: null | {
+        [key: string]: Binding;
+    };
 };
 
 export type ButtonProps = {
@@ -207,6 +274,157 @@ export type CarouselSlide = {
     src: string;
     caption: string;
 };
+
+export type CollectionCardsProps = {
+    collectionId: null | string;
+    imageField: string;
+    titleField: string;
+    textField: string;
+    sort: CollectionCardsSort;
+    limit: number;
+    columns: number;
+    gap: number;
+    radius: number;
+    card: boolean;
+    buttonLabel: string;
+    emptyText: string;
+};
+
+export type CollectionCardsSort = 'newest' | 'oldest';
+
+/**
+ * A website's collection, such as <i>Blog posts</i>, with its fields.
+ */
+export type CollectionDto = {
+    /**
+     * The collection's id.
+     */
+    id: string;
+    /**
+     * The website the collection belongs to.
+     */
+    websiteId: string;
+    /**
+     * Plural name, e.g. `Blog posts`.
+     */
+    name: string;
+    /**
+     * What one item is called, e.g. `Blog post`.
+     */
+    singularName: string;
+    /**
+     * The first part of an item's address: `/{slug}/{item}`.
+     */
+    slug: string;
+    /**
+     * The icon the app shows it with, e.g. `newspaper`.
+     */
+    icon: string;
+    /**
+     * The fields every item has, in display order.
+     */
+    fields: Array<CollectionFieldDto>;
+    /**
+     * The page every item is shown with, designed in the studio.
+     */
+    detailPageId: null | string;
+    /**
+     * When the collection was created (UTC).
+     */
+    createdAt: string;
+    /**
+     * When the collection last changed (UTC).
+     */
+    updatedAt: string;
+};
+
+/**
+ * One field of a collection.
+ */
+export type CollectionFieldDto = {
+    /**
+     * Stable id, e.g. `fld_ab12cd34`; item values and page bindings refer to it.
+     */
+    id: string;
+    /**
+     * Shown in the item editor and the studio, e.g. `Cover image`.
+     */
+    label: string;
+    /**
+     * What kind of value the field holds.
+     */
+    type: CollectionFieldType;
+    /**
+     * Whether every item must fill it in.
+     */
+    required: boolean;
+};
+
+/**
+ * A field as the collection editor sends it.
+ */
+export type CollectionFieldRequest = {
+    /**
+     * The field's id; `null` for a new field, which is given one.
+     */
+    id: null | string;
+    /**
+     * Shown in the item editor and the studio, e.g. `Cover image`.
+     */
+    label: string;
+    /**
+     * What kind of value the field holds.
+     */
+    type: CollectionFieldType;
+    /**
+     * Whether every item must fill it in.
+     */
+    required: boolean;
+};
+
+export type CollectionFieldType = 'text' | 'richText' | 'image' | 'url' | 'number' | 'date' | 'boolean';
+
+/**
+ * One item of a collection, e.g. one blog post.
+ */
+export type CollectionItemDto = {
+    /**
+     * The item's id.
+     */
+    id: string;
+    /**
+     * The collection the item belongs to.
+     */
+    collectionId: string;
+    /**
+     * The last part of the item's address: `/{collection}/{slug}`.
+     */
+    slug: string;
+    /**
+     * `published` once visitors see it.
+     */
+    status: CollectionItemStatus;
+    /**
+     * The item's values keyed by field id: a string, number or boolean depending on the field's type.
+     */
+    values: {
+        [key: string]: unknown;
+    };
+    /**
+     * When the item was created (UTC).
+     */
+    createdAt: string;
+    /**
+     * When the item last changed (UTC).
+     */
+    updatedAt: string;
+    /**
+     * When the item was last published (UTC), or `null` when it never was.
+     */
+    publishedAt: null | string;
+};
+
+export type CollectionItemStatus = 'draft' | 'published';
 
 /**
  * A problem in a page's content that a person can fix.
@@ -243,6 +461,36 @@ export type ContentIssueDto = {
 };
 
 export type ContentWidth = 'narrow' | 'normal' | 'wide' | 'full';
+
+/**
+ * Creates a collection, and the detail page its items are shown with.
+ */
+export type CreateCollectionRequest = {
+    /**
+     * The website the collection belongs to.
+     */
+    websiteId: string;
+    /**
+     * Plural name, e.g. `Blog posts`.
+     */
+    name: string;
+    /**
+     * What one item is called, e.g. `Blog post`.
+     */
+    singularName: string;
+    /**
+     * Lowercase words separated by dashes, e.g. `blog`; unique within the website.
+     */
+    slug: string;
+    /**
+     * The icon the app shows it with, e.g. `newspaper`.
+     */
+    icon: string;
+    /**
+     * The fields, in display order.
+     */
+    fields: Array<CollectionFieldRequest>;
+};
 
 export type DividerProps = {
     style: DividerStyle;
@@ -440,15 +688,49 @@ export type PageDocument = {
     sections: Array<Section>;
 };
 
+/**
+ * A page of a website.
+ */
 export type PageDto = {
+    /**
+     * The page's id.
+     */
     id: string;
+    /**
+     * The website the page belongs to.
+     */
     websiteId: string;
+    /**
+     * The page's title.
+     */
     title: string;
+    /**
+     * The page's address without the leading slash; `{collection}/{item}` for a detail page.
+     */
     slug: string;
+    /**
+     * Whether the page is published.
+     */
     status: PageStatus;
+    /**
+     * `static` for a page of its own; `collectionTemplate` for a collection's detail page.
+     */
+    kind: PageKind;
+    /**
+     * The collection a detail page shows the items of; `null` for other pages.
+     */
+    collectionId: null | string;
+    /**
+     * When the page was created (UTC).
+     */
     createdAt: string;
+    /**
+     * When the page last changed (UTC).
+     */
     updatedAt: string;
 };
+
+export type PageKind = 'static' | 'collectionTemplate';
 
 export type PageStatus = 'draft' | 'published';
 
@@ -488,6 +770,26 @@ export type ResponsiveSpacing = {
     desktop: Spacing;
     tablet?: null | SpacingOverride;
     mobile?: null | SpacingOverride;
+};
+
+/**
+ * Creates or saves an item.
+ */
+export type SaveCollectionItemRequest = {
+    /**
+     * Lowercase words separated by dashes, e.g. `opening-our-studio`; unique within the collection.
+     */
+    slug: string;
+    /**
+     * The item's values keyed by field id. Leave a field out (or empty) when it has no value.
+     */
+    values: {
+        [key: string]: unknown;
+    };
+    /**
+     * `published` to show the item to visitors, `draft` to keep it hidden.
+     */
+    status: CollectionItemStatus;
 };
 
 export type Section = {
@@ -572,6 +874,32 @@ export type TextSize = 'lg' | 'md' | 'sm';
 export type TextTone = 'default' | 'muted';
 
 /**
+ * Changes a collection: its names, slug and fields. Items keep their values for fields that stay.
+ */
+export type UpdateCollectionRequest = {
+    /**
+     * Plural name, e.g. `Blog posts`.
+     */
+    name: string;
+    /**
+     * What one item is called, e.g. `Blog post`.
+     */
+    singularName: string;
+    /**
+     * Lowercase words separated by dashes, e.g. `blog`; unique within the website.
+     */
+    slug: string;
+    /**
+     * The icon the app shows it with, e.g. `newspaper`.
+     */
+    icon: string;
+    /**
+     * The complete list of fields, in display order.
+     */
+    fields: Array<CollectionFieldRequest>;
+};
+
+/**
  * Multipart form for `POST /media`.
  */
 export type UploadMediaRequest = {
@@ -606,6 +934,322 @@ export type WebsiteDto = {
 };
 
 export type WebsiteStatus = 'draft' | 'live';
+
+export type GetCollectionsData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The website whose collections are listed.
+         */
+        websiteId: string;
+    };
+    url: '/collections';
+};
+
+export type GetCollectionsResponses = {
+    /**
+     * The website's collections with their fields.
+     */
+    200: Array<CollectionDto>;
+};
+
+export type GetCollectionsResponse = GetCollectionsResponses[keyof GetCollectionsResponses];
+
+export type CreateCollectionData = {
+    /**
+     * Cancels the request.
+     */
+    body: CreateCollectionRequest;
+    path?: never;
+    query?: never;
+    url: '/collections';
+};
+
+export type CreateCollectionErrors = {
+    /**
+     * The request is invalid, or another collection uses the slug.
+     */
+    400: HttpValidationProblemDetails;
+    /**
+     * No website exists with this id.
+     */
+    404: unknown;
+};
+
+export type CreateCollectionError = CreateCollectionErrors[keyof CreateCollectionErrors];
+
+export type CreateCollectionResponses = {
+    /**
+     * Created; the body is the collection.
+     */
+    201: CollectionDto;
+};
+
+export type CreateCollectionResponse = CreateCollectionResponses[keyof CreateCollectionResponses];
+
+export type DeleteCollectionData = {
+    body?: never;
+    path: {
+        /**
+         * The collection's id.
+         */
+        collectionId: string;
+    };
+    query?: never;
+    url: '/collections/{collectionId}';
+};
+
+export type DeleteCollectionErrors = {
+    /**
+     * No collection exists with this id.
+     */
+    404: unknown;
+};
+
+export type DeleteCollectionResponses = {
+    /**
+     * Deleted.
+     */
+    204: void;
+};
+
+export type DeleteCollectionResponse = DeleteCollectionResponses[keyof DeleteCollectionResponses];
+
+export type GetCollectionData = {
+    body?: never;
+    path: {
+        /**
+         * The collection's id.
+         */
+        collectionId: string;
+    };
+    query?: never;
+    url: '/collections/{collectionId}';
+};
+
+export type GetCollectionErrors = {
+    /**
+     * No collection exists with this id.
+     */
+    404: unknown;
+};
+
+export type GetCollectionResponses = {
+    /**
+     * The collection.
+     */
+    200: CollectionDto;
+};
+
+export type GetCollectionResponse = GetCollectionResponses[keyof GetCollectionResponses];
+
+export type UpdateCollectionData = {
+    /**
+     * Cancels the request.
+     */
+    body: UpdateCollectionRequest;
+    path: {
+        /**
+         * The collection's id.
+         */
+        collectionId: string;
+    };
+    query?: never;
+    url: '/collections/{collectionId}';
+};
+
+export type UpdateCollectionErrors = {
+    /**
+     * The request is invalid, or another collection uses the slug.
+     */
+    400: HttpValidationProblemDetails;
+    /**
+     * No collection exists with this id.
+     */
+    404: unknown;
+};
+
+export type UpdateCollectionError = UpdateCollectionErrors[keyof UpdateCollectionErrors];
+
+export type UpdateCollectionResponses = {
+    /**
+     * Saved; the body is the collection.
+     */
+    200: CollectionDto;
+};
+
+export type UpdateCollectionResponse = UpdateCollectionResponses[keyof UpdateCollectionResponses];
+
+export type GetCollectionItemsData = {
+    body?: never;
+    path: {
+        /**
+         * The collection's id.
+         */
+        collectionId: string;
+    };
+    query?: never;
+    url: '/collections/{collectionId}/items';
+};
+
+export type GetCollectionItemsErrors = {
+    /**
+     * No collection exists with this id.
+     */
+    404: unknown;
+};
+
+export type GetCollectionItemsResponses = {
+    /**
+     * The collection's items, newest first.
+     */
+    200: Array<CollectionItemDto>;
+};
+
+export type GetCollectionItemsResponse = GetCollectionItemsResponses[keyof GetCollectionItemsResponses];
+
+export type CreateCollectionItemData = {
+    /**
+     * Cancels the request.
+     */
+    body: SaveCollectionItemRequest;
+    path: {
+        /**
+         * The collection's id.
+         */
+        collectionId: string;
+    };
+    query?: never;
+    url: '/collections/{collectionId}/items';
+};
+
+export type CreateCollectionItemErrors = {
+    /**
+     * The request is invalid; errors are keyed `slug` or `values.{fieldId}`.
+     */
+    400: HttpValidationProblemDetails;
+    /**
+     * No collection exists with this id.
+     */
+    404: unknown;
+};
+
+export type CreateCollectionItemError = CreateCollectionItemErrors[keyof CreateCollectionItemErrors];
+
+export type CreateCollectionItemResponses = {
+    /**
+     * Created; the body is the item.
+     */
+    201: CollectionItemDto;
+};
+
+export type CreateCollectionItemResponse = CreateCollectionItemResponses[keyof CreateCollectionItemResponses];
+
+export type DeleteCollectionItemData = {
+    body?: never;
+    path: {
+        /**
+         * The collection's id.
+         */
+        collectionId: string;
+        /**
+         * The item's id.
+         */
+        itemId: string;
+    };
+    query?: never;
+    url: '/collections/{collectionId}/items/{itemId}';
+};
+
+export type DeleteCollectionItemErrors = {
+    /**
+     * The collection has no item with this id.
+     */
+    404: unknown;
+};
+
+export type DeleteCollectionItemResponses = {
+    /**
+     * Deleted.
+     */
+    204: void;
+};
+
+export type DeleteCollectionItemResponse = DeleteCollectionItemResponses[keyof DeleteCollectionItemResponses];
+
+export type GetCollectionItemData = {
+    body?: never;
+    path: {
+        /**
+         * The collection's id.
+         */
+        collectionId: string;
+        /**
+         * The item's id.
+         */
+        itemId: string;
+    };
+    query?: never;
+    url: '/collections/{collectionId}/items/{itemId}';
+};
+
+export type GetCollectionItemErrors = {
+    /**
+     * The collection has no item with this id.
+     */
+    404: unknown;
+};
+
+export type GetCollectionItemResponses = {
+    /**
+     * The item.
+     */
+    200: CollectionItemDto;
+};
+
+export type GetCollectionItemResponse = GetCollectionItemResponses[keyof GetCollectionItemResponses];
+
+export type SaveCollectionItemData = {
+    /**
+     * Cancels the request.
+     */
+    body: SaveCollectionItemRequest;
+    path: {
+        /**
+         * The collection's id.
+         */
+        collectionId: string;
+        /**
+         * The item's id.
+         */
+        itemId: string;
+    };
+    query?: never;
+    url: '/collections/{collectionId}/items/{itemId}';
+};
+
+export type SaveCollectionItemErrors = {
+    /**
+     * The request is invalid; errors are keyed `slug` or `values.{fieldId}`.
+     */
+    400: HttpValidationProblemDetails;
+    /**
+     * The collection has no item with this id.
+     */
+    404: unknown;
+};
+
+export type SaveCollectionItemError = SaveCollectionItemErrors[keyof SaveCollectionItemErrors];
+
+export type SaveCollectionItemResponses = {
+    /**
+     * Saved; the body is the item.
+     */
+    200: CollectionItemDto;
+};
+
+export type SaveCollectionItemResponse = SaveCollectionItemResponses[keyof SaveCollectionItemResponses];
 
 export type GetMediaItemsData = {
     body?: never;

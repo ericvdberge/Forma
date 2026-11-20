@@ -23,6 +23,12 @@ const skeletons: Record<string, Component> = {
   media: MediaSkeleton,
   websites: WebsitesSkeleton,
   website: WebsitesSkeleton,
+  collections: PagesSkeleton,
+  'collection-new': PagesSkeleton,
+  collection: PagesSkeleton,
+  'collection-settings': PagesSkeleton,
+  'collection-item-new': PagesSkeleton,
+  'collection-item': PagesSkeleton,
 }
 const skeleton = computed(() => skeletons[String(route.name)])
 

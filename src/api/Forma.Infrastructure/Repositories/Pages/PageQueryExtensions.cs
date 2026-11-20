@@ -12,7 +12,9 @@ internal static class PageQueryExtensions
             .WithId(filter.Id)
             .WithWebsiteId(filter.WebsiteId)
             .WithTitleContaining(filter.Title)
-            .WithSlug(filter.Slug);
+            .WithSlug(filter.Slug)
+            .WithKind(filter.Kind)
+            .WithCollectionId(filter.CollectionId);
 
     private static IQueryable<PageDao> WithId(this IQueryable<PageDao> query, Guid? id) =>
         query.WhereIf(id.HasValue, p => p.Id == id);
@@ -25,4 +27,10 @@ internal static class PageQueryExtensions
 
     private static IQueryable<PageDao> WithSlug(this IQueryable<PageDao> query, string? slug) =>
         query.WhereIf(!string.IsNullOrWhiteSpace(slug), p => p.Slug == slug!.Trim());
+
+    private static IQueryable<PageDao> WithKind(this IQueryable<PageDao> query, PageDaoKind? kind) =>
+        query.WhereIf(kind.HasValue, p => p.Kind == kind);
+
+    private static IQueryable<PageDao> WithCollectionId(this IQueryable<PageDao> query, Guid? collectionId) =>
+        query.WhereIf(collectionId.HasValue, p => p.CollectionId == collectionId);
 }
