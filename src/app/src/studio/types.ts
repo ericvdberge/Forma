@@ -106,7 +106,11 @@ export interface BlockPropsMap {
   testimonials: { items: Array<{ quote: string; name: string; role: string }>; columns: number }
   features: { items: Array<{ icon: string; title: string; text: string }>; columns: number; card: boolean }
   nav: { logo: string; links: LinkItem[]; ctaLabel: string; ctaHref: string; orientation: 'horizontal' | 'vertical'; card: boolean }
+  /** A block an installed plugin adds (see studio/pluginBlocks.ts); `values` holds its fields by key. */
+  plugin: { plugin: string; block: string; values: Record<string, PluginBlockValue> }
 }
+
+export type PluginBlockValue = string | number | boolean
 
 export type BlockType = keyof BlockPropsMap
 
@@ -125,11 +129,16 @@ export interface PageDocument {
   sections: Section[]
 }
 
-/** What the studio keeps per page: the working draft and the last published version. */
+/** What the studio keeps per page: the working draft and the last published version, as loaded from GET /pages/{id}/content. */
 export interface StudioPage {
   pageId: string
   draft: PageDocument
-  published: PageDocument
+  /** Null when the page was never published. */
+  published: PageDocument | null
+  /** Draft revision the server has; sent as `baseRevision` with the next save. */
+  revision: number
+  /** JSON of the draft the server has, so unsaved edits can be told apart. */
+  savedJson: string
   updatedAt: number
   publishedAt: number | null
 }

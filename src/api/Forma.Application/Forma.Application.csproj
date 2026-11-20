@@ -7,8 +7,17 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="FluentValidation" Version="12.2.0" />
+      <PackageReference Include="HtmlSanitizer" Version="11.0.26" />
       <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.14" />
+      <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.14" />
       <PackageReference Include="Riok.Mapperly" Version="4.3.1" />
+    </ItemGroup>
+
+    <!-- Sample page content, generated from the studio by `npm run studio:fixtures -w forma-app`. -->
+    <ItemGroup>
+      <EmbeddedResource Include="..\Contracts\Studio\home.json" LogicalName="Forma.Application.Seeding.home.json" />
+      <EmbeddedResource Include="..\Contracts\Studio\page.json" LogicalName="Forma.Application.Seeding.page.json" />
     </ItemGroup>
 
     <ItemGroup>

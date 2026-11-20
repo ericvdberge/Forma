@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { imageUrl } from '@/studio/media'
 import { ref } from 'vue'
 import { ImagePlus, X } from 'lucide-vue-next'
 import MediaPicker from './MediaPicker.vue'
@@ -11,7 +12,7 @@ const picking = ref(false)
 <template>
   <div class="flex flex-col gap-2">
     <div class="relative overflow-hidden rounded-xl bg-canvas ring-1 ring-charcoal/[0.06]">
-      <img v-if="modelValue" :src="modelValue" alt="" class="aspect-[16/7] w-full object-cover" />
+      <img v-if="modelValue" :src="imageUrl(modelValue)" alt="" class="aspect-[16/7] w-full object-cover" />
       <button v-else type="button" class="grid aspect-[16/7] w-full place-items-center text-muted hover:text-charcoal" @click="picking = true">
         <span class="flex flex-col items-center gap-1 text-xs"><ImagePlus class="size-5" aria-hidden="true" /> Choose an image</span>
       </button>

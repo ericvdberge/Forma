@@ -4,10 +4,337 @@ export type ClientOptions = {
     baseUrl: `${string}://${string}` | (string & {});
 };
 
+export type Background = {
+    kind: BackgroundKind;
+    color: string;
+    image: string;
+    position: string;
+    gradientFrom: string;
+    gradientTo: string;
+    gradientAngle: number;
+    overlayColor: string;
+    overlayOpacity: number;
+};
+
+export type BackgroundKind = 'none' | 'color' | 'image' | 'gradient';
+
+export type BadgeProps = {
+    text: string;
+};
+
+export type Block = ({
+    type: 'heading';
+} & BlockHeadingBlock) | ({
+    type: 'text';
+} & BlockTextBlock) | ({
+    type: 'button';
+} & BlockButtonBlock) | ({
+    type: 'badge';
+} & BlockBadgeBlock) | ({
+    type: 'image';
+} & BlockImageBlock) | ({
+    type: 'gallery';
+} & BlockGalleryBlock) | ({
+    type: 'video';
+} & BlockVideoBlock) | ({
+    type: 'divider';
+} & BlockDividerBlock) | ({
+    type: 'spacer';
+} & BlockSpacerBlock) | ({
+    type: 'form';
+} & BlockFormBlock) | ({
+    type: 'map';
+} & BlockMapBlock) | ({
+    type: 'carousel';
+} & BlockCarouselBlock) | ({
+    type: 'faq';
+} & BlockFaqBlock) | ({
+    type: 'testimonials';
+} & BlockTestimonialsBlock) | ({
+    type: 'features';
+} & BlockFeaturesBlock) | ({
+    type: 'nav';
+} & BlockNavBlock) | ({
+    type: 'plugin';
+} & BlockPluginBlock);
+
+export type BlockAlign = 'inherit' | 'left' | 'center' | 'right';
+
+export type BlockBadgeBlock = {
+    type?: 'badge';
+    props: BadgeProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockButtonBlock = {
+    type?: 'button';
+    props: ButtonProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockCarouselBlock = {
+    type?: 'carousel';
+    props: CarouselProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockDividerBlock = {
+    type?: 'divider';
+    props: DividerProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockFaqBlock = {
+    type?: 'faq';
+    props: FaqProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockFeaturesBlock = {
+    type?: 'features';
+    props: FeaturesProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockFormBlock = {
+    type?: 'form';
+    props: FormProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockGalleryBlock = {
+    type?: 'gallery';
+    props: GalleryProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockHeadingBlock = {
+    type?: 'heading';
+    props: HeadingProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockImageBlock = {
+    type?: 'image';
+    props: ImageProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockMapBlock = {
+    type?: 'map';
+    props: MapProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockMaxWidth = 'none' | 'sm' | 'md' | 'lg';
+
+export type BlockNavBlock = {
+    type?: 'nav';
+    props: NavProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockPluginBlock = {
+    type?: 'plugin';
+    props: PluginBlockProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockSpacerBlock = {
+    type?: 'spacer';
+    props: SpacerProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockStyle = {
+    align: BlockAlign;
+    marginTop: number;
+    marginBottom: number;
+    maxWidth: BlockMaxWidth;
+    anchor: string;
+    className: string;
+    visibility: Visibility;
+};
+
+export type BlockTestimonialsBlock = {
+    type?: 'testimonials';
+    props: TestimonialsProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockTextBlock = {
+    type?: 'text';
+    props: TextProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockVideoBlock = {
+    type?: 'video';
+    props: VideoProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type ButtonProps = {
+    label: string;
+    href: string;
+    variant: ButtonVariant;
+    arrow: boolean;
+    size: ButtonSize;
+};
+
+export type ButtonSize = 'sm' | 'md' | 'lg';
+
+export type ButtonVariant = 'primary' | 'secondary' | 'accent';
+
+export type CarouselAspect = '16/9' | '4/3' | '21/9';
+
+export type CarouselProps = {
+    slides: Array<CarouselSlide>;
+    autoplay: boolean;
+    aspect: CarouselAspect;
+    radius: number;
+};
+
+export type CarouselSlide = {
+    src: string;
+    caption: string;
+};
+
+/**
+ * The content issues of a page's draft.
+ */
+export type ContentCheckDto = {
+    /**
+     * The draft revision that was checked.
+     */
+    draftRevision: number;
+    /**
+     * Errors first, then warnings, each in page order. Empty when there is nothing to fix.
+     */
+    issues: Array<ContentIssueDto>;
+};
+
+/**
+ * A problem in a page's content that a person can fix.
+ */
+export type ContentIssueDto = {
+    /**
+     * `error` blocks publishing; `warning` doesn't.
+     */
+    severity: IssueSeverity;
+    /**
+     * Stable code, e.g. `image.missing` or `link.placeholder`.
+     */
+    code: string;
+    /**
+     * What is wrong, in plain language.
+     */
+    message: string;
+    /**
+     * The section it is in; null when it is about the whole page.
+     */
+    sectionId: null | string;
+    /**
+     * The block it is about; null when it is about a section or the page.
+     */
+    blockId: null | string;
+    /**
+     * The block prop or section setting, e.g. `href` or `background.image`.
+     */
+    field: null | string;
+    /**
+     * The item of a list prop (a gallery image, a menu link), when it is about one.
+     */
+    itemIndex: null | number;
+};
+
+export type ContentWidth = 'narrow' | 'normal' | 'wide' | 'full';
+
+export type DividerProps = {
+    style: DividerStyle;
+    thickness: number;
+};
+
+export type DividerStyle = 'solid' | 'dashed';
+
+export type EntranceAnimation = 'none' | 'fade' | 'fade-up' | 'zoom' | 'slide-left';
+
+export type FaqItem = {
+    question: string;
+    answer: string;
+};
+
+export type FaqProps = {
+    items: Array<FaqItem>;
+};
+
+export type FeatureItem = {
+    icon: string;
+    title: string;
+    text: string;
+};
+
+export type FeaturesProps = {
+    items: Array<FeatureItem>;
+    columns: number;
+    card: boolean;
+};
+
+export type FormField = {
+    label: string;
+    type: FormFieldType;
+    required: boolean;
+};
+
+export type FormFieldType = 'text' | 'email' | 'textarea';
+
+export type FormProps = {
+    fields: Array<FormField>;
+    submitLabel: string;
+    successMessage: string;
+};
+
+export type GalleryImage = {
+    src: string;
+    alt: string;
+};
+
+export type GalleryProps = {
+    images: Array<GalleryImage>;
+    columns: number;
+    gap: number;
+    radius: number;
+};
+
+export type HeadingProps = {
+    html: string;
+    level: number;
+    size: HeadingSize;
+};
+
+export type HeadingSize = 'xl' | 'lg' | 'md' | 'sm';
+
 export type HttpValidationProblemDetails = {
     type?: null | string;
     title?: null | string;
-    status?: null | number | string;
+    status?: null | number;
     detail?: null | string;
     instance?: null | string;
     errors?: {
@@ -16,6 +343,27 @@ export type HttpValidationProblemDetails = {
 };
 
 export type IFormFile = Blob | File;
+
+export type ImageAspect = 'auto' | '16/9' | '4/3' | '1/1' | '3/4';
+
+export type ImageProps = {
+    src: string;
+    alt: string;
+    aspect: ImageAspect;
+    radius: number;
+    caption: string;
+};
+
+export type IssueSeverity = 'error' | 'warning';
+
+export type JsonElement = unknown;
+
+export type MapProps = {
+    address: string;
+    zoom: number;
+    height: number;
+    radius: number;
+};
 
 /**
  * An image in a website's media library.
@@ -40,15 +388,15 @@ export type MediaItemDto = {
     /**
      * The original image's size in bytes.
      */
-    sizeInBytes: number | string;
+    sizeInBytes: number;
     /**
      * The original image's width in pixels.
      */
-    width: number | string;
+    width: number;
     /**
      * The original image's height in pixels.
      */
-    height: number | string;
+    height: number;
     /**
      * Download route of the original image, relative to the API's base URL.
      */
@@ -67,6 +415,59 @@ export type MediaItemDto = {
     updatedAt: string;
 };
 
+export type NavLink = {
+    label: string;
+    href: string;
+    menu?: null | boolean;
+};
+
+export type NavOrientation = 'horizontal' | 'vertical';
+
+export type NavProps = {
+    logo: string;
+    links: Array<NavLink>;
+    ctaLabel: string;
+    ctaHref: string;
+    orientation: NavOrientation;
+    card: boolean;
+};
+
+/**
+ * A page's draft and published Design Studio document.
+ */
+export type PageContentDto = {
+    /**
+     * The page the content belongs to.
+     */
+    pageId: string;
+    /**
+     * The working draft. A page without saved content gets an empty document (no sections).
+     */
+    draft: PageDocument;
+    /**
+     * The draft's revision: send it back as `baseRevision` when saving. 0 when nothing was saved yet.
+     */
+    draftRevision: number;
+    /**
+     * When the draft last changed (UTC); null when nothing was saved yet.
+     */
+    draftUpdatedAt: null | string;
+    published: null | PageDocument;
+    /**
+     * When the page was last published (UTC); null when never.
+     */
+    publishedAt: null | string;
+    /**
+     * True when there is no published version or it differs from the draft.
+     */
+    hasUnpublishedChanges: boolean;
+};
+
+export type PageDocument = {
+    version: number;
+    sections: Array<Section>;
+};
+
 export type PageDto = {
     id: string;
     websiteId: string;
@@ -79,7 +480,354 @@ export type PageDto = {
 
 export type PageStatus = 'draft' | 'published';
 
+/**
+ * A block a plugin adds to the studio. Stored in a page as `{ type: "plugin", props: { plugin, block, values } }`.
+ */
+export type PluginBlockDto = {
+    /**
+     * The block's id within the plugin.
+     */
+    id: string;
+    /**
+     * Its name in the library.
+     */
+    label: string;
+    /**
+     * One line about it.
+     */
+    description: null | string;
+    /**
+     * A Lucide icon name, e.g. `shopping-bag`.
+     */
+    icon: null | string;
+    /**
+     * Restricted HTML with `{{key}}` slots, checked when the plugin loaded.
+     */
+    template: string;
+    /**
+     * The inspector fields, in order.
+     */
+    fields: Array<PluginBlockFieldDto>;
+};
+
+/**
+ * An inspector field of a plugin block; its value is stored under `props.values[key]`.
+ */
+export type PluginBlockFieldDto = {
+    /**
+     * The value's name, also its `{{key}}` slot in the template.
+     */
+    key: string;
+    /**
+     * The field's label in the inspector.
+     */
+    label: string;
+    /**
+     * text, textarea, url, image, color, number, slider, toggle, select or segmented.
+     */
+    kind: string;
+    default: null | JsonElement;
+    /**
+     * The choices of a select or segmented field.
+     */
+    options: null | Array<PluginBlockFieldOption>;
+    /**
+     * Hint shown in an empty text field.
+     */
+    placeholder: null | string;
+    /**
+     * Lowest value of a number or slider.
+     */
+    min: null | number;
+    /**
+     * Highest value of a number or slider.
+     */
+    max: null | number;
+    /**
+     * Step of a number or slider.
+     */
+    step: null | number;
+    /**
+     * Unit shown next to a slider's value, e.g. `px`.
+     */
+    unit: null | string;
+    /**
+     * Hidden in the studio's Simple mode.
+     */
+    advanced: boolean;
+};
+
+export type PluginBlockFieldOption = {
+    value: string;
+    label: string;
+};
+
+export type PluginBlockProps = {
+    plugin: string;
+    block: string;
+    values: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * An installed plugin.
+ */
+export type PluginDto = {
+    /**
+     * The plugin's id, e.g. `secure-links`.
+     */
+    id: string;
+    /**
+     * The plugin's name.
+     */
+    name: string;
+    /**
+     * The plugin's version; null when its manifest couldn't be read.
+     */
+    version: null | string;
+    /**
+     * What it does.
+     */
+    description: null | string;
+    /**
+     * The events it runs for, e.g. `page.published` or the `page.check` hook.
+     */
+    events: Array<string>;
+    /**
+     * False when it couldn't be loaded; it isn't run then.
+     */
+    loaded: boolean;
+    /**
+     * False when it was turned off in the app; it isn't run then and its blocks aren't offered.
+     */
+    enabled: boolean;
+    /**
+     * Why it couldn't be loaded.
+     */
+    error: null | string;
+    /**
+     * SHA-256 of its WebAssembly module, to tell builds apart.
+     */
+    moduleSha256: null | string;
+    /**
+     * Blocks it adds to the studio's library; empty when it isn't loaded.
+     */
+    blocks: Array<PluginBlockDto>;
+};
+
+export type PluginLogLevel = 'debug' | 'info' | 'warning' | 'error';
+
+/**
+ * A line a plugin logged.
+ */
+export type PluginLogLineDto = {
+    level: PluginLogLevel;
+    message: string;
+};
+
+/**
+ * One time a plugin ran.
+ */
+export type PluginRunDto = {
+    /**
+     * The run's id.
+     */
+    id: string;
+    /**
+     * The event it ran for.
+     */
+    event: string;
+    /**
+     * The event's id; plugins that ran for the same event share it.
+     */
+    eventId: string;
+    /**
+     * When it started (UTC).
+     */
+    startedAt: string;
+    /**
+     * False when it crashed, hit a sandbox limit or returned bad output.
+     */
+    succeeded: boolean;
+    /**
+     * Why it failed.
+     */
+    error: null | string;
+    /**
+     * How long it took, in milliseconds.
+     */
+    durationMs: number;
+    /**
+     * Roughly how many WebAssembly instructions it ran.
+     */
+    fuelConsumed: number;
+    /**
+     * What it logged.
+     */
+    logs: Array<PluginLogLineDto>;
+    /**
+     * Lines it logged past the limit.
+     */
+    droppedLogLines: number;
+};
+
+export type ProblemDetails = {
+    type?: null | string;
+    title?: null | string;
+    status?: null | number;
+    detail?: null | string;
+    instance?: null | string;
+};
+
+/**
+ * Publishes a page's draft.
+ */
+export type PublishPageRequest = {
+    /**
+     * The draft revision the person saw when they chose Publish.
+     */
+    revision: number;
+};
+
+/**
+ * Why a page wasn't published.
+ */
+export type PublishRejectedDto = {
+    /**
+     * All issues of the draft, errors first; at least one is an error.
+     */
+    issues: Array<ContentIssueDto>;
+};
+
+export type ResponsiveSpacing = {
+    desktop: Spacing;
+    tablet?: null | SpacingOverride;
+    mobile?: null | SpacingOverride;
+};
+
+/**
+ * The result of saving a draft.
+ */
+export type SavedDraftDto = {
+    /**
+     * The draft's revision now: send it as `baseRevision` with the next save. Unchanged when the document was identical.
+     */
+    revision: number;
+    /**
+     * When the draft last changed (UTC).
+     */
+    updatedAt: string;
+    /**
+     * True when there is no published version or it differs from the draft.
+     */
+    hasUnpublishedChanges: boolean;
+};
+
+/**
+ * A new draft for a page.
+ */
+export type SaveDraftRequest = {
+    /**
+     * The complete draft document, as the studio normalised it.
+     */
+    document: PageDocument;
+    /**
+     * The draft revision this document was edited from (`draftRevision` from the last load or save); 0 when no draft was saved yet.
+     */
+    baseRevision: number;
+};
+
+export type Section = {
+    id: string;
+    settings: SectionSettings;
+    blocks: Array<Block>;
+};
+
+export type SectionAlign = 'left' | 'center';
+
+export type SectionAnimation = {
+    entrance: EntranceAnimation;
+    delay: number;
+};
+
+export type SectionLayout = 'stack' | 'split';
+
+export type SectionSettings = {
+    type: SectionType;
+    name: string;
+    layout: SectionLayout;
+    splitRatio: number;
+    splitAt: number;
+    verticalAlign: VerticalAlign;
+    padding: ResponsiveSpacing;
+    background: Background;
+    contentWidth: ContentWidth;
+    align: SectionAlign;
+    theme: SectionTheme;
+    minHeight: number;
+    gap: number;
+    radius: number;
+    animation: SectionAnimation;
+    anchor: string;
+    className: string;
+    visibility: Visibility;
+};
+
+export type SectionTheme = 'light' | 'dark';
+
+export type SectionType = 'hero' | 'content' | 'features' | 'split' | 'cta' | 'header' | 'footer' | 'sidebar';
+
+/**
+ * Turns a plugin on or off.
+ */
+export type SetPluginEnabledRequest = {
+    /**
+     * True to run it and offer its blocks; false to keep it installed but stop it.
+     */
+    enabled: boolean;
+};
+
+export type SpacerProps = {
+    height: number;
+};
+
+export type Spacing = {
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+};
+
+export type SpacingOverride = {
+    top?: null | number;
+    bottom?: null | number;
+    left?: null | number;
+    right?: null | number;
+};
+
 export type Stream = Blob | File;
+
+export type Testimonial = {
+    quote: string;
+    name: string;
+    role: string;
+};
+
+export type TestimonialsProps = {
+    items: Array<Testimonial>;
+    columns: number;
+};
+
+export type TextProps = {
+    html: string;
+    size: TextSize;
+    tone: TextTone;
+};
+
+export type TextSize = 'lg' | 'md' | 'sm';
+
+export type TextTone = 'default' | 'muted';
 
 /**
  * Multipart form for `POST /media`.
@@ -87,6 +835,22 @@ export type Stream = Blob | File;
 export type UploadMediaRequest = {
     websiteId: string;
     file: IFormFile;
+};
+
+export type VerticalAlign = 'start' | 'center' | 'end';
+
+export type VideoAspect = '16/9' | '4/3' | '1/1';
+
+export type VideoProps = {
+    url: string;
+    aspect: VideoAspect;
+    radius: number;
+};
+
+export type Visibility = {
+    desktop: boolean;
+    tablet: boolean;
+    mobile: boolean;
 };
 
 export type WebsiteDto = {
@@ -266,6 +1030,152 @@ export type GetMediaThumbnailResponses = {
 
 export type GetMediaThumbnailResponse = GetMediaThumbnailResponses[keyof GetMediaThumbnailResponses];
 
+export type GetPageContentData = {
+    body?: never;
+    path: {
+        /**
+         * The page's id.
+         */
+        pageId: string;
+    };
+    query?: never;
+    url: '/pages/{pageId}/content';
+};
+
+export type GetPageContentErrors = {
+    /**
+     * No page exists with this id.
+     */
+    404: unknown;
+};
+
+export type GetPageContentResponses = {
+    /**
+     * The page's draft and published document.
+     */
+    200: PageContentDto;
+};
+
+export type GetPageContentResponse = GetPageContentResponses[keyof GetPageContentResponses];
+
+export type SavePageDraftData = {
+    /**
+     * Cancels the request.
+     */
+    body: SaveDraftRequest;
+    path: {
+        /**
+         * The page's id.
+         */
+        pageId: string;
+    };
+    query?: never;
+    url: '/pages/{pageId}/draft';
+};
+
+export type SavePageDraftErrors = {
+    /**
+     * The document is malformed or breaks a structural rule.
+     */
+    400: HttpValidationProblemDetails;
+    /**
+     * No page exists with this id.
+     */
+    404: unknown;
+    /**
+     * The draft was saved elsewhere since `baseRevision`; the body is the current content.
+     */
+    409: PageContentDto;
+    /**
+     * The request body is larger than 1 MB.
+     */
+    413: ProblemDetails;
+};
+
+export type SavePageDraftError = SavePageDraftErrors[keyof SavePageDraftErrors];
+
+export type SavePageDraftResponses = {
+    /**
+     * The draft was saved (or was already identical).
+     */
+    200: SavedDraftDto;
+};
+
+export type SavePageDraftResponse = SavePageDraftResponses[keyof SavePageDraftResponses];
+
+export type CheckPageContentData = {
+    body?: never;
+    path: {
+        /**
+         * The page's id.
+         */
+        pageId: string;
+    };
+    query?: never;
+    url: '/pages/{pageId}/check';
+};
+
+export type CheckPageContentErrors = {
+    /**
+     * No page exists with this id.
+     */
+    404: unknown;
+};
+
+export type CheckPageContentResponses = {
+    /**
+     * The checked draft revision and its issues (empty when there is nothing to fix).
+     */
+    200: ContentCheckDto;
+};
+
+export type CheckPageContentResponse = CheckPageContentResponses[keyof CheckPageContentResponses];
+
+export type PublishPageData = {
+    /**
+     * Cancels the request.
+     */
+    body: PublishPageRequest;
+    path: {
+        /**
+         * The page's id.
+         */
+        pageId: string;
+    };
+    query?: never;
+    url: '/pages/{pageId}/publish';
+};
+
+export type PublishPageErrors = {
+    /**
+     * The request is malformed.
+     */
+    400: HttpValidationProblemDetails;
+    /**
+     * No page exists with this id.
+     */
+    404: unknown;
+    /**
+     * The draft is no longer at this revision; the body is the current content.
+     */
+    409: PageContentDto;
+    /**
+     * The draft has errors to fix first; the body lists all its issues.
+     */
+    422: PublishRejectedDto;
+};
+
+export type PublishPageError = PublishPageErrors[keyof PublishPageErrors];
+
+export type PublishPageResponses = {
+    /**
+     * Published; the body is the page's content now.
+     */
+    200: PageContentDto;
+};
+
+export type PublishPageResponse = PublishPageResponses[keyof PublishPageResponses];
+
 export type GetPagesData = {
     body?: never;
     path?: never;
@@ -286,6 +1196,109 @@ export type GetPagesResponses = {
 };
 
 export type GetPagesResponse = GetPagesResponses[keyof GetPagesResponses];
+
+export type GetPluginsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/plugins';
+};
+
+export type GetPluginsResponses = {
+    /**
+     * The installed plugins; empty when there are none.
+     */
+    200: Array<PluginDto>;
+};
+
+export type GetPluginsResponse = GetPluginsResponses[keyof GetPluginsResponses];
+
+export type GetPluginRunsData = {
+    body?: never;
+    path: {
+        /**
+         * The plugin's id.
+         */
+        pluginId: string;
+    };
+    query?: never;
+    url: '/plugins/{pluginId}/runs';
+};
+
+export type GetPluginRunsErrors = {
+    /**
+     * No plugin is installed with this id.
+     */
+    404: unknown;
+};
+
+export type GetPluginRunsResponses = {
+    /**
+     * The plugin's recent runs; empty when it hasn't run yet.
+     */
+    200: Array<PluginRunDto>;
+};
+
+export type GetPluginRunsResponse = GetPluginRunsResponses[keyof GetPluginRunsResponses];
+
+export type SetPluginEnabledData = {
+    /**
+     * Service that changes the plugin.
+     */
+    body: SetPluginEnabledRequest;
+    path: {
+        /**
+         * The plugin's id.
+         */
+        pluginId: string;
+    };
+    query?: never;
+    url: '/plugins/{pluginId}/enabled';
+};
+
+export type SetPluginEnabledErrors = {
+    /**
+     * No plugin is installed with this id.
+     */
+    404: unknown;
+};
+
+export type SetPluginEnabledResponses = {
+    /**
+     * The plugin, turned on or off.
+     */
+    200: PluginDto;
+};
+
+export type SetPluginEnabledResponse = SetPluginEnabledResponses[keyof SetPluginEnabledResponses];
+
+export type DeletePluginData = {
+    body?: never;
+    path: {
+        /**
+         * The plugin's id.
+         */
+        pluginId: string;
+    };
+    query?: never;
+    url: '/plugins/{pluginId}';
+};
+
+export type DeletePluginErrors = {
+    /**
+     * No plugin is installed with this id.
+     */
+    404: unknown;
+};
+
+export type DeletePluginResponses = {
+    /**
+     * The plugin was deleted.
+     */
+    204: void;
+};
+
+export type DeletePluginResponse = DeletePluginResponses[keyof DeletePluginResponses];
 
 export type GetWebsitesData = {
     body?: never;

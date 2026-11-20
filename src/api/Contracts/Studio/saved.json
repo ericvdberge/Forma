@@ -1,0 +1,223 @@
+{
+  "version": 1,
+  "sections": [
+    {
+      "id": "s_saved1",
+      "settings": {
+        "type": "cta",
+        "name": "Newsletter",
+        "layout": "stack",
+        "splitRatio": 45,
+        "splitAt": 1,
+        "verticalAlign": "center",
+        "padding": {
+          "desktop": {
+            "top": 80,
+            "bottom": 80,
+            "left": 48,
+            "right": 48
+          },
+          "tablet": {
+            "top": 64,
+            "bottom": 64,
+            "left": 32,
+            "right": 32
+          },
+          "mobile": {
+            "top": 48,
+            "bottom": 48,
+            "left": 20,
+            "right": 20
+          }
+        },
+        "background": {
+          "kind": "color",
+          "color": "#eff5ff",
+          "image": "",
+          "position": "center",
+          "gradientFrom": "#f5f4f0",
+          "gradientTo": "#ffffff",
+          "gradientAngle": 180,
+          "overlayColor": "#000000",
+          "overlayOpacity": 0
+        },
+        "contentWidth": "narrow",
+        "align": "center",
+        "theme": "light",
+        "minHeight": 0,
+        "gap": 12,
+        "radius": 16,
+        "animation": {
+          "entrance": "none",
+          "delay": 0
+        },
+        "anchor": "",
+        "className": "",
+        "visibility": {
+          "desktop": true,
+          "tablet": true,
+          "mobile": true
+        }
+      },
+      "blocks": [
+        {
+          "id": "b_saved2",
+          "type": "heading",
+          "props": {
+            "html": "<p>Stay in the loop</p>",
+            "level": 2,
+            "size": "md"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_saved3",
+          "type": "text",
+          "props": {
+            "html": "<p>One short email a month with new templates and features.</p>",
+            "size": "md",
+            "tone": "muted"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_saved4",
+          "type": "form",
+          "props": {
+            "fields": [
+              {
+                "label": "Email",
+                "type": "email",
+                "required": true
+              }
+            ],
+            "submitLabel": "Subscribe",
+            "successMessage": "You’re subscribed."
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "s_saved5",
+      "settings": {
+        "type": "content",
+        "name": "",
+        "layout": "stack",
+        "splitRatio": 45,
+        "splitAt": 1,
+        "verticalAlign": "center",
+        "padding": {
+          "desktop": {
+            "top": 80,
+            "bottom": 80,
+            "left": 48,
+            "right": 48
+          },
+          "tablet": {
+            "top": 64,
+            "bottom": 64,
+            "left": 32,
+            "right": 32
+          },
+          "mobile": {
+            "top": 48,
+            "bottom": 48,
+            "left": 20,
+            "right": 20
+          }
+        },
+        "background": {
+          "kind": "none",
+          "color": "#ffffff",
+          "image": "",
+          "position": "center",
+          "gradientFrom": "#f5f4f0",
+          "gradientTo": "#ffffff",
+          "gradientAngle": 180,
+          "overlayColor": "#000000",
+          "overlayOpacity": 0
+        },
+        "contentWidth": "wide",
+        "align": "left",
+        "theme": "light",
+        "minHeight": 0,
+        "gap": 20,
+        "radius": 0,
+        "animation": {
+          "entrance": "none",
+          "delay": 0
+        },
+        "anchor": "",
+        "className": "",
+        "visibility": {
+          "desktop": true,
+          "tablet": true,
+          "mobile": true
+        }
+      },
+      "blocks": [
+        {
+          "id": "b_saved6",
+          "type": "button",
+          "props": {
+            "label": "Book a call",
+            "href": "/contact",
+            "variant": "accent",
+            "arrow": true,
+            "size": "md"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

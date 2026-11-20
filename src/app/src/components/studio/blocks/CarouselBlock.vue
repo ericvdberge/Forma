@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { imageUrl } from '@/studio/media'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import type { RenderContext } from '@/studio/render'
@@ -33,7 +34,7 @@ onBeforeUnmount(() => clearInterval(timer))
         :aria-hidden="i !== index"
         aria-roledescription="slide"
       >
-        <img :src="s.src" :alt="s.caption" class="size-full object-cover" draggable="false" />
+        <img :src="imageUrl(s.src)" :alt="s.caption" class="size-full object-cover" draggable="false" />
         <figcaption
           v-if="s.caption"
           class="absolute bottom-4 left-4 rounded-full bg-charcoal/70 px-3 py-1.5 text-sm text-warm-white backdrop-blur"

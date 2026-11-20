@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { ArrowDown, ArrowUp, Copy, ImageIcon, MousePointerClick, Plus, Trash2, Type } from 'lucide-vue-next'
 import { cn } from '@forma/design-system'
 import { useStudio } from '@/composables/useStudio'
-import { blockDefinition, type Field } from '@/studio/blocks'
+import { definitionOf, type Field } from '@/studio/blocks'
 import { sectionTypeLabels } from '@/studio/sections'
 import { breakpoints } from '@/studio/types'
 import FieldControl from './inspector/FieldControl.vue'
@@ -14,7 +14,7 @@ import SpacingControl from './inspector/SpacingControl.vue'
 const studio = useStudio()
 const section = computed(() => studio.selectedSection.value)
 const block = computed(() => studio.selectedBlock.value)
-const def = computed(() => (block.value ? blockDefinition(block.value.type) : null))
+const def = computed(() => (block.value ? definitionOf(block.value) : null))
 const advanced = computed(() => studio.mode.value === 'advanced')
 const contentFields = computed(() => (def.value?.fields ?? []).filter((f) => advanced.value || !f.advanced))
 const title = computed(() =>

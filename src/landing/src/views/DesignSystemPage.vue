@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ArrowLeft, Bell, Clock, Copy, Database, Download, Globe, Images, LayoutGrid, Layers, List, Scale, Search, Trash2, Zap } from 'lucide-vue-next'
+import { ArrowLeft, Bell, Clock, Copy, Database, Download, Globe, Images, Layers, Scale, Search, Trash2, Zap } from 'lucide-vue-next'
 import {
   FActionButton,
   FArchitectureArt,
@@ -27,7 +27,10 @@ import {
   FPillTabs,
   FProgress,
   FPromoBanner,
-  FSegmented,
+  FCollection,
+  FViewSwitch,
+  type FCollectionColumn,
+  type FCollectionView,
   FSelect,
   FSparkline,
   FStatGroup,
@@ -48,7 +51,18 @@ const demoEmail = ref('')
 const demoSwitch = ref(true)
 const demoRole = ref<'editor' | 'admin'>('editor')
 const demoFilter = ref<'all' | 'images' | 'videos'>('all')
-const demoView = ref<'grid' | 'list'>('grid')
+const demoView = ref<FCollectionView>('grid')
+const demoItems = [
+  { name: 'Blue sample', type: 'JPG', size: '2.4 MB', from: '#eef1f5', to: '#93bbfd' },
+  { name: 'Sage sample', type: 'PNG', size: '1.8 MB', from: '#f5f4f0', to: '#a8b5a0' },
+  { name: 'Stone sample', type: 'WEBP', size: '640 KB', from: '#fafaf8', to: '#d8d2c8' },
+]
+const demoColumns: FCollectionColumn[] = [
+  { key: 'name', label: 'File' },
+  { key: 'type', label: 'Type', class: 'text-muted' },
+  { key: 'size', label: 'Size', class: 'tabular-nums text-muted' },
+  { key: 'actions', label: 'Actions', hideLabel: true, stop: true, class: 'w-14' },
+]
 const demoModal = ref(false)
 const demoMenu = [
   { label: 'Download', icon: Download },
@@ -237,22 +251,32 @@ const demoImage = (from: string, to: string) =>
                 { label: 'Videos', value: 'videos', count: 3 },
               ]"
             />
-            <FSegmented
-              v-model="demoView"
-              label="Layout"
-              :options="[
-                { value: 'grid', label: 'Grid view', icon: LayoutGrid },
-                { value: 'list', label: 'List view', icon: List },
-              ]"
-            />
+            <FViewSwitch v-model="demoView" />
           </div>
-          <div class="grid gap-5 sm:grid-cols-3">
-            <FMediaCard :src="demoImage('#eef1f5', '#93bbfd')" alt="Blue sample" meta="JPG · 2.4 MB" @open="demoModal = true">
-              <template #actions><FMenu :items="demoMenu" label="Actions" variant="glass" /></template>
-            </FMediaCard>
-            <FMediaCard :src="demoImage('#f5f4f0', '#a8b5a0')" alt="Sage sample" meta="PNG · 1.8 MB" @open="demoModal = true" />
-            <FMediaCard :src="demoImage('#fafaf8', '#d8d2c8')" alt="Stone sample" meta="WEBP · 640 KB" @open="demoModal = true" />
-          </div>
+          <!-- FCollection: the same items as cards or a list; FViewSwitch picks which. -->
+          <FCollection
+            :view="demoView"
+            :items="demoItems"
+            :item-key="(i) => i.name"
+            :columns="demoColumns"
+            label="Sample images"
+            grid-class="grid-cols-1 sm:grid-cols-3"
+            min-table-width="480px"
+            @open="demoModal = true"
+          >
+            <template #card="{ item }">
+              <FMediaCard :src="demoImage(item.from, item.to)" :alt="item.name" :meta="`${item.type} · ${item.size}`" @open="demoModal = true">
+                <template #actions><FMenu :items="demoMenu" label="Actions" variant="glass" /></template>
+              </FMediaCard>
+            </template>
+            <template #cell-name="{ item }">
+              <div class="flex items-center gap-3">
+                <img :src="demoImage(item.from, item.to)" alt="" class="h-9 w-14 rounded-lg object-cover" />
+                <span class="font-medium">{{ item.name }}</span>
+              </div>
+            </template>
+            <template #cell-actions><FMenu :items="demoMenu" label="Actions" /></template>
+          </FCollection>
           <FDivider />
           <div class="grid gap-8 md:grid-cols-2">
             <FDropzone hint="Supports images up to 10 MB" :formats="['JPG', 'PNG', 'GIF', 'WEBP']" />

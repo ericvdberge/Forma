@@ -1,62 +1,130 @@
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import homeJson from '@/data/studio/home.json'
+import { checkPageContent, getPageContent, publishPage, savePageDraft, type ContentIssueDto, type PageContentDto } from '@/api/generated'
 import pageJson from '@/data/studio/page.json'
 import savedJson from '@/data/studio/saved.json'
+import { fromApiDocument, toApiDocument } from '@/studio/contract'
 import { normalizeDocument, type PageDocumentJson } from '@/studio/sections'
-import type { SavedItem, StudioPage } from '@/studio/types'
+import type { PageDocument, SavedItem, StudioPage } from '@/studio/types'
 
 export const studioPageQueryKey = (pageId: string) => ['studio', 'page', pageId] as const
 export const studioSavedQueryKey = ['studio', 'saved'] as const
 
-/** Mock latency so loading states are visible, like the real API will be. */
+/** Mock latency for the Saved tab, which has no API yet. */
 const delay = (ms = 250) => new Promise((r) => setTimeout(r, ms))
 
-/** What a page's mock document is built from. */
+/** What a new page's starter content is filled in with. */
 export interface StudioPageSeed {
   title: string
-  slug: string
   websiteName: string
-  published: boolean
 }
 
-function mockDocument({ title, slug, websiteName }: StudioPageSeed) {
-  if (slug === 'home') return normalizeDocument(homeJson as PageDocumentJson)
+/** Thrown when the API has no such page (e.g. one created in this browser that the API doesn't have). */
+export class StudioPageNotFoundError extends Error {
+  constructor() {
+    super('The page doesn’t exist on the server.')
+  }
+}
+
+/** Starter content for a page that has none yet: a header, an intro and a footer. */
+export function starterDocument({ title, websiteName }: StudioPageSeed): PageDocument {
   const json = JSON.stringify(pageJson)
     .replaceAll('{{title}}', title.replace(/["\\<>]/g, ''))
     .replaceAll('{{website}}', websiteName.replace(/["\\<>]/g, ''))
   return normalizeDocument(JSON.parse(json) as PageDocumentJson)
 }
 
+/** The API's page content as the studio keeps it. A page without content starts from the starter page (it saves as an edit). */
+export function toStudioPage(dto: PageContentDto, seed?: StudioPageSeed): StudioPage {
+  const saved = fromApiDocument(dto.draft)
+  const empty = dto.draftRevision === 0 && saved.sections.length === 0
+  return {
+    pageId: dto.pageId,
+    draft: empty && seed ? starterDocument(seed) : saved,
+    published: dto.published ? fromApiDocument(dto.published) : null,
+    revision: dto.draftRevision,
+    savedJson: JSON.stringify(saved),
+    updatedAt: dto.draftUpdatedAt ? Date.parse(dto.draftUpdatedAt) : Date.now(),
+    publishedAt: dto.publishedAt ? Date.parse(dto.publishedAt) : null,
+  }
+}
+
+export type SaveDraftOutcome =
+  | { kind: 'saved'; revision: number }
+  | { kind: 'conflict'; current: PageContentDto }
+  | { kind: 'invalid'; errors: Record<string, string[]> }
+  | { kind: 'not-found' }
+  | { kind: 'failed' }
+
+export type PublishOutcome =
+  | { kind: 'published'; content: PageContentDto }
+  | { kind: 'rejected'; issues: ContentIssueDto[] }
+  | { kind: 'conflict'; current: PageContentDto }
+  | { kind: 'failed' }
+
 /**
- * TanStack Query calls for the Design Studio. Served from the JSON files in `src/data/studio`
- * until the API has page-content endpoints. Edits are written straight to these cache entries
- * (see `useStudio`), so they never go stale or get collected while the app is open.
+ * TanStack Query calls for the Design Studio. Page content comes from the API; the Saved tab is still mock data
+ * (phase 3). A page's cache entry is the editor's working copy, so it is never refetched in the background.
  */
 export function useStudioQuerier() {
+  /** GET /pages/{pageId}/content */
   function getStudioPage(pageId: MaybeRefOrGetter<string>, seed: MaybeRefOrGetter<StudioPageSeed | undefined>) {
     return useQuery(
       computed(() => ({
         queryKey: studioPageQueryKey(toValue(pageId)),
-        queryFn: async (): Promise<StudioPage> => {
-          await delay()
-          const s = toValue(seed)!
-          const doc = mockDocument(s)
-          const now = Date.now()
-          return {
-            pageId: toValue(pageId),
-            draft: doc,
-            // Pages that are live start with the mock as their published version; drafts have never been published.
-            published: structuredClone(doc),
-            updatedAt: now,
-            publishedAt: s.published ? now : null,
-          }
+        queryFn: async ({ signal }: { signal: AbortSignal }): Promise<StudioPage> => {
+          const { data, response } = await getPageContent({ path: { pageId: toValue(pageId) }, signal })
+          if (response?.status === 404) throw new StudioPageNotFoundError()
+          if (!data) throw new Error(`Loading the page failed (${response?.status}).`)
+          return toStudioPage(data, toValue(seed))
         },
         enabled: !!toValue(pageId) && !!toValue(seed),
         staleTime: Infinity,
         gcTime: Infinity,
+        refetchOnWindowFocus: false,
+        retry: (count: number, error: Error) => !(error instanceof StudioPageNotFoundError) && count < 2,
       })),
     )
+  }
+
+  /** PUT /pages/{pageId}/draft */
+  async function saveDraft(pageId: string, document: PageDocument, baseRevision: number): Promise<SaveDraftOutcome> {
+    try {
+      const { data, error, response } = await savePageDraft({
+        path: { pageId },
+        body: { document: toApiDocument(document), baseRevision },
+      })
+      if (data) return { kind: 'saved', revision: data.revision }
+      if (response?.status === 409) return { kind: 'conflict', current: error as PageContentDto }
+      if (response?.status === 400) return { kind: 'invalid', errors: (error as { errors?: Record<string, string[]> })?.errors ?? {} }
+      if (response?.status === 404) return { kind: 'not-found' }
+      return { kind: 'failed' }
+    } catch {
+      return { kind: 'failed' }
+    }
+  }
+
+  /** POST /pages/{pageId}/check: what to fix before publishing. Undefined when the request failed. */
+  async function checkPage(pageId: string): Promise<{ draftRevision: number; issues: ContentIssueDto[] } | undefined> {
+    try {
+      const { data } = await checkPageContent({ path: { pageId } })
+      return data
+    } catch {
+      return undefined
+    }
+  }
+
+  /** POST /pages/{pageId}/publish */
+  async function publish(pageId: string, revision: number): Promise<PublishOutcome> {
+    try {
+      const { data, error, response } = await publishPage({ path: { pageId }, body: { revision } })
+      if (data) return { kind: 'published', content: data }
+      if (response?.status === 422) return { kind: 'rejected', issues: (error as { issues: ContentIssueDto[] }).issues }
+      if (response?.status === 409) return { kind: 'conflict', current: error as PageContentDto }
+      return { kind: 'failed' }
+    } catch {
+      return { kind: 'failed' }
+    }
   }
 
   function getSaved() {
@@ -82,6 +150,9 @@ export function useStudioQuerier() {
 
   return {
     getStudioPage,
+    saveDraft,
+    checkPage,
+    publish,
     getSaved,
   }
 }

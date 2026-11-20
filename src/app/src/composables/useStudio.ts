@@ -1,21 +1,26 @@
 import { computed, inject, provide, ref, shallowRef, toValue, watch, type InjectionKey, type MaybeRefOrGetter } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import type { Editor } from '@tiptap/vue-3'
-import { studioPageQueryKey, studioSavedQueryKey, useStudioQuerier, type StudioPageSeed } from '@/queriers/useStudioQuerier'
+import { studioPageQueryKey, studioSavedQueryKey, toStudioPage, useStudioQuerier, type StudioPageSeed } from '@/queriers/useStudioQuerier'
 import { usePages } from '@/composables/usePages'
 import { useActivity } from '@/composables/useActivity'
 import { useMedia } from '@/composables/useMedia'
 import { useToast } from '@/composables/useToast'
 import { clone } from '@/studio/defaults'
 import { createBlock } from '@/studio/blocks'
+import { createPluginBlock } from '@/studio/pluginBlocks'
 import { createSection, globalElements, sectionTemplates, withFreshIds } from '@/studio/sections'
 import { textEditorKey, textPointerKey } from '@/studio/inject'
+import { mediaSrc } from '@/studio/media'
 import type { MediaItem } from '@/data/types'
 import type { Block, BlockType, Breakpoint, MediaAsset, PageDocument, SavedItem, Section, Selection, StudioPage } from '@/studio/types'
+import type { ContentIssueDto, PageContentDto } from '@/api/generated'
 
 /** Something being dragged onto or around the canvas. */
 export type DragPayload =
   | { kind: 'new-block'; type: BlockType }
+  /** A block from an installed plugin (studio/pluginBlocks.ts). */
+  | { kind: 'new-plugin-block'; plugin: string; block: string }
   | { kind: 'template'; id: string }
   | { kind: 'saved'; id: string }
   | { kind: 'move-block'; blockId: string }
@@ -25,6 +30,17 @@ export type DragPayload =
 export type DropTarget = { kind: 'section'; index: number } | { kind: 'block'; sectionId: string; index: number; column?: 0 | 1 }
 
 export type StudioMode = 'simple' | 'advanced'
+
+/**
+ * Where the draft stands with the server: `saved`; `pending` (edited, saving shortly); `saving`; `error` (the request
+ * failed, retrying); `invalid` (the server refused the document); `conflict` (saved elsewhere since it was loaded).
+ */
+export type SaveState = 'saved' | 'pending' | 'saving' | 'error' | 'invalid' | 'conflict'
+
+/** Autosave waits this long after the last edit. */
+const SAVE_DELAY_MS = 1500
+/** After a failed request, try again after this long. */
+const RETRY_DELAY_MS = 5000
 
 /** Simple mode hides the block library and technical settings; remembered per browser. */
 const MODE_KEY = 'forma.studioMode'
@@ -68,9 +84,9 @@ export function isSectionPayload(p: DragPayload, saved: SavedItem[]) {
 }
 
 /**
- * The Design Studio editor for one page. The page's draft and published documents live in the
- * vue-query cache (`['studio', 'page', id]`); every edit writes a new draft there, so leaving and
- * coming back to the studio keeps unpublished work. Selection, device and history are editor state.
+ * The Design Studio editor for one page. The page's draft and published documents are loaded from the API into the
+ * vue-query cache (`['studio', 'page', id]`); every edit writes a new draft there and autosaves it to the API
+ * (PUT /pages/{id}/draft). Selection, device and history are editor state.
  */
 export function createStudio(
   pageId: MaybeRefOrGetter<string>,
@@ -129,12 +145,15 @@ export function createStudio(
     return sel?.kind === 'block' ? selectedSection.value?.blocks.find((b) => b.id === sel.blockId) : undefined
   })
 
-  const hasChanges = computed(() => !!page.value && JSON.stringify(page.value.draft) !== JSON.stringify(page.value.published))
+  const draftJson = computed(() => (page.value ? JSON.stringify(page.value.draft) : ''))
+  const hasChanges = computed(() => !!page.value && (!page.value.published || draftJson.value !== JSON.stringify(page.value.published)))
+  /** Edits the server doesn't have yet. */
+  const hasUnsavedChanges = computed(() => !!page.value && draftJson.value !== page.value.savedJson)
   const isPublished = computed(() => !!page.value?.publishedAt)
 
   /* ---------- Cache writes ---------- */
-  function writePage(update: (p: StudioPage) => StudioPage) {
-    queryClient.setQueryData<StudioPage>(studioPageQueryKey(toValue(pageId)), (old) => (old ? update(old) : old))
+  function writePage(update: (p: StudioPage) => StudioPage, id = toValue(pageId)) {
+    queryClient.setQueryData<StudioPage>(studioPageQueryKey(id), (old) => (old ? update(old) : old))
   }
 
   /** Applies `mutate` to a copy of the draft and stores it, recording an undo step. */
@@ -319,6 +338,7 @@ export function createStudio(
 
   function blockFromPayload(p: DragPayload): Block | undefined {
     if (p.kind === 'new-block') return createBlock(p.type)
+    if (p.kind === 'new-plugin-block') return createPluginBlock(p.plugin, p.block)
     if (p.kind === 'saved') {
       const item = saved.value.find((s) => s.id === p.id)
       if (item?.kind === 'block') return withFreshIds(item.block)
@@ -426,19 +446,188 @@ export function createStudio(
     return items.map(toAsset)
   }
 
+  /* ---------- Saving ---------- */
+  const saveState = ref<SaveState>('saved')
+  /** What the server said about a refused draft, for the console and the status line. */
+  const saveError = ref<string>()
+  /** The server's current content when it was saved elsewhere (`conflict`). */
+  const conflict = shallowRef<PageContentDto | null>(null)
+  let saveTimer: ReturnType<typeof setTimeout> | undefined
+  let saving: Promise<void> | null = null
+
+  function scheduleSave(delay = SAVE_DELAY_MS) {
+    clearTimeout(saveTimer)
+    saveTimer = setTimeout(() => void saveNow(), delay)
+  }
+
+  /** Saves the draft of `id` (the open page by default) now, if it has unsaved edits. */
+  async function saveNow(id = toValue(pageId)): Promise<void> {
+    clearTimeout(saveTimer)
+    // One request at a time; edits made meanwhile are saved when it returns.
+    if (saving) return saving
+    const p = id ? queryClient.getQueryData<StudioPage>(studioPageQueryKey(id)) : undefined
+    if (!p || saveState.value === 'conflict' || saveState.value === 'invalid') return
+    const json = JSON.stringify(p.draft)
+    if (json === p.savedJson) {
+      if (id === toValue(pageId)) saveState.value = 'saved'
+      return
+    }
+
+    saveState.value = 'saving'
+    saving = (async () => {
+      const outcome = await querier.saveDraft(id, p.draft, p.revision)
+      const current = id === toValue(pageId)
+      switch (outcome.kind) {
+        case 'saved':
+          writePage((old) => ({ ...old, revision: outcome.revision, savedJson: json }), id)
+          if (current) saveState.value = hasUnsavedChanges.value ? 'pending' : 'saved'
+          break
+        case 'conflict':
+          conflict.value = outcome.current
+          saveState.value = 'conflict'
+          break
+        case 'invalid':
+          // The studio produced something the API refuses: a bug, not something the person can fix.
+          console.error('The API refused the draft:', outcome.errors)
+          saveError.value = Object.entries(outcome.errors).map(([path, messages]) => `${path}: ${messages.join(' ')}`)[0]
+          saveState.value = 'invalid'
+          break
+        default:
+          saveState.value = 'error'
+          scheduleSave(RETRY_DELAY_MS)
+      }
+    })().finally(() => {
+      saving = null
+    })
+    await saving
+    // Edits made while the request was out.
+    if ((saveState.value as SaveState) === 'pending') scheduleSave()
+  }
+
+  // Every change to the draft (edits, undo, redo, discard) autosaves.
+  watch(draftJson, () => {
+    if (!page.value || ['saving', 'conflict', 'invalid'].includes(saveState.value)) return
+    if (!hasUnsavedChanges.value) {
+      saveState.value = 'saved'
+      return
+    }
+    saveState.value = 'pending'
+    scheduleSave()
+  })
+
+  // Switching to another page: save the one being left right away, and start the new one clean.
+  watch(
+    () => toValue(pageId),
+    (_, previous) => {
+      if (previous) void saveNow(previous)
+      saveState.value = 'saved'
+      saveError.value = undefined
+      conflict.value = null
+    },
+  )
+
+  /** After a conflict: replace the draft with the server's (`theirs`) or save this one over it (`mine`). */
+  function resolveConflict(keep: 'theirs' | 'mine') {
+    const server = conflict.value
+    if (!server) return
+    conflict.value = null
+    const latest = toStudioPage(server)
+    if (keep === 'theirs') {
+      queryClient.setQueryData(studioPageQueryKey(server.pageId), latest)
+      past.value = []
+      future.value = []
+      lastCoalesce = null
+      keepSelectionValid(latest.draft)
+      saveState.value = 'saved'
+      notify('Loaded the latest version')
+    } else {
+      writePage(
+        (old) => ({ ...old, revision: latest.revision, savedJson: latest.savedJson, published: latest.published, publishedAt: latest.publishedAt }),
+        server.pageId,
+      )
+      saveState.value = 'pending'
+      void saveNow(server.pageId)
+    }
+  }
+
+  /** Tries a refused or failed save again. */
+  function retrySave() {
+    saveError.value = undefined
+    saveState.value = 'pending'
+    void saveNow()
+  }
+
   /* ---------- Publishing ---------- */
-  function publish() {
-    const p = page.value
-    if (!p) return
-    writePage((old) => ({ ...old, published: clone(old.draft), publishedAt: Date.now() }))
-    setPageStatus(p.pageId, 'live')
+  const publishing = ref(false)
+  /** What to fix (or look at) before publishing; the publish dialog shows it while set. */
+  const issues = shallowRef<ContentIssueDto[] | null>(null)
+
+  /** Saves what's left and waits for it, so the server publishes exactly what's on screen. */
+  async function settle(): Promise<boolean> {
+    for (let i = 0; i < 3 && hasUnsavedChanges.value; i++) {
+      if (['conflict', 'invalid'].includes(saveState.value)) break
+      if (saveState.value === 'error') saveState.value = 'pending'
+      await saveNow()
+    }
+    return !hasUnsavedChanges.value
+  }
+
+  /**
+   * Publishes the draft through the API. Checks it first and shows the issues when there are any; `anyway` skips that
+   * step after the person has seen the warnings. Errors always stop publishing (the server checks again).
+   */
+  async function publish(anyway = false) {
+    if (!page.value || publishing.value) return
+    publishing.value = true
+    try {
+      if (!(await settle())) {
+        notify('Couldn’t save the latest changes, so nothing was published', 'error')
+        return
+      }
+      const p = page.value
+      if (!anyway) {
+        const check = await querier.checkPage(p.pageId)
+        if (!check) return void notify('Couldn’t check the page. Try again.', 'error')
+        if (check.issues.length) return void (issues.value = check.issues)
+      }
+
+      const outcome = await querier.publish(p.pageId, p.revision)
+      switch (outcome.kind) {
+        case 'published': {
+          const latest = toStudioPage(outcome.content)
+          writePage((old) => ({ ...old, published: latest.published, publishedAt: latest.publishedAt }), p.pageId)
+          issues.value = null
+          setPageStatus(p.pageId, 'live')
+          break
+        }
+        case 'rejected':
+          issues.value = outcome.issues
+          break
+        case 'conflict':
+          issues.value = null
+          conflict.value = outcome.current
+          saveState.value = 'conflict'
+          break
+        default:
+          notify('Couldn’t publish the page. Try again.', 'error')
+      }
+    } finally {
+      publishing.value = false
+    }
+  }
+
+  /** Selects what an issue is about, so its settings open. */
+  function showIssue(issue: ContentIssueDto) {
+    issues.value = null
+    if (issue.blockId && issue.sectionId) select({ kind: 'block', sectionId: issue.sectionId, blockId: issue.blockId })
+    else if (issue.sectionId) select({ kind: 'section', sectionId: issue.sectionId })
   }
 
   function discard() {
-    const p = page.value
-    if (!p || !hasChanges.value) return
-    change((d) => Object.assign(d, clone(p.published)))
-    keepSelectionValid(p.published)
+    const published = page.value?.published
+    if (!published || !hasChanges.value) return
+    change((d) => Object.assign(d, clone(published)))
+    keepSelectionValid(published)
     logActivity('You discarded unpublished changes', 'page')
     notify('Changes discarded')
   }
@@ -464,7 +653,14 @@ export function createStudio(
     adding,
     addPicked,
     hasChanges,
+    hasUnsavedChanges,
     isPublished,
+    saveState,
+    saveError,
+    conflict,
+    saveNow,
+    retrySave,
+    resolveConflict,
     canUndo: computed(() => past.value.length > 0),
     canRedo: computed(() => future.value.length > 0),
     select,
@@ -487,12 +683,16 @@ export function createStudio(
     removeSaved,
     uploadMedia,
     publish,
+    publishing,
+    issues,
+    showIssue,
     discard,
   }
 }
 
 function toAsset(m: MediaItem): MediaAsset {
-  return { id: m.id, name: m.fileName, src: m.imageUrl, thumbnailUrl: m.thumbnailUrl }
+  // Documents keep the API route, not the URL the browser loads it from: see studio/media.ts.
+  return { id: m.id, name: m.fileName, src: mediaSrc(m.id), thumbnailUrl: m.thumbnailUrl }
 }
 
 export type Studio = ReturnType<typeof createStudio>

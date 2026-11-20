@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, GetMediaImageData, GetMediaImageErrors, GetMediaImageResponses, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaItemsData, GetMediaItemsResponses, GetMediaThumbnailData, GetMediaThumbnailErrors, GetMediaThumbnailResponses, GetPagesData, GetPagesResponses, GetWebsitesData, GetWebsitesResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
+import type { CheckPageContentData, CheckPageContentErrors, CheckPageContentResponses, DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, DeletePluginData, DeletePluginErrors, DeletePluginResponses, GetMediaImageData, GetMediaImageErrors, GetMediaImageResponses, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaItemsData, GetMediaItemsResponses, GetMediaThumbnailData, GetMediaThumbnailErrors, GetMediaThumbnailResponses, GetPageContentData, GetPageContentErrors, GetPageContentResponses, GetPagesData, GetPagesResponses, GetPluginRunsData, GetPluginRunsErrors, GetPluginRunsResponses, GetPluginsData, GetPluginsResponses, GetWebsitesData, GetWebsitesResponses, PublishPageData, PublishPageErrors, PublishPageResponses, SavePageDraftData, SavePageDraftErrors, SavePageDraftResponses, SetPluginEnabledData, SetPluginEnabledErrors, SetPluginEnabledResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -64,9 +64,88 @@ export const getMediaImage = <ThrowOnError extends boolean = false>(options: Opt
 export const getMediaThumbnail = <ThrowOnError extends boolean = false>(options: Options<GetMediaThumbnailData, ThrowOnError>): RequestResult<GetMediaThumbnailResponses, GetMediaThumbnailErrors, ThrowOnError> => (options.client ?? client).get<GetMediaThumbnailResponses, GetMediaThumbnailErrors, ThrowOnError>({ url: '/media/{id}/thumbnail', ...options });
 
 /**
+ * Gets a page's draft and published document.
+ *
+ * A page without saved content gets an empty draft at revision 0 and no published version.
+ */
+export const getPageContent = <ThrowOnError extends boolean = false>(options: Options<GetPageContentData, ThrowOnError>): RequestResult<GetPageContentResponses, GetPageContentErrors, ThrowOnError> => (options.client ?? client).get<GetPageContentResponses, GetPageContentErrors, ThrowOnError>({ url: '/pages/{pageId}/content', ...options });
+
+/**
+ * Replaces a page's draft. The Design Studio's autosave calls this.
+ *
+ * The document must be complete and pass the structural rules (block types, ranges, safe links, allowed rich text).
+ * Saving a document identical to the current draft returns the same revision, so retries are harmless.
+ */
+export const savePageDraft = <ThrowOnError extends boolean = false>(options: Options<SavePageDraftData, ThrowOnError>): RequestResult<SavePageDraftResponses, SavePageDraftErrors, ThrowOnError> => (options.client ?? client).put<SavePageDraftResponses, SavePageDraftErrors, ThrowOnError>({
+    url: '/pages/{pageId}/draft',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Lists what to fix in a page's draft before it can be published.
+ *
+ * Runs the same rules as publishing, without publishing. Errors block publishing; warnings don't.
+ */
+export const checkPageContent = <ThrowOnError extends boolean = false>(options: Options<CheckPageContentData, ThrowOnError>): RequestResult<CheckPageContentResponses, CheckPageContentErrors, ThrowOnError> => (options.client ?? client).post<CheckPageContentResponses, CheckPageContentErrors, ThrowOnError>({ url: '/pages/{pageId}/check', ...options });
+
+/**
+ * Publishes a page's draft: visitors see it from now on, and the page is marked published.
+ *
+ * Only the draft revision in the request is published, so nothing saved after the person chose Publish goes live
+ * unseen. Drafts with error-level issues are refused with the issues; warnings don't block.
+ */
+export const publishPage = <ThrowOnError extends boolean = false>(options: Options<PublishPageData, ThrowOnError>): RequestResult<PublishPageResponses, PublishPageErrors, ThrowOnError> => (options.client ?? client).post<PublishPageResponses, PublishPageErrors, ThrowOnError>({
+    url: '/pages/{pageId}/publish',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Lists the pages of a website, most recently updated first.
  */
 export const getPages = <ThrowOnError extends boolean = false>(options: Options<GetPagesData, ThrowOnError>): RequestResult<GetPagesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetPagesResponses, unknown, ThrowOnError>({ url: '/pages', ...options });
+
+/**
+ * Lists the installed plugins, including ones that couldn't be loaded and why.
+ */
+export const getPlugins = <ThrowOnError extends boolean = false>(options?: Options<GetPluginsData, ThrowOnError>): RequestResult<GetPluginsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetPluginsResponses, unknown, ThrowOnError>({ url: '/plugins', ...options });
+
+/**
+ * Lists a plugin's recent runs, newest first, with what it logged and why a run failed.
+ *
+ * Kept in memory: the last 25 runs per plugin since the API started.
+ */
+export const getPluginRuns = <ThrowOnError extends boolean = false>(options: Options<GetPluginRunsData, ThrowOnError>): RequestResult<GetPluginRunsResponses, GetPluginRunsErrors, ThrowOnError> => (options.client ?? client).get<GetPluginRunsResponses, GetPluginRunsErrors, ThrowOnError>({ url: '/plugins/{pluginId}/runs', ...options });
+
+/**
+ * Turns a plugin on or off, at once and across restarts.
+ *
+ * A plugin that is off stays installed: it isn't run for any event and its blocks aren't offered in the studio.
+ * Pages that already use its blocks keep them; the publish check warns that they won't show. Remembered in
+ * `plugins.state.json` in the plugins folder.
+ */
+export const setPluginEnabled = <ThrowOnError extends boolean = false>(options: Options<SetPluginEnabledData, ThrowOnError>): RequestResult<SetPluginEnabledResponses, SetPluginEnabledErrors, ThrowOnError> => (options.client ?? client).put<SetPluginEnabledResponses, SetPluginEnabledErrors, ThrowOnError>({
+    url: '/plugins/{pluginId}/enabled',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Deletes a plugin: its folder is removed and it stops running at once.
+ *
+ * Pages that use its blocks keep them; the publish check warns that they won't show.
+ */
+export const deletePlugin = <ThrowOnError extends boolean = false>(options: Options<DeletePluginData, ThrowOnError>): RequestResult<DeletePluginResponses, DeletePluginErrors, ThrowOnError> => (options.client ?? client).delete<DeletePluginResponses, DeletePluginErrors, ThrowOnError>({ url: '/plugins/{pluginId}', ...options });
 
 /**
  * Lists all websites, most recently updated first.

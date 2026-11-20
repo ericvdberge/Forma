@@ -2,13 +2,16 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { TriangleAlert, X } from 'lucide-vue-next'
-import { FButton, FSkeleton, cn } from '@forma/design-system'
+import { FButton, FModal, FSkeleton, cn } from '@forma/design-system'
 import { useActiveWebsite } from '@/composables/useActiveWebsite'
 import { usePages } from '@/composables/usePages'
+import { usePlugins } from '@/composables/usePlugins'
+import { setPluginBlocks } from '@/studio/pluginBlocks'
 import { useToast } from '@/composables/useToast'
 import { createStudio, provideStudio } from '@/composables/useStudio'
-import type { StudioPageSeed } from '@/queriers/useStudioQuerier'
+import { StudioPageNotFoundError, type StudioPageSeed } from '@/queriers/useStudioQuerier'
 import AddDialog from './AddDialog.vue'
+import PublishDialog from './PublishDialog.vue'
 import StudioCanvas from './StudioCanvas.vue'
 import StudioInspector from './StudioInspector.vue'
 import StudioLibrary from './StudioLibrary.vue'
@@ -25,6 +28,10 @@ const { getPages } = usePages()
 const { notify } = useToast()
 const pagesQuery = getPages(() => activeWebsite.value.id)
 const { pages } = pagesQuery
+
+/* Blocks that installed plugins add to the library. */
+const { data: plugins } = usePlugins().getPlugins()
+watch(plugins, (list) => setPluginBlocks(list ?? []), { immediate: true })
 
 /* The page from the URL. One that isn't in the active website (deleted, or another website's) goes back to Pages. */
 const pageId = computed(() => (typeof route.params.pageId === 'string' ? route.params.pageId : ''))
@@ -46,7 +53,7 @@ watch(page, (p) => {
 
 const seed = computed<StudioPageSeed | undefined>(() =>
   page.value
-    ? { title: page.value.title, slug: page.value.slug, websiteName: activeWebsite.value.name, published: page.value.status === 'live' }
+    ? { title: page.value.title, websiteName: activeWebsite.value.name }
     : undefined,
 )
 const studio = createStudio(() => (page.value ? pageId.value : ''), seed, () => activeWebsite.value.id)
@@ -129,20 +136,25 @@ function onKey(e: KeyboardEvent) {
   }
 }
 
-/* Drafts live in the query cache, so they survive navigating around the app but not a reload. */
+/* Drafts autosave; closing the tab with edits the server doesn't have yet asks first (and starts saving them). */
 function onBeforeUnload(e: BeforeUnloadEvent) {
-  if (studio.hasChanges.value) e.preventDefault()
+  if (!studio.hasUnsavedChanges.value) return
+  void studio.saveNow()
+  e.preventDefault()
 }
 onMounted(() => {
   window.addEventListener('keydown', onKey)
   window.addEventListener('beforeunload', onBeforeUnload)
 })
 onBeforeUnmount(() => {
+  // Leaving the editor (e.g. back to Pages): save what's left now instead of after the autosave delay.
+  void studio.saveNow()
   window.removeEventListener('keydown', onKey)
   window.removeEventListener('beforeunload', onBeforeUnload)
 })
 
 const loading = computed(() => pagesQuery.isPending.value || !page.value || studio.query.isPending.value)
+const notOnServer = computed(() => studio.query.error.value instanceof StudioPageNotFoundError)
 </script>
 
 <template>
@@ -190,8 +202,11 @@ const loading = computed(() => pagesQuery.isPending.value || !page.value || stud
         </div>
         <div v-else-if="studio.query.isError.value" class="flex flex-1 flex-col items-center justify-center gap-3 text-center">
           <TriangleAlert class="size-5" aria-hidden="true" />
-          <p class="font-medium">Couldn’t open this page</p>
-          <FButton size="sm" variant="secondary" @click="studio.query.refetch()">Try again</FButton>
+          <p class="font-medium">{{ notOnServer ? 'This page isn’t saved yet' : 'Couldn’t open this page' }}</p>
+          <p v-if="notOnServer" class="max-w-sm text-sm text-muted">
+            It was created in this browser and the server doesn’t have it, so there’s nowhere to save its content.
+          </p>
+          <FButton v-else size="sm" variant="secondary" @click="studio.query.refetch()">Try again</FButton>
         </div>
         <StudioCanvas v-else />
       </div>
@@ -224,6 +239,21 @@ const loading = computed(() => pagesQuery.isPending.value || !page.value || stud
       @close="studio.adding.value = null"
       @pick="studio.addPicked($event); drawer = null"
     />
+    <PublishDialog />
+    <FModal :open="!!studio.conflict.value" size="sm" labelledby="conflict-title" @update:open="!$event && studio.resolveConflict('theirs')">
+      <div class="flex flex-col gap-5 p-6 sm:p-7">
+        <div>
+          <h2 id="conflict-title" class="font-display text-xl font-bold tracking-[-0.02em]">This page was changed somewhere else</h2>
+          <p class="mt-2 text-sm text-muted">
+            Someone (or you, in another tab) saved this page after you opened it. Load their version, or keep yours and save it over theirs.
+          </p>
+        </div>
+        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <FButton variant="secondary" size="sm" @click="studio.resolveConflict('mine')">Keep mine</FButton>
+          <FButton size="sm" data-autofocus @click="studio.resolveConflict('theirs')">Load the latest version</FButton>
+        </div>
+      </div>
+    </FModal>
     <AppToast />
   </div>
 </template>

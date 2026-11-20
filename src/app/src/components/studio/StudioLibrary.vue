@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, type Component } from 'vue'
-import { Bookmark, PanelTop, Search, Trash2 } from 'lucide-vue-next'
+import { Bookmark, PanelTop, Puzzle, Search, Trash2 } from 'lucide-vue-next'
 import { FStatus, cn } from '@forma/design-system'
 import { useStudio, type DragPayload } from '@/composables/useStudio'
-import { blockDefinition, libraryBlocks } from '@/studio/blocks'
+import { definitionOf, blockDefinition, libraryBlocks } from '@/studio/blocks'
+import { pluginBlockIcon, pluginBlocks } from '@/studio/pluginBlocks'
 import { globalElements, sectionTemplates, sectionTypeLabels } from '@/studio/sections'
 import { timeAgo } from '@/utils/time'
 
@@ -26,6 +27,8 @@ interface Tile {
   label: string
   icon: Component
   payload: DragPayload
+  /** Tooltip; defaults to "Add {label}". */
+  hint?: string
 }
 const blank = sectionTemplates.find((t) => t.id === 'content')!
 const blockTiles = computed<Tile[]>(() =>
@@ -36,6 +39,21 @@ const blockTiles = computed<Tile[]>(() =>
       return { key: type, label: def.label, icon: def.icon, payload: { kind: 'new-block', type } } as Tile
     }),
   ].filter((t) => matches(t.label)),
+)
+/** Blocks that installed plugins add, in their own group so they're easy to find. */
+const pluginTiles = computed<Tile[]>(() =>
+  [...pluginBlocks.value.values()]
+    .map(
+      (b) =>
+        ({
+          key: `plugin:${b.pluginId}/${b.id}`,
+          label: b.label,
+          icon: pluginBlockIcon(b.icon),
+          payload: { kind: 'new-plugin-block', plugin: b.pluginId, block: b.id },
+          hint: `${b.description ? `${b.description}. ` : ''}From the ${b.pluginName} plugin`,
+        }) as Tile,
+    )
+    .filter((t) => matches(t.label)),
 )
 const globalTiles = computed<Tile[]>(() =>
   globalElements.map((g) => ({ key: g.id, label: g.label, icon: g.icon, payload: { kind: 'template', id: g.id } }) as Tile).filter((t) => matches(t.label)),
@@ -130,6 +148,27 @@ const sel = computed(() => studio.selection.value)
             </button>
           </li>
         </ul>
+        <template v-if="pluginTiles.length">
+          <h2 class="mb-3 mt-6 flex items-center gap-1.5 text-sm font-medium">
+            <Puzzle class="size-3.5" :stroke-width="1.8" aria-hidden="true" /> From plugins
+          </h2>
+          <ul class="grid grid-cols-3 gap-2">
+            <li v-for="t in pluginTiles" :key="t.key">
+              <button
+                type="button"
+                draggable="true"
+                class="flex aspect-square w-full cursor-grab flex-col items-center justify-center gap-2 rounded-xl bg-white px-1 text-center text-[0.75rem] text-charcoal/80 ring-1 ring-accent-200 transition hover:text-charcoal hover:shadow-soft hover:ring-accent-300 active:cursor-grabbing"
+                :title="t.hint ?? `Add ${t.label}`"
+                @dragstart="onDragStart($event, t.payload, t.label)"
+                @dragend="onDragEnd"
+                @click="studio.insert(t.payload)"
+              >
+                <component :is="t.icon" class="size-5 text-accent-600" :stroke-width="1.5" aria-hidden="true" />
+                {{ t.label }}
+              </button>
+            </li>
+          </ul>
+        </template>
         <template v-if="globalTiles.length">
           <h2 class="mb-3 mt-6 text-sm font-medium">Global elements</h2>
           <ul class="grid grid-cols-3 gap-2">
@@ -149,7 +188,7 @@ const sel = computed(() => studio.selection.value)
             </li>
           </ul>
         </template>
-        <p v-if="!blockTiles.length && !globalTiles.length" class="py-8 text-center text-sm text-muted">No blocks match “{{ query.trim() }}”.</p>
+        <p v-if="!blockTiles.length && !pluginTiles.length && !globalTiles.length" class="py-8 text-center text-sm text-muted">No blocks match “{{ query.trim() }}”.</p>
       </template>
 
       <!-- Templates -->
@@ -189,7 +228,7 @@ const sel = computed(() => studio.selection.value)
             >
               <span class="grid size-10 shrink-0 place-items-center rounded-lg bg-canvas">
                 <component
-                  :is="item.kind === 'section' ? PanelTop : blockDefinition(item.block.type).icon"
+                  :is="item.kind === 'section' ? PanelTop : definitionOf(item.block).icon"
                   class="size-5"
                   :stroke-width="1.5"
                   aria-hidden="true"
@@ -198,7 +237,7 @@ const sel = computed(() => studio.selection.value)
               <span class="min-w-0">
                 <span class="block truncate text-sm font-medium">{{ item.name }}</span>
                 <span class="mt-0.5 block text-xs text-muted">
-                  {{ item.kind === 'section' ? 'Section' : blockDefinition(item.block.type).label }} · {{ timeAgo(item.savedAt) }}
+                  {{ item.kind === 'section' ? 'Section' : definitionOf(item.block).label }} · {{ timeAgo(item.savedAt) }}
                 </span>
               </span>
             </button>
@@ -247,8 +286,8 @@ const sel = computed(() => studio.selection.value)
                 "
                 @click="studio.select({ kind: 'block', sectionId: section.id, blockId: block.id })"
               >
-                <component :is="blockDefinition(block.type).icon" class="size-3.5 shrink-0" :stroke-width="1.6" aria-hidden="true" />
-                {{ blockDefinition(block.type).label }}
+                <component :is="definitionOf(block).icon" class="size-3.5 shrink-0" :stroke-width="1.6" aria-hidden="true" />
+                {{ definitionOf(block).label }}
               </button>
             </li>
           </ol>

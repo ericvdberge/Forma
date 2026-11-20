@@ -1,7 +1,8 @@
 using Forma.Infrastructure.Imaging;
 using Forma.Infrastructure.Persistence;
-
+using Forma.Infrastructure.Plugins;
 using Forma.Infrastructure.Repositories.Media;
+using Forma.Infrastructure.Repositories.PageDocuments;
 using Forma.Infrastructure.Repositories.Pages;
 using Forma.Infrastructure.Repositories.Websites;
 using Forma.Infrastructure.Storage;
@@ -23,11 +24,17 @@ public static class DependencyInjection
         services.AddScoped<IWebsiteRepository, WebsiteRepository>();
         services.AddScoped<IPageRepository, PageRepository>();
         services.AddScoped<IMediaRepository, MediaRepository>();
+        services.AddScoped<IPageDocumentRepository, PageDocumentRepository>();
 
         // Uploaded media are plain files under Assets:Path (relative paths resolve from the working directory).
         var assetsPath = configuration["Assets:Path"] is { Length: > 0 } path ? path : "assets";
         services.AddSingleton<IAssetStorage>(new FileSystemAssetStorage(assetsPath));
         services.AddSingleton<IImageProcessor, VipsImageProcessor>();
+
+        // Plugins run in a WebAssembly sandbox; see docs/design/plugins.md. The catalog is registered by the
+        // application layer, which knows the event names.
+        services.Configure<PluginOptions>(configuration.GetSection(PluginOptions.SectionName));
+        services.AddSingleton<IWasmSandbox, WasmSandbox>();
 
         return services;
     }

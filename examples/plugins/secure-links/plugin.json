@@ -1,0 +1,7 @@
+{
+  "id": "secure-links",
+  "name": "Secure links",
+  "version": "1.0.0",
+  "description": "Warns about links that use plain http:// before a page is published.",
+  "events": ["page.check", "page.published"]
+}

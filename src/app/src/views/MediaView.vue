@@ -11,8 +11,6 @@ import {
   ImageIcon,
   ImagePlus,
   Images,
-  LayoutGrid,
-  List,
   Scale,
   Search,
   Trash2,
@@ -23,7 +21,10 @@ import {
   FMediaCard,
   FMenu,
   FPillTabs,
-  FSegmented,
+  FCollection,
+  FViewSwitch,
+  type FCollectionColumn,
+  type FCollectionView,
   FSelect,
   FSkeleton,
   FStatGroup,
@@ -97,11 +98,14 @@ const sortOptions: Array<{ label: string; value: Sort }> = [
   { label: 'Name A–Z', value: 'name' },
   { label: 'Largest first', value: 'largest' },
 ]
-type View = 'grid' | 'list'
-const view = useLocalStorage<View>('forma.mediaView', 'grid')
-const viewOptions = [
-  { value: 'grid' as const, label: 'Grid view', icon: LayoutGrid },
-  { value: 'list' as const, label: 'List view', icon: List },
+const view = useLocalStorage<FCollectionView>('forma.mediaView', 'grid')
+const numbers = 'whitespace-nowrap tabular-nums text-muted'
+const listColumns: FCollectionColumn[] = [
+  { key: 'file', label: 'File' },
+  { key: 'dimensions', label: 'Dimensions', class: numbers },
+  { key: 'size', label: 'Size', class: numbers },
+  { key: 'uploaded', label: 'Uploaded', class: 'whitespace-nowrap text-muted' },
+  { key: 'actions', label: 'Actions', hideLabel: true, stop: true, class: 'w-14' },
 ]
 
 const searched = computed(() => {
@@ -298,7 +302,7 @@ const uploadedOn = (ts: number) => new Intl.DateTimeFormat('en', { dateStyle: 'm
               />
             </div>
             <FSelect v-model="sort" label="Sort" hide-label size="sm" variant="plain" :options="sortOptions" class="w-[9.5rem]" />
-            <FSegmented v-model="view" :options="viewOptions" label="Layout" />
+            <FViewSwitch v-model="view" />
           </div>
         </div>
 
@@ -339,9 +343,20 @@ const uploadedOn = (ts: number) => new Intl.DateTimeFormat('en', { dateStyle: 'm
           <FButton size="sm" variant="secondary" @click="clearFilters">Clear filters</FButton>
         </div>
 
-        <!-- Grid -->
-        <ul v-else-if="view === 'grid'" class="mt-4 grid grid-cols-1 gap-4 @lg:grid-cols-2 @2xl:grid-cols-3 @6xl:grid-cols-4" aria-label="Images">
-          <li v-for="m in visible" :key="m.id">
+        <!-- Grid or list -->
+        <FCollection
+          v-else
+          class="mt-4"
+          :view="view"
+          :items="visible"
+          :item-key="(m) => m.id"
+          :columns="listColumns"
+          label="Images"
+          :selected-key="openId"
+          grid-class="grid-cols-1 @lg:grid-cols-2 @2xl:grid-cols-3 @6xl:grid-cols-4"
+          @open="(m) => open(m.id)"
+        >
+          <template #card="{ item: m }">
             <FMediaCard
               :src="m.thumbnailUrl"
               :alt="`${m.fileName}, ${m.width} × ${m.height}, ${formatBytes(m.sizeInBytes)}`"
@@ -353,47 +368,23 @@ const uploadedOn = (ts: number) => new Intl.DateTimeFormat('en', { dateStyle: 'm
                 <FMenu :items="menuFor(m)" :label="`Actions for ${m.fileName}`" variant="glass" />
               </template>
             </FMediaCard>
-          </li>
-        </ul>
-
-        <!-- List -->
-        <div v-else class="mt-6 overflow-x-auto rounded-panel bg-white ring-1 ring-charcoal/[0.06] shadow-soft">
-          <table class="w-full min-w-[640px] text-left text-sm">
-            <thead class="text-xs text-muted">
-              <tr class="border-b border-charcoal/[0.06]">
-                <th scope="col" class="px-5 py-3 font-medium">File</th>
-                <th scope="col" class="px-5 py-3 font-medium">Dimensions</th>
-                <th scope="col" class="px-5 py-3 font-medium">Size</th>
-                <th scope="col" class="px-5 py-3 font-medium">Uploaded</th>
-                <th scope="col" class="w-14 px-5 py-3"><span class="sr-only">Actions</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="m in visible"
-                :key="m.id"
-                class="cursor-pointer border-b border-charcoal/[0.04] transition-colors last:border-0 hover:bg-warm-white"
-                @click="open(m.id)"
-              >
-                <td class="px-5 py-3">
-                  <div class="flex items-center gap-3">
-                    <img :src="m.thumbnailUrl" alt="" loading="lazy" class="h-11 w-16 shrink-0 rounded-lg bg-canvas object-cover" />
-                    <div class="min-w-0">
-                      <button type="button" class="block max-w-[260px] truncate text-left font-medium hover:underline" @click.stop="open(m.id)">{{ m.fileName }}</button>
-                      <p class="flex items-center gap-1 text-xs text-muted"><ImageIcon class="size-3" aria-hidden="true" />{{ m.extension }}</p>
-                    </div>
-                  </div>
-                </td>
-                <td class="whitespace-nowrap px-5 py-3 tabular-nums text-muted">{{ m.width }} × {{ m.height }}</td>
-                <td class="whitespace-nowrap px-5 py-3 tabular-nums text-muted">{{ formatBytes(m.sizeInBytes) }}</td>
-                <td class="whitespace-nowrap px-5 py-3 text-muted">{{ uploadedOn(m.createdAt) }}</td>
-                <td class="px-5 py-3" @click.stop>
-                  <FMenu :items="menuFor(m)" :label="`Actions for ${m.fileName}`" />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+          </template>
+          <template #cell-file="{ item: m }">
+            <div class="flex items-center gap-3">
+              <img :src="m.thumbnailUrl" alt="" loading="lazy" class="h-11 w-16 shrink-0 rounded-lg bg-canvas object-cover" />
+              <div class="min-w-0">
+                <button type="button" class="block max-w-[260px] truncate text-left font-medium hover:underline" @click.stop="open(m.id)">{{ m.fileName }}</button>
+                <p class="flex items-center gap-1 text-xs text-muted"><ImageIcon class="size-3" aria-hidden="true" />{{ m.extension }}</p>
+              </div>
+            </div>
+          </template>
+          <template #cell-dimensions="{ item: m }">{{ m.width }} × {{ m.height }}</template>
+          <template #cell-size="{ item: m }">{{ formatBytes(m.sizeInBytes) }}</template>
+          <template #cell-uploaded="{ item: m }">{{ uploadedOn(m.createdAt) }}</template>
+          <template #cell-actions="{ item: m }">
+            <FMenu :items="menuFor(m)" :label="`Actions for ${m.fileName}`" />
+          </template>
+        </FCollection>
       </div>
 
       <!-- Side panel -->

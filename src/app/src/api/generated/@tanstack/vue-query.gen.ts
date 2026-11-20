@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/vue-query';
 
 import { client } from '../client.gen';
-import { deleteMedia, getMediaImage, getMediaItem, getMediaItems, getMediaThumbnail, getPages, getWebsites, type Options, uploadMedia } from '../sdk.gen';
-import type { DeleteMediaData, DeleteMediaResponse, GetMediaImageData, GetMediaImageResponse, GetMediaItemData, GetMediaItemResponse, GetMediaItemsData, GetMediaItemsResponse, GetMediaThumbnailData, GetMediaThumbnailResponse, GetPagesData, GetPagesResponse, GetWebsitesData, GetWebsitesResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
+import { checkPageContent, deleteMedia, deletePlugin, getMediaImage, getMediaItem, getMediaItems, getMediaThumbnail, getPageContent, getPages, getPluginRuns, getPlugins, getWebsites, type Options, publishPage, savePageDraft, setPluginEnabled, uploadMedia } from '../sdk.gen';
+import type { CheckPageContentData, CheckPageContentResponse, DeleteMediaData, DeleteMediaResponse, DeletePluginData, DeletePluginResponse, GetMediaImageData, GetMediaImageResponse, GetMediaItemData, GetMediaItemResponse, GetMediaItemsData, GetMediaItemsResponse, GetMediaThumbnailData, GetMediaThumbnailResponse, GetPageContentData, GetPageContentResponse, GetPagesData, GetPagesResponse, GetPluginRunsData, GetPluginRunsResponse, GetPluginsData, GetPluginsResponse, GetWebsitesData, GetWebsitesResponse, PublishPageData, PublishPageError, PublishPageResponse, SavePageDraftData, SavePageDraftError, SavePageDraftResponse, SetPluginEnabledData, SetPluginEnabledResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -152,6 +152,85 @@ export const getMediaThumbnailOptions = (options: Options<GetMediaThumbnailData>
     queryKey: getMediaThumbnailQueryKey(options)
 });
 
+export const getPageContentQueryKey = (options: Options<GetPageContentData>) => createQueryKey('getPageContent', options);
+
+/**
+ * Gets a page's draft and published document.
+ *
+ * A page without saved content gets an empty draft at revision 0 and no published version.
+ */
+export const getPageContentOptions = (options: Options<GetPageContentData>) => queryOptions<GetPageContentResponse, DefaultError, GetPageContentResponse, ReturnType<typeof getPageContentQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPageContent({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPageContentQueryKey(options)
+});
+
+/**
+ * Replaces a page's draft. The Design Studio's autosave calls this.
+ *
+ * The document must be complete and pass the structural rules (block types, ranges, safe links, allowed rich text).
+ * Saving a document identical to the current draft returns the same revision, so retries are harmless.
+ */
+export const savePageDraftMutation = (options?: Partial<Options<SavePageDraftData>>): UseMutationOptions<SavePageDraftResponse, SavePageDraftError, Options<SavePageDraftData>> => {
+    const mutationOptions: UseMutationOptions<SavePageDraftResponse, SavePageDraftError, Options<SavePageDraftData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await savePageDraft({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Lists what to fix in a page's draft before it can be published.
+ *
+ * Runs the same rules as publishing, without publishing. Errors block publishing; warnings don't.
+ */
+export const checkPageContentMutation = (options?: Partial<Options<CheckPageContentData>>): UseMutationOptions<CheckPageContentResponse, DefaultError, Options<CheckPageContentData>> => {
+    const mutationOptions: UseMutationOptions<CheckPageContentResponse, DefaultError, Options<CheckPageContentData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await checkPageContent({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Publishes a page's draft: visitors see it from now on, and the page is marked published.
+ *
+ * Only the draft revision in the request is published, so nothing saved after the person chose Publish goes live
+ * unseen. Drafts with error-level issues are refused with the issues; warnings don't block.
+ */
+export const publishPageMutation = (options?: Partial<Options<PublishPageData>>): UseMutationOptions<PublishPageResponse, PublishPageError, Options<PublishPageData>> => {
+    const mutationOptions: UseMutationOptions<PublishPageResponse, PublishPageError, Options<PublishPageData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await publishPage({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
 export const getPagesQueryKey = (options: Options<GetPagesData>) => createQueryKey('getPages', options);
 
 /**
@@ -169,6 +248,84 @@ export const getPagesOptions = (options: Options<GetPagesData>) => queryOptions<
     },
     queryKey: getPagesQueryKey(options)
 });
+
+export const getPluginsQueryKey = (options?: Options<GetPluginsData>) => createQueryKey('getPlugins', options);
+
+/**
+ * Lists the installed plugins, including ones that couldn't be loaded and why.
+ */
+export const getPluginsOptions = (options?: Options<GetPluginsData>) => queryOptions<GetPluginsResponse, DefaultError, GetPluginsResponse, ReturnType<typeof getPluginsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPlugins({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPluginsQueryKey(options)
+});
+
+export const getPluginRunsQueryKey = (options: Options<GetPluginRunsData>) => createQueryKey('getPluginRuns', options);
+
+/**
+ * Lists a plugin's recent runs, newest first, with what it logged and why a run failed.
+ *
+ * Kept in memory: the last 25 runs per plugin since the API started.
+ */
+export const getPluginRunsOptions = (options: Options<GetPluginRunsData>) => queryOptions<GetPluginRunsResponse, DefaultError, GetPluginRunsResponse, ReturnType<typeof getPluginRunsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPluginRuns({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPluginRunsQueryKey(options)
+});
+
+/**
+ * Turns a plugin on or off, at once and across restarts.
+ *
+ * A plugin that is off stays installed: it isn't run for any event and its blocks aren't offered in the studio.
+ * Pages that already use its blocks keep them; the publish check warns that they won't show. Remembered in
+ * `plugins.state.json` in the plugins folder.
+ */
+export const setPluginEnabledMutation = (options?: Partial<Options<SetPluginEnabledData>>): UseMutationOptions<SetPluginEnabledResponse, DefaultError, Options<SetPluginEnabledData>> => {
+    const mutationOptions: UseMutationOptions<SetPluginEnabledResponse, DefaultError, Options<SetPluginEnabledData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await setPluginEnabled({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Deletes a plugin: its folder is removed and it stops running at once.
+ *
+ * Pages that use its blocks keep them; the publish check warns that they won't show.
+ */
+export const deletePluginMutation = (options?: Partial<Options<DeletePluginData>>): UseMutationOptions<DeletePluginResponse, DefaultError, Options<DeletePluginData>> => {
+    const mutationOptions: UseMutationOptions<DeletePluginResponse, DefaultError, Options<DeletePluginData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deletePlugin({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const getWebsitesQueryKey = (options?: Options<GetWebsitesData>) => createQueryKey('getWebsites', options);
 

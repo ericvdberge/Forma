@@ -242,6 +242,236 @@
         }
       }
     },
+    "/pages/{pageId}/content": {
+      "get": {
+        "tags": [
+          "Page content"
+        ],
+        "summary": "Gets a page's draft and published document.",
+        "description": "A page without saved content gets an empty draft at revision 0 and no published version.",
+        "operationId": "GetPageContent",
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "description": "The page's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The page's draft and published document.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageContentDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No page exists with this id."
+          }
+        }
+      }
+    },
+    "/pages/{pageId}/draft": {
+      "put": {
+        "tags": [
+          "Page content"
+        ],
+        "summary": "Replaces a page's draft. The Design Studio's autosave calls this.",
+        "description": "The document must be complete and pass the structural rules (block types, ranges, safe links, allowed rich text).\r\nSaving a document identical to the current draft returns the same revision, so retries are harmless.",
+        "operationId": "SavePageDraft",
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "description": "The page's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Cancels the request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveDraftRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The draft was saved (or was already identical).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedDraftDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The document is malformed or breaks a structural rule.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No page exists with this id."
+          },
+          "409": {
+            "description": "The draft was saved elsewhere since `baseRevision`; the body is the current content.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageContentDto"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body is larger than 1 MB.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages/{pageId}/check": {
+      "post": {
+        "tags": [
+          "Page content"
+        ],
+        "summary": "Lists what to fix in a page's draft before it can be published.",
+        "description": "Runs the same rules as publishing, without publishing. Errors block publishing; warnings don't.",
+        "operationId": "CheckPageContent",
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "description": "The page's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The checked draft revision and its issues (empty when there is nothing to fix).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentCheckDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No page exists with this id."
+          }
+        }
+      }
+    },
+    "/pages/{pageId}/publish": {
+      "post": {
+        "tags": [
+          "Page content"
+        ],
+        "summary": "Publishes a page's draft: visitors see it from now on, and the page is marked published.",
+        "description": "Only the draft revision in the request is published, so nothing saved after the person chose Publish goes live\r\nunseen. Drafts with error-level issues are refused with the issues; warnings don't block.",
+        "operationId": "PublishPage",
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "description": "The page's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Cancels the request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishPageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Published; the body is the page's content now.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageContentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is malformed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No page exists with this id."
+          },
+          "409": {
+            "description": "The draft is no longer at this revision; the body is the current content.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageContentDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The draft has errors to fix first; the body lists all its issues.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishRejectedDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/pages": {
       "get": {
         "tags": [
@@ -278,6 +508,145 @@
         }
       }
     },
+    "/plugins": {
+      "get": {
+        "tags": [
+          "Plugins"
+        ],
+        "summary": "Lists the installed plugins, including ones that couldn't be loaded and why.",
+        "operationId": "GetPlugins",
+        "responses": {
+          "200": {
+            "description": "The installed plugins; empty when there are none.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PluginDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/plugins/{pluginId}/runs": {
+      "get": {
+        "tags": [
+          "Plugins"
+        ],
+        "summary": "Lists a plugin's recent runs, newest first, with what it logged and why a run failed.",
+        "description": "Kept in memory: the last 25 runs per plugin since the API started.",
+        "operationId": "GetPluginRuns",
+        "parameters": [
+          {
+            "name": "pluginId",
+            "in": "path",
+            "description": "The plugin's id.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The plugin's recent runs; empty when it hasn't run yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PluginRunDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No plugin is installed with this id."
+          }
+        }
+      }
+    },
+    "/plugins/{pluginId}/enabled": {
+      "put": {
+        "tags": [
+          "Plugins"
+        ],
+        "summary": "Turns a plugin on or off, at once and across restarts.",
+        "description": "A plugin that is off stays installed: it isn't run for any event and its blocks aren't offered in the studio.\r\nPages that already use its blocks keep them; the publish check warns that they won't show. Remembered in\r\n`plugins.state.json` in the plugins folder.",
+        "operationId": "SetPluginEnabled",
+        "parameters": [
+          {
+            "name": "pluginId",
+            "in": "path",
+            "description": "The plugin's id.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Service that changes the plugin.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPluginEnabledRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The plugin, turned on or off.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No plugin is installed with this id."
+          }
+        }
+      }
+    },
+    "/plugins/{pluginId}": {
+      "delete": {
+        "tags": [
+          "Plugins"
+        ],
+        "summary": "Deletes a plugin: its folder is removed and it stops running at once.",
+        "description": "Pages that use its blocks keep them; the publish check warns that they won't show.",
+        "operationId": "DeletePlugin",
+        "parameters": [
+          {
+            "name": "pluginId",
+            "in": "path",
+            "description": "The plugin's id.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The plugin was deleted."
+          },
+          "404": {
+            "description": "No plugin is installed with this id."
+          }
+        }
+      }
+    },
     "/websites": {
       "get": {
         "tags": [
@@ -305,6 +674,1045 @@
   },
   "components": {
     "schemas": {
+      "Background": {
+        "required": [
+          "kind",
+          "color",
+          "image",
+          "position",
+          "gradientFrom",
+          "gradientTo",
+          "gradientAngle",
+          "overlayColor",
+          "overlayOpacity"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/BackgroundKind"
+          },
+          "color": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "position": {
+            "type": "string"
+          },
+          "gradientFrom": {
+            "type": "string"
+          },
+          "gradientTo": {
+            "type": "string"
+          },
+          "gradientAngle": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "overlayColor": {
+            "type": "string"
+          },
+          "overlayOpacity": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackgroundKind": {
+        "enum": [
+          "none",
+          "color",
+          "image",
+          "gradient"
+        ]
+      },
+      "BadgeProps": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Block": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/BlockHeadingBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockTextBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockButtonBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockBadgeBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockImageBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockGalleryBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockVideoBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockDividerBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockSpacerBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockFormBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockMapBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockCarouselBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockFaqBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockTestimonialsBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockFeaturesBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockNavBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockPluginBlock"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "heading": "#/components/schemas/BlockHeadingBlock",
+            "text": "#/components/schemas/BlockTextBlock",
+            "button": "#/components/schemas/BlockButtonBlock",
+            "badge": "#/components/schemas/BlockBadgeBlock",
+            "image": "#/components/schemas/BlockImageBlock",
+            "gallery": "#/components/schemas/BlockGalleryBlock",
+            "video": "#/components/schemas/BlockVideoBlock",
+            "divider": "#/components/schemas/BlockDividerBlock",
+            "spacer": "#/components/schemas/BlockSpacerBlock",
+            "form": "#/components/schemas/BlockFormBlock",
+            "map": "#/components/schemas/BlockMapBlock",
+            "carousel": "#/components/schemas/BlockCarouselBlock",
+            "faq": "#/components/schemas/BlockFaqBlock",
+            "testimonials": "#/components/schemas/BlockTestimonialsBlock",
+            "features": "#/components/schemas/BlockFeaturesBlock",
+            "nav": "#/components/schemas/BlockNavBlock",
+            "plugin": "#/components/schemas/BlockPluginBlock"
+          }
+        }
+      },
+      "BlockAlign": {
+        "enum": [
+          "inherit",
+          "left",
+          "center",
+          "right"
+        ]
+      },
+      "BlockBadgeBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "badge"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/BadgeProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockButtonBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "button"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/ButtonProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockCarouselBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "carousel"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/CarouselProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockDividerBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "divider"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/DividerProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockFaqBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "faq"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/FaqProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockFeaturesBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "features"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/FeaturesProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockFormBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "form"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/FormProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockGalleryBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "gallery"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/GalleryProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockHeadingBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "heading"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/HeadingProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockImageBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "image"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/ImageProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockMapBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "map"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/MapProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockMaxWidth": {
+        "enum": [
+          "none",
+          "sm",
+          "md",
+          "lg"
+        ]
+      },
+      "BlockNavBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "nav"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/NavProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockPluginBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "plugin"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/PluginBlockProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockSpacerBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "spacer"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/SpacerProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockStyle": {
+        "required": [
+          "align",
+          "marginTop",
+          "marginBottom",
+          "maxWidth",
+          "anchor",
+          "className",
+          "visibility"
+        ],
+        "type": "object",
+        "properties": {
+          "align": {
+            "$ref": "#/components/schemas/BlockAlign"
+          },
+          "marginTop": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "marginBottom": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxWidth": {
+            "$ref": "#/components/schemas/BlockMaxWidth"
+          },
+          "anchor": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockTestimonialsBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "testimonials"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/TestimonialsProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockTextBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "text"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/TextProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockVideoBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "video"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/VideoProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ButtonProps": {
+        "required": [
+          "label",
+          "href",
+          "variant",
+          "arrow",
+          "size"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string"
+          },
+          "variant": {
+            "$ref": "#/components/schemas/ButtonVariant"
+          },
+          "arrow": {
+            "type": "boolean"
+          },
+          "size": {
+            "$ref": "#/components/schemas/ButtonSize"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ButtonSize": {
+        "enum": [
+          "sm",
+          "md",
+          "lg"
+        ]
+      },
+      "ButtonVariant": {
+        "enum": [
+          "primary",
+          "secondary",
+          "accent"
+        ]
+      },
+      "CarouselAspect": {
+        "enum": [
+          "16/9",
+          "4/3",
+          "21/9"
+        ]
+      },
+      "CarouselProps": {
+        "required": [
+          "slides",
+          "autoplay",
+          "aspect",
+          "radius"
+        ],
+        "type": "object",
+        "properties": {
+          "slides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CarouselSlide"
+            }
+          },
+          "autoplay": {
+            "type": "boolean"
+          },
+          "aspect": {
+            "$ref": "#/components/schemas/CarouselAspect"
+          },
+          "radius": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CarouselSlide": {
+        "required": [
+          "src",
+          "caption"
+        ],
+        "type": "object",
+        "properties": {
+          "src": {
+            "type": "string"
+          },
+          "caption": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ContentCheckDto": {
+        "required": [
+          "draftRevision",
+          "issues"
+        ],
+        "type": "object",
+        "properties": {
+          "draftRevision": {
+            "type": "integer",
+            "description": "The draft revision that was checked.",
+            "format": "int32"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentIssueDto"
+            },
+            "description": "Errors first, then warnings, each in page order. Empty when there is nothing to fix."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The content issues of a page's draft."
+      },
+      "ContentIssueDto": {
+        "required": [
+          "severity",
+          "code",
+          "message",
+          "sectionId",
+          "blockId",
+          "field",
+          "itemIndex"
+        ],
+        "type": "object",
+        "properties": {
+          "severity": {
+            "description": "`error` blocks publishing; `warning` doesn't.",
+            "$ref": "#/components/schemas/IssueSeverity"
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable code, e.g. `image.missing` or `link.placeholder`."
+          },
+          "message": {
+            "type": "string",
+            "description": "What is wrong, in plain language."
+          },
+          "sectionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The section it is in; null when it is about the whole page."
+          },
+          "blockId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The block it is about; null when it is about a section or the page."
+          },
+          "field": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The block prop or section setting, e.g. `href` or `background.image`."
+          },
+          "itemIndex": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "The item of a list prop (a gallery image, a menu link), when it is about one.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A problem in a page's content that a person can fix."
+      },
+      "ContentWidth": {
+        "enum": [
+          "narrow",
+          "normal",
+          "wide",
+          "full"
+        ]
+      },
+      "DividerProps": {
+        "required": [
+          "style",
+          "thickness"
+        ],
+        "type": "object",
+        "properties": {
+          "style": {
+            "$ref": "#/components/schemas/DividerStyle"
+          },
+          "thickness": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DividerStyle": {
+        "enum": [
+          "solid",
+          "dashed"
+        ]
+      },
+      "EntranceAnimation": {
+        "enum": [
+          "none",
+          "fade",
+          "fade-up",
+          "zoom",
+          "slide-left"
+        ]
+      },
+      "FaqItem": {
+        "required": [
+          "question",
+          "answer"
+        ],
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FaqProps": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FaqItem"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "FeatureItem": {
+        "required": [
+          "icon",
+          "title",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "icon": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FeaturesProps": {
+        "required": [
+          "items",
+          "columns",
+          "card"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeatureItem"
+            }
+          },
+          "columns": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "card": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FormField": {
+        "required": [
+          "label",
+          "type",
+          "required"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/FormFieldType"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FormFieldType": {
+        "enum": [
+          "text",
+          "email",
+          "textarea"
+        ]
+      },
+      "FormProps": {
+        "required": [
+          "fields",
+          "submitLabel",
+          "successMessage"
+        ],
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FormField"
+            }
+          },
+          "submitLabel": {
+            "type": "string"
+          },
+          "successMessage": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GalleryImage": {
+        "required": [
+          "src",
+          "alt"
+        ],
+        "type": "object",
+        "properties": {
+          "src": {
+            "type": "string"
+          },
+          "alt": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GalleryProps": {
+        "required": [
+          "images",
+          "columns",
+          "gap",
+          "radius"
+        ],
+        "type": "object",
+        "properties": {
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GalleryImage"
+            }
+          },
+          "columns": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gap": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "radius": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HeadingProps": {
+        "required": [
+          "html",
+          "level",
+          "size"
+        ],
+        "type": "object",
+        "properties": {
+          "html": {
+            "type": "string"
+          },
+          "level": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "$ref": "#/components/schemas/HeadingSize"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HeadingSize": {
+        "enum": [
+          "xl",
+          "lg",
+          "md",
+          "sm"
+        ]
+      },
       "HttpValidationProblemDetails": {
         "type": "object",
         "properties": {
@@ -321,11 +1729,9 @@
             ]
           },
           "status": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "format": "int32"
           },
@@ -350,11 +1756,84 @@
               }
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "IFormFile": {
         "type": "string",
         "format": "binary"
+      },
+      "ImageAspect": {
+        "enum": [
+          "auto",
+          "16/9",
+          "4/3",
+          "1/1",
+          "3/4"
+        ]
+      },
+      "ImageProps": {
+        "required": [
+          "src",
+          "alt",
+          "aspect",
+          "radius",
+          "caption"
+        ],
+        "type": "object",
+        "properties": {
+          "src": {
+            "type": "string"
+          },
+          "alt": {
+            "type": "string"
+          },
+          "aspect": {
+            "$ref": "#/components/schemas/ImageAspect"
+          },
+          "radius": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "caption": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "IssueSeverity": {
+        "enum": [
+          "error",
+          "warning"
+        ]
+      },
+      "JsonElement": { },
+      "MapProps": {
+        "required": [
+          "address",
+          "zoom",
+          "height",
+          "radius"
+        ],
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "zoom": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "radius": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
       },
       "MediaItemDto": {
         "required": [
@@ -391,29 +1870,17 @@
             "description": "The original image's MIME type, for example `image/png`."
           },
           "sizeInBytes": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "description": "The original image's size in bytes.",
             "format": "int64"
           },
           "width": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "description": "The original image's width in pixels.",
             "format": "int32"
           },
           "height": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "description": "The original image's height in pixels.",
             "format": "int32"
           },
@@ -436,7 +1903,152 @@
             "format": "date-time"
           }
         },
+        "additionalProperties": false,
         "description": "An image in a website's media library."
+      },
+      "NavLink": {
+        "required": [
+          "label",
+          "href"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string"
+          },
+          "menu": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "NavOrientation": {
+        "enum": [
+          "horizontal",
+          "vertical"
+        ]
+      },
+      "NavProps": {
+        "required": [
+          "logo",
+          "links",
+          "ctaLabel",
+          "ctaHref",
+          "orientation",
+          "card"
+        ],
+        "type": "object",
+        "properties": {
+          "logo": {
+            "type": "string"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavLink"
+            }
+          },
+          "ctaLabel": {
+            "type": "string"
+          },
+          "ctaHref": {
+            "type": "string"
+          },
+          "orientation": {
+            "$ref": "#/components/schemas/NavOrientation"
+          },
+          "card": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PageContentDto": {
+        "required": [
+          "pageId",
+          "draft",
+          "draftRevision",
+          "draftUpdatedAt",
+          "published",
+          "publishedAt",
+          "hasUnpublishedChanges"
+        ],
+        "type": "object",
+        "properties": {
+          "pageId": {
+            "type": "string",
+            "description": "The page the content belongs to.",
+            "format": "uuid"
+          },
+          "draft": {
+            "description": "The working draft. A page without saved content gets an empty document (no sections).",
+            "$ref": "#/components/schemas/PageDocument"
+          },
+          "draftRevision": {
+            "type": "integer",
+            "description": "The draft's revision: send it back as `baseRevision` when saving. 0 when nothing was saved yet.",
+            "format": "int32"
+          },
+          "draftUpdatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the draft last changed (UTC); null when nothing was saved yet.",
+            "format": "date-time"
+          },
+          "published": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "What visitors see; null when the page was never published.",
+                "$ref": "#/components/schemas/PageDocument"
+              }
+            ]
+          },
+          "publishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the page was last published (UTC); null when never.",
+            "format": "date-time"
+          },
+          "hasUnpublishedChanges": {
+            "type": "boolean",
+            "description": "True when there is no published version or it differs from the draft."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A page's draft and published Design Studio document."
+      },
+      "PageDocument": {
+        "required": [
+          "version",
+          "sections"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Section"
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "PageDto": {
         "required": [
@@ -475,7 +2087,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PageStatus": {
         "enum": [
@@ -483,9 +2096,825 @@
           "published"
         ]
       },
+      "PluginBlockDto": {
+        "required": [
+          "id",
+          "label",
+          "description",
+          "icon",
+          "template",
+          "fields"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The block's id within the plugin."
+          },
+          "label": {
+            "type": "string",
+            "description": "Its name in the library."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "One line about it."
+          },
+          "icon": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A Lucide icon name, e.g. `shopping-bag`."
+          },
+          "template": {
+            "type": "string",
+            "description": "Restricted HTML with `{{key}}` slots, checked when the plugin loaded."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PluginBlockFieldDto"
+            },
+            "description": "The inspector fields, in order."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A block a plugin adds to the studio. Stored in a page as `{ type: \"plugin\", props: { plugin, block, values } }`."
+      },
+      "PluginBlockFieldDto": {
+        "required": [
+          "key",
+          "label",
+          "kind",
+          "default",
+          "options",
+          "placeholder",
+          "min",
+          "max",
+          "step",
+          "unit",
+          "advanced"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The value's name, also its `{{key}}` slot in the template."
+          },
+          "label": {
+            "type": "string",
+            "description": "The field's label in the inspector."
+          },
+          "kind": {
+            "type": "string",
+            "description": "text, textarea, url, image, color, number, slider, toggle, select or segmented."
+          },
+          "default": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "The value of a new block: a string, number or boolean.",
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          },
+          "options": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/PluginBlockFieldOption"
+            },
+            "description": "The choices of a select or segmented field."
+          },
+          "placeholder": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Hint shown in an empty text field."
+          },
+          "min": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Lowest value of a number or slider.",
+            "format": "double"
+          },
+          "max": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Highest value of a number or slider.",
+            "format": "double"
+          },
+          "step": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Step of a number or slider.",
+            "format": "double"
+          },
+          "unit": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Unit shown next to a slider's value, e.g. `px`."
+          },
+          "advanced": {
+            "type": "boolean",
+            "description": "Hidden in the studio's Simple mode."
+          }
+        },
+        "additionalProperties": false,
+        "description": "An inspector field of a plugin block; its value is stored under `props.values[key]`."
+      },
+      "PluginBlockFieldOption": {
+        "required": [
+          "value",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PluginBlockProps": {
+        "required": [
+          "plugin",
+          "block",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "plugin": {
+            "type": "string"
+          },
+          "block": {
+            "type": "string"
+          },
+          "values": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PluginDto": {
+        "required": [
+          "id",
+          "name",
+          "version",
+          "description",
+          "events",
+          "loaded",
+          "enabled",
+          "error",
+          "moduleSha256",
+          "blocks"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The plugin's id, e.g. `secure-links`."
+          },
+          "name": {
+            "type": "string",
+            "description": "The plugin's name."
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The plugin's version; null when its manifest couldn't be read."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What it does."
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The events it runs for, e.g. `page.published` or the `page.check` hook."
+          },
+          "loaded": {
+            "type": "boolean",
+            "description": "False when it couldn't be loaded; it isn't run then."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "False when it was turned off in the app; it isn't run then and its blocks aren't offered."
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why it couldn't be loaded."
+          },
+          "moduleSha256": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "SHA-256 of its WebAssembly module, to tell builds apart."
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PluginBlockDto"
+            },
+            "description": "Blocks it adds to the studio's library; empty when it isn't loaded."
+          }
+        },
+        "additionalProperties": false,
+        "description": "An installed plugin."
+      },
+      "PluginLogLevel": {
+        "enum": [
+          "debug",
+          "info",
+          "warning",
+          "error"
+        ]
+      },
+      "PluginLogLineDto": {
+        "required": [
+          "level",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "level": {
+            "$ref": "#/components/schemas/PluginLogLevel"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A line a plugin logged."
+      },
+      "PluginRunDto": {
+        "required": [
+          "id",
+          "event",
+          "eventId",
+          "startedAt",
+          "succeeded",
+          "error",
+          "durationMs",
+          "fuelConsumed",
+          "logs",
+          "droppedLogLines"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The run's id.",
+            "format": "uuid"
+          },
+          "event": {
+            "type": "string",
+            "description": "The event it ran for."
+          },
+          "eventId": {
+            "type": "string",
+            "description": "The event's id; plugins that ran for the same event share it.",
+            "format": "uuid"
+          },
+          "startedAt": {
+            "type": "string",
+            "description": "When it started (UTC).",
+            "format": "date-time"
+          },
+          "succeeded": {
+            "type": "boolean",
+            "description": "False when it crashed, hit a sandbox limit or returned bad output."
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why it failed."
+          },
+          "durationMs": {
+            "type": "number",
+            "description": "How long it took, in milliseconds.",
+            "format": "double"
+          },
+          "fuelConsumed": {
+            "type": "integer",
+            "description": "Roughly how many WebAssembly instructions it ran.",
+            "format": "int64"
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PluginLogLineDto"
+            },
+            "description": "What it logged."
+          },
+          "droppedLogLines": {
+            "type": "integer",
+            "description": "Lines it logged past the limit.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One time a plugin ran."
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishPageRequest": {
+        "required": [
+          "revision"
+        ],
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "description": "The draft revision the person saw when they chose Publish.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Publishes a page's draft."
+      },
+      "PublishRejectedDto": {
+        "required": [
+          "issues"
+        ],
+        "type": "object",
+        "properties": {
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentIssueDto"
+            },
+            "description": "All issues of the draft, errors first; at least one is an error."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Why a page wasn't published."
+      },
+      "ResponsiveSpacing": {
+        "required": [
+          "desktop"
+        ],
+        "type": "object",
+        "properties": {
+          "desktop": {
+            "$ref": "#/components/schemas/Spacing"
+          },
+          "tablet": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SpacingOverride"
+              }
+            ]
+          },
+          "mobile": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SpacingOverride"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "SavedDraftDto": {
+        "required": [
+          "revision",
+          "updatedAt",
+          "hasUnpublishedChanges"
+        ],
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "description": "The draft's revision now: send it as `baseRevision` with the next save. Unchanged when the document was identical.",
+            "format": "int32"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "When the draft last changed (UTC).",
+            "format": "date-time"
+          },
+          "hasUnpublishedChanges": {
+            "type": "boolean",
+            "description": "True when there is no published version or it differs from the draft."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The result of saving a draft."
+      },
+      "SaveDraftRequest": {
+        "required": [
+          "document",
+          "baseRevision"
+        ],
+        "type": "object",
+        "properties": {
+          "document": {
+            "description": "The complete draft document, as the studio normalised it.",
+            "$ref": "#/components/schemas/PageDocument"
+          },
+          "baseRevision": {
+            "type": "integer",
+            "description": "The draft revision this document was edited from (`draftRevision` from the last load or save); 0 when no draft was saved yet.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A new draft for a page."
+      },
+      "Section": {
+        "required": [
+          "id",
+          "settings",
+          "blocks"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/SectionSettings"
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Block"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "SectionAlign": {
+        "enum": [
+          "left",
+          "center"
+        ]
+      },
+      "SectionAnimation": {
+        "required": [
+          "entrance",
+          "delay"
+        ],
+        "type": "object",
+        "properties": {
+          "entrance": {
+            "$ref": "#/components/schemas/EntranceAnimation"
+          },
+          "delay": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SectionLayout": {
+        "enum": [
+          "stack",
+          "split"
+        ]
+      },
+      "SectionSettings": {
+        "required": [
+          "type",
+          "name",
+          "layout",
+          "splitRatio",
+          "splitAt",
+          "verticalAlign",
+          "padding",
+          "background",
+          "contentWidth",
+          "align",
+          "theme",
+          "minHeight",
+          "gap",
+          "radius",
+          "animation",
+          "anchor",
+          "className",
+          "visibility"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/SectionType"
+          },
+          "name": {
+            "type": "string"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/SectionLayout"
+          },
+          "splitRatio": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "splitAt": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "verticalAlign": {
+            "$ref": "#/components/schemas/VerticalAlign"
+          },
+          "padding": {
+            "$ref": "#/components/schemas/ResponsiveSpacing"
+          },
+          "background": {
+            "$ref": "#/components/schemas/Background"
+          },
+          "contentWidth": {
+            "$ref": "#/components/schemas/ContentWidth"
+          },
+          "align": {
+            "$ref": "#/components/schemas/SectionAlign"
+          },
+          "theme": {
+            "$ref": "#/components/schemas/SectionTheme"
+          },
+          "minHeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gap": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "radius": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "animation": {
+            "$ref": "#/components/schemas/SectionAnimation"
+          },
+          "anchor": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SectionTheme": {
+        "enum": [
+          "light",
+          "dark"
+        ]
+      },
+      "SectionType": {
+        "enum": [
+          "hero",
+          "content",
+          "features",
+          "split",
+          "cta",
+          "header",
+          "footer",
+          "sidebar"
+        ]
+      },
+      "SetPluginEnabledRequest": {
+        "required": [
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "True to run it and offer its blocks; false to keep it installed but stop it."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Turns a plugin on or off."
+      },
+      "SpacerProps": {
+        "required": [
+          "height"
+        ],
+        "type": "object",
+        "properties": {
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Spacing": {
+        "required": [
+          "top",
+          "bottom",
+          "left",
+          "right"
+        ],
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "bottom": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "left": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "right": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SpacingOverride": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "bottom": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "left": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "right": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "Stream": {
         "type": "string",
         "format": "binary"
+      },
+      "Testimonial": {
+        "required": [
+          "quote",
+          "name",
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "quote": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TestimonialsProps": {
+        "required": [
+          "items",
+          "columns"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Testimonial"
+            }
+          },
+          "columns": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TextProps": {
+        "required": [
+          "html",
+          "size",
+          "tone"
+        ],
+        "type": "object",
+        "properties": {
+          "html": {
+            "type": "string"
+          },
+          "size": {
+            "$ref": "#/components/schemas/TextSize"
+          },
+          "tone": {
+            "$ref": "#/components/schemas/TextTone"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TextSize": {
+        "enum": [
+          "lg",
+          "md",
+          "sm"
+        ]
+      },
+      "TextTone": {
+        "enum": [
+          "default",
+          "muted"
+        ]
       },
       "UploadMediaRequest": {
         "required": [
@@ -502,7 +2931,63 @@
             "$ref": "#/components/schemas/IFormFile"
           }
         },
+        "additionalProperties": false,
         "description": "Multipart form for `POST /media`."
+      },
+      "VerticalAlign": {
+        "enum": [
+          "start",
+          "center",
+          "end"
+        ]
+      },
+      "VideoAspect": {
+        "enum": [
+          "16/9",
+          "4/3",
+          "1/1"
+        ]
+      },
+      "VideoProps": {
+        "required": [
+          "url",
+          "aspect",
+          "radius"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "aspect": {
+            "$ref": "#/components/schemas/VideoAspect"
+          },
+          "radius": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Visibility": {
+        "required": [
+          "desktop",
+          "tablet",
+          "mobile"
+        ],
+        "type": "object",
+        "properties": {
+          "desktop": {
+            "type": "boolean"
+          },
+          "tablet": {
+            "type": "boolean"
+          },
+          "mobile": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
       },
       "WebsiteDto": {
         "required": [
@@ -540,7 +3025,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "WebsiteStatus": {
         "enum": [
@@ -555,7 +3041,13 @@
       "name": "Media"
     },
     {
+      "name": "Page content"
+    },
+    {
       "name": "Pages"
+    },
+    {
+      "name": "Plugins"
     },
     {
       "name": "Websites"

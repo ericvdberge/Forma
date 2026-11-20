@@ -17,6 +17,7 @@ import {
   Minus,
   MousePointerClick,
   Palette,
+  Puzzle,
   Rocket,
   Scaling,
   ShieldCheck,
@@ -28,6 +29,7 @@ import {
   Zap,
 } from 'lucide-vue-next'
 import { defaultBlockStyle, merge, newId } from './defaults'
+import { pluginBlockDefinition } from './pluginBlocks'
 import type { Block, BlockPropsMap, BlockStyle, BlockType } from './types'
 
 /** Icons a Features item can show, by the name stored in the document. */
@@ -423,10 +425,23 @@ const definitions: { [K in BlockType]: BlockDefinition<K> } = {
       { key: 'card', label: 'Floating bar', kind: 'toggle' },
     ],
   },
+  // Plugin blocks are drawn from their plugin's manifest: see pluginBlocks.ts and definitionOf().
+  plugin: {
+    type: 'plugin',
+    label: 'Plugin block',
+    icon: Puzzle,
+    props: () => ({ plugin: '', block: '', values: {} }),
+    fields: [],
+  },
 }
 
 export function blockDefinition<T extends BlockType>(type: T): BlockDefinition<T> {
   return definitions[type] as BlockDefinition<T>
+}
+
+/** The definition of this block; for a plugin block, the plugin's label, icon and fields. */
+export function definitionOf(block: Block): BlockDefinition {
+  return block.type === 'plugin' ? (pluginBlockDefinition(block.props.plugin, block.props.block) as BlockDefinition) : blockDefinition(block.type)
 }
 
 /** Block tiles in the library, in display order. */

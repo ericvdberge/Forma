@@ -4,6 +4,7 @@ import { Bookmark, Search, X } from 'lucide-vue-next'
 import { cn } from '@forma/design-system'
 import { useStudio, type DragPayload } from '@/composables/useStudio'
 import { blockDefinition, libraryBlocks } from '@/studio/blocks'
+import { pluginBlockIcon, pluginBlocks } from '@/studio/pluginBlocks'
 import { globalElements, sectionTemplates } from '@/studio/sections'
 import type { BlockType } from '@/studio/types'
 
@@ -32,6 +33,7 @@ const blockHelp: Record<BlockType, string> = {
   testimonials: 'Quotes from happy customers',
   features: 'A few highlights with icons',
   nav: 'A menu with links',
+  plugin: 'A block from a plugin',
 }
 
 interface Choice {
@@ -60,6 +62,21 @@ const blocks = computed<Choice[]>(() =>
     })
     .filter(matches),
 )
+/** Blocks that installed plugins add. */
+const pluginChoices = computed<Choice[]>(() =>
+  [...pluginBlocks.value.values()]
+    .map(
+      (b) =>
+        ({
+          key: `plugin:${b.pluginId}/${b.id}`,
+          label: b.label,
+          help: `${b.description || 'A block'} · ${b.pluginName} plugin`,
+          icon: pluginBlockIcon(b.icon),
+          payload: { kind: 'new-plugin-block', plugin: b.pluginId, block: b.id },
+        }) as Choice,
+    )
+    .filter(matches),
+)
 const saved = computed<Choice[]>(() =>
   studio.saved.value
     .filter((s) => props.mode === 'section' || s.kind === 'block')
@@ -76,6 +93,7 @@ const groups = computed(() =>
   [
     { title: 'Ready-made sections', choices: sections.value },
     { title: props.mode === 'section' ? 'Single items' : 'What would you like to add?', choices: blocks.value },
+    { title: 'From plugins', choices: pluginChoices.value },
     { title: 'Saved by you', choices: saved.value },
   ].filter((g) => g.choices.length),
 )

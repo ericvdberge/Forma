@@ -24,6 +24,7 @@ export const router = createRouter({
         { path: '', name: 'dashboard', component: () => import('@/views/DashboardView.vue'), meta: { title: 'Dashboard' } },
         { path: 'pages', name: 'pages', component: () => import('@/views/PagesView.vue'), meta: { title: 'Pages' } },
         { path: 'media', name: 'media', component: () => import('@/views/MediaView.vue'), meta: { title: 'Media' } },
+        { path: 'plugins', name: 'plugins', component: () => import('@/views/PluginsView.vue'), meta: { title: 'Plugins' } },
         { path: 'websites', name: 'websites', component: () => import('@/views/WebsitesView.vue'), meta: { title: 'Websites' } },
         {
           path: 'websites/:id',
@@ -40,7 +41,6 @@ export const router = createRouter({
             ['blocks', 'Blocks'],
             ['styles', 'Global Styles'],
             ['settings', 'Settings'],
-            ['plugins', 'Plugins'],
             ['users', 'Users'],
           ] as const
         ).map(([path, title]) => ({

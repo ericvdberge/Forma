@@ -27,6 +27,23 @@ const status = computed(() => {
   return studio.hasChanges.value ? { label: 'Changes not published', dot: 'bg-accent' } : { label: 'Published', dot: 'bg-positive' }
 })
 
+/** The draft's saving status, next to the publish status. */
+const save = computed(() => {
+  switch (studio.saveState.value) {
+    case 'pending':
+    case 'saving':
+      return { label: 'Saving…', retry: false, alert: false }
+    case 'error':
+      return { label: 'Couldn’t save, trying again', retry: true, alert: true }
+    case 'invalid':
+      return { label: 'Couldn’t save this change', retry: true, alert: true }
+    case 'conflict':
+      return { label: 'Changed elsewhere', retry: false, alert: true }
+    default:
+      return { label: 'Saved', retry: false, alert: false }
+  }
+})
+
 function discard() {
   if (window.confirm('Throw away all changes since the last publish? You can still undo this.')) studio.discard()
 }
@@ -47,7 +64,11 @@ const textBtn =
       <p class="truncate text-base font-bold leading-tight">{{ pageTitle }}</p>
       <p class="flex items-center gap-1.5 truncate text-xs text-muted" role="status">
         <span :class="cn('size-1.5 shrink-0 rounded-full', status.dot)" aria-hidden="true" />
-        {{ status.label }}<span class="hidden md:inline"> · {{ pagePath }}</span>
+        {{ status.label }}
+        <span aria-hidden="true">·</span>
+        <span :class="save.alert && 'font-medium text-danger'" :title="studio.saveError.value">{{ save.label }}</span>
+        <button v-if="save.retry" type="button" class="font-medium text-charcoal underline underline-offset-2" @click="studio.retrySave()">Retry</button>
+        <span class="hidden md:inline"> · {{ pagePath }}</span>
       </p>
     </div>
 
@@ -122,8 +143,8 @@ const textBtn =
         <span class="sr-only sm:hidden">{{ studio.preview.value ? 'Back to editing' : 'Preview' }}</span>
       </button>
       <FButton size="sm" variant="secondary" :disabled="!studio.hasChanges.value" @click="discard">Discard</FButton>
-      <FButton size="sm" :disabled="!canPublish" @click="studio.publish()">
-        Publish <ArrowRight class="size-4" aria-hidden="true" />
+      <FButton size="sm" :disabled="!canPublish || studio.publishing.value" @click="studio.publish()">
+        {{ studio.publishing.value ? 'Publishing…' : 'Publish' }} <ArrowRight class="size-4" aria-hidden="true" />
       </FButton>
       <button type="button" :class="cn(textBtn, 'xl:hidden')" aria-label="Show settings" title="Settings for the selection" @click="emit('inspector')">
         <PanelRight class="size-5" :stroke-width="1.6" aria-hidden="true" />
