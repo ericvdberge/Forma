@@ -1,15 +1,18 @@
 using System.Text.Json;
+using Forma.Application.Documents;
 using Forma.Application.Entities;
 using Forma.Application.Services;
 using Forma.Infrastructure.Repositories.Collections;
+using Forma.Infrastructure.Repositories.Pages;
 using Forma.Infrastructure.Repositories.Websites;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Forma.Application.Seeding;
 
 /// <summary>
-/// Gives every sample website a <i>Blog posts</i> collection with three published posts and its (empty) detail page,
-/// which the studio fills with a starter design the first time it is opened. Websites that have collections are left alone.
+/// Gives every sample website a <i>Blog posts</i> collection with three published posts, its (empty) detail page, which
+/// the studio fills with a starter design the first time it is opened, and a published <c>/blog</c> page that lists the
+/// posts as cards. Websites that have collections are left alone.
 /// </summary>
 public static class CollectionSeeder
 {
@@ -56,6 +59,7 @@ public static class CollectionSeeder
         var collectionCoreService = scope.ServiceProvider.GetRequiredService<ICollectionCoreService>();
         var itemCoreService = scope.ServiceProvider.GetRequiredService<ICollectionItemCoreService>();
         var pageCoreService = scope.ServiceProvider.GetRequiredService<IPageCoreService>();
+        var pageContentCoreService = scope.ServiceProvider.GetRequiredService<IPageContentCoreService>();
         var websites = scope.ServiceProvider.GetRequiredService<IWebsiteRepository>();
 
         foreach (var website in await websites.GetAllAsync(cancellationToken))
@@ -82,6 +86,8 @@ public static class CollectionSeeder
                 CollectionId = blog.Id,
             }, cancellationToken);
 
+            await SeedBlogPageAsync(website.Id, website.Name, blog.Id, pageCoreService, pageContentCoreService, cancellationToken);
+
             foreach (var post in Posts)
                 await itemCoreService.CreateAsync(new CollectionItemInsert
                 {
@@ -91,6 +97,39 @@ public static class CollectionSeeder
                     Values = Values(post),
                 }, cancellationToken);
         }
+    }
+
+    /// <summary>A published <c>/blog</c> page: an intro, then the posts as cards (<c>blog.json</c>).</summary>
+    private static async Task SeedBlogPageAsync(
+        Guid websiteId,
+        string websiteName,
+        Guid collectionId,
+        IPageCoreService pageCoreService,
+        IPageContentCoreService pageContentCoreService,
+        CancellationToken cancellationToken)
+    {
+        var existing = await pageCoreService.GetPageAsync(new PageFilter { WebsiteId = websiteId, Slug = "blog" }, cancellationToken);
+        if (existing is not null)
+            return;
+
+        var page = await pageCoreService.CreateAsync(new PageInsert
+        {
+            WebsiteId = websiteId,
+            Title = "Blog",
+            Slug = "blog",
+            Status = PageStatus.Published,
+        }, cancellationToken);
+
+        var json = PageContentSeeder.ReadResource("blog.json")
+            .Replace("{{collectionId}}", collectionId.ToString())
+            .Replace("{{website}}", PageContentSeeder.Plain(websiteName));
+
+        await pageContentCoreService.CreateAsync(new PageContentInsert
+        {
+            PageId = page.Id,
+            Document = PageDocumentSerializer.Deserialize(json, PageDocument.CurrentVersion),
+            Status = PageContentStatus.Published,
+        }, cancellationToken);
     }
 
     private static IReadOnlyDictionary<string, JsonElement> Values((string Slug, string Title, string Cover, string Summary, string Body, string Date) post) =>

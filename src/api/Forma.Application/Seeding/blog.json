@@ -1,0 +1,472 @@
+{
+  "version": 1,
+  "sections": [
+    {
+      "id": "s_header",
+      "settings": {
+        "type": "header",
+        "name": "",
+        "layout": "stack",
+        "splitRatio": 45,
+        "splitAt": 1,
+        "verticalAlign": "center",
+        "padding": {
+          "desktop": {
+            "top": 20,
+            "bottom": 20,
+            "left": 32,
+            "right": 32
+          },
+          "mobile": {
+            "left": 16,
+            "right": 16
+          }
+        },
+        "background": {
+          "kind": "none",
+          "color": "#ffffff",
+          "image": "",
+          "position": "center",
+          "gradientFrom": "#f5f4f0",
+          "gradientTo": "#ffffff",
+          "gradientAngle": 180,
+          "overlayColor": "#000000",
+          "overlayOpacity": 0
+        },
+        "contentWidth": "wide",
+        "align": "left",
+        "theme": "light",
+        "minHeight": 0,
+        "gap": 20,
+        "radius": 0,
+        "animation": {
+          "entrance": "none",
+          "delay": 0
+        },
+        "anchor": "",
+        "className": "",
+        "visibility": {
+          "desktop": true,
+          "tablet": true,
+          "mobile": true
+        }
+      },
+      "blocks": [
+        {
+          "id": "b_nav",
+          "type": "nav",
+          "props": {
+            "logo": "forma.",
+            "links": [
+              {
+                "label": "Solutions",
+                "href": "#",
+                "menu": true
+              },
+              {
+                "label": "Resources",
+                "href": "#",
+                "menu": true
+              },
+              {
+                "label": "Pricing",
+                "href": "#"
+              }
+            ],
+            "ctaLabel": "Get started",
+            "ctaHref": "#",
+            "orientation": "horizontal",
+            "card": false
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "s_intro",
+      "settings": {
+        "type": "hero",
+        "name": "",
+        "layout": "stack",
+        "splitRatio": 45,
+        "splitAt": 1,
+        "verticalAlign": "center",
+        "padding": {
+          "desktop": {
+            "top": 112,
+            "bottom": 112,
+            "left": 48,
+            "right": 48
+          },
+          "tablet": {
+            "top": 88,
+            "bottom": 88,
+            "left": 32,
+            "right": 32
+          },
+          "mobile": {
+            "top": 64,
+            "bottom": 64,
+            "left": 20,
+            "right": 20
+          }
+        },
+        "background": {
+          "kind": "gradient",
+          "color": "#ffffff",
+          "image": "",
+          "position": "center",
+          "gradientFrom": "#f5f4f0",
+          "gradientTo": "#ffffff",
+          "gradientAngle": 180,
+          "overlayColor": "#000000",
+          "overlayOpacity": 0
+        },
+        "contentWidth": "normal",
+        "align": "center",
+        "theme": "light",
+        "minHeight": 0,
+        "gap": 16,
+        "radius": 16,
+        "animation": {
+          "entrance": "fade-up",
+          "delay": 0
+        },
+        "anchor": "",
+        "className": "",
+        "visibility": {
+          "desktop": true,
+          "tablet": true,
+          "mobile": true
+        }
+      },
+      "blocks": [
+        {
+          "id": "b_badge",
+          "type": "badge",
+          "props": {
+            "text": "Journal"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_title",
+          "type": "heading",
+          "props": {
+            "html": "<p>Notes from the studio</p>",
+            "level": 1,
+            "size": "xl"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_intro",
+          "type": "text",
+          "props": {
+            "html": "<p>Stories about light, space and the places we build, written by the people who draw them.</p>",
+            "size": "lg",
+            "tone": "muted"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "sm",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "s_posts",
+      "settings": {
+        "type": "content",
+        "name": "Posts",
+        "layout": "stack",
+        "splitRatio": 45,
+        "splitAt": 1,
+        "verticalAlign": "center",
+        "padding": {
+          "desktop": {
+            "top": 72,
+            "bottom": 112,
+            "left": 48,
+            "right": 48
+          },
+          "tablet": {
+            "top": 56,
+            "bottom": 88,
+            "left": 32,
+            "right": 32
+          },
+          "mobile": {
+            "top": 40,
+            "bottom": 64,
+            "left": 20,
+            "right": 20
+          }
+        },
+        "background": {
+          "kind": "none",
+          "color": "#ffffff",
+          "image": "",
+          "position": "center",
+          "gradientFrom": "#f5f4f0",
+          "gradientTo": "#ffffff",
+          "gradientAngle": 180,
+          "overlayColor": "#000000",
+          "overlayOpacity": 0
+        },
+        "contentWidth": "wide",
+        "align": "left",
+        "theme": "light",
+        "minHeight": 0,
+        "gap": 20,
+        "radius": 0,
+        "animation": {
+          "entrance": "none",
+          "delay": 0
+        },
+        "anchor": "",
+        "className": "",
+        "visibility": {
+          "desktop": true,
+          "tablet": true,
+          "mobile": true
+        }
+      },
+      "blocks": [
+        {
+          "id": "b_posts_title",
+          "type": "heading",
+          "props": {
+            "html": "<p>Latest posts</p>",
+            "level": 2,
+            "size": "md"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_posts",
+          "type": "collectionCards",
+          "props": {
+            "collectionId": "{{collectionId}}",
+            "imageField": "fld_cover",
+            "titleField": "fld_title",
+            "textField": "fld_summary",
+            "sort": "newest",
+            "limit": 9,
+            "columns": 3,
+            "gap": 24,
+            "radius": 20,
+            "card": true,
+            "buttonLabel": "Read more",
+            "emptyText": "No posts yet."
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 8,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "s_footer",
+      "settings": {
+        "type": "footer",
+        "name": "",
+        "layout": "stack",
+        "splitRatio": 45,
+        "splitAt": 1,
+        "verticalAlign": "center",
+        "padding": {
+          "desktop": {
+            "top": 48,
+            "bottom": 32,
+            "left": 48,
+            "right": 48
+          },
+          "mobile": {
+            "top": 40,
+            "left": 20,
+            "right": 20
+          }
+        },
+        "background": {
+          "kind": "color",
+          "color": "#0b0b0f",
+          "image": "",
+          "position": "center",
+          "gradientFrom": "#f5f4f0",
+          "gradientTo": "#ffffff",
+          "gradientAngle": 180,
+          "overlayColor": "#000000",
+          "overlayOpacity": 0
+        },
+        "contentWidth": "wide",
+        "align": "left",
+        "theme": "dark",
+        "minHeight": 0,
+        "gap": 20,
+        "radius": 16,
+        "animation": {
+          "entrance": "none",
+          "delay": 0
+        },
+        "anchor": "",
+        "className": "",
+        "visibility": {
+          "desktop": true,
+          "tablet": true,
+          "mobile": true
+        }
+      },
+      "blocks": [
+        {
+          "id": "b_footer_nav",
+          "type": "nav",
+          "props": {
+            "logo": "forma.",
+            "links": [
+              {
+                "label": "Product",
+                "href": "#"
+              },
+              {
+                "label": "Docs",
+                "href": "#"
+              },
+              {
+                "label": "Contact",
+                "href": "#"
+              }
+            ],
+            "ctaLabel": "",
+            "ctaHref": "#",
+            "orientation": "horizontal",
+            "card": false
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_footer_line",
+          "type": "divider",
+          "props": {
+            "style": "solid",
+            "thickness": 1
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        },
+        {
+          "id": "b_footer_text",
+          "type": "text",
+          "props": {
+            "html": "<p>© 2026 {{website}}.</p>",
+            "size": "sm",
+            "tone": "muted"
+          },
+          "style": {
+            "align": "inherit",
+            "marginTop": 0,
+            "marginBottom": 0,
+            "maxWidth": "none",
+            "anchor": "",
+            "className": "",
+            "visibility": {
+              "desktop": true,
+              "tablet": true,
+              "mobile": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

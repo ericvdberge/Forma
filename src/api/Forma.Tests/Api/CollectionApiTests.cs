@@ -27,6 +27,19 @@ public class CollectionApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task Sample_websites_list_the_blog_on_a_page()
+    {
+        var blogPage = await _client.SamplePageAsync("blog");
+
+        var content = await _client.GetAsync<PageContentDto>($"/pages/{blogPage.Id}/content");
+        var cards = content.Document.Sections.SelectMany(s => s.Blocks).OfType<CollectionCardsBlock>().Single();
+        var collection = await _client.GetAsync<CollectionDto>($"/collections/{cards.Props.CollectionId}");
+
+        Assert.Equal(PageContentStatus.Published, content.Status);
+        Assert.Equal("blog", collection.Slug);
+    }
+
+    [Fact]
     public async Task Creating_a_collection_creates_its_detail_page()
     {
         var websiteId = await WebsiteIdAsync();
