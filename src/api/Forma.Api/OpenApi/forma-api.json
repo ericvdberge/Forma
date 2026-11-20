@@ -247,8 +247,7 @@
         "tags": [
           "Page content"
         ],
-        "summary": "Gets a page's draft and published document.",
-        "description": "A page without saved content gets an empty draft at revision 0 and no published version.",
+        "summary": "Gets a page's content.",
         "operationId": "GetPageContent",
         "parameters": [
           {
@@ -264,7 +263,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The page's draft and published document.",
+            "description": "The page's content.",
             "content": {
               "application/json": {
                 "schema": {
@@ -273,20 +272,21 @@
               }
             }
           },
+          "204": {
+            "description": "The page exists but has no content yet."
+          },
           "404": {
             "description": "No page exists with this id."
           }
         }
-      }
-    },
-    "/pages/{pageId}/draft": {
+      },
       "put": {
         "tags": [
           "Page content"
         ],
-        "summary": "Replaces a page's draft. The Design Studio's autosave calls this.",
-        "description": "The document must be complete and pass the structural rules (block types, ranges, safe links, allowed rich text).\r\nSaving a document identical to the current draft returns the same revision, so retries are harmless.",
-        "operationId": "SavePageDraft",
+        "summary": "Publishes a page: stores the document and marks the content published. The studio calls this on Publish.",
+        "description": "The document must pass the structural rules (block types, ranges, safe links, allowed rich text) and the content\r\nrules (no missing images, links that go somewhere). Errors are answered with a validation problem whose\r\n`issues` point at the sections and blocks to fix; warnings don't block and come back with the result.",
+        "operationId": "PublishPageContent",
         "parameters": [
           {
             "name": "pageId",
@@ -304,7 +304,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SaveDraftRequest"
+                "$ref": "#/components/schemas/PublishPageContentRequest"
               }
             }
           },
@@ -312,17 +312,17 @@
         },
         "responses": {
           "200": {
-            "description": "The draft was saved (or was already identical).",
+            "description": "Published; the body is the content and any warnings.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SavedDraftDto"
+                  "$ref": "#/components/schemas/PublishedPageContentDto"
                 }
               }
             }
           },
           "400": {
-            "description": "The document is malformed or breaks a structural rule.",
+            "description": "The document is malformed or has errors to fix first.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -333,16 +333,6 @@
           },
           "404": {
             "description": "No page exists with this id."
-          },
-          "409": {
-            "description": "The draft was saved elsewhere since `baseRevision`; the body is the current content.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PageContentDto"
-                }
-              }
-            }
           },
           "413": {
             "description": "The request body is larger than 1 MB.",
@@ -350,121 +340,6 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/pages/{pageId}/check": {
-      "post": {
-        "tags": [
-          "Page content"
-        ],
-        "summary": "Lists what to fix in a page's draft before it can be published.",
-        "description": "Runs the same rules as publishing, without publishing. Errors block publishing; warnings don't.",
-        "operationId": "CheckPageContent",
-        "parameters": [
-          {
-            "name": "pageId",
-            "in": "path",
-            "description": "The page's id.",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The checked draft revision and its issues (empty when there is nothing to fix).",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ContentCheckDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No page exists with this id."
-          }
-        }
-      }
-    },
-    "/pages/{pageId}/publish": {
-      "post": {
-        "tags": [
-          "Page content"
-        ],
-        "summary": "Publishes a page's draft: visitors see it from now on, and the page is marked published.",
-        "description": "Only the draft revision in the request is published, so nothing saved after the person chose Publish goes live\r\nunseen. Drafts with error-level issues are refused with the issues; warnings don't block.",
-        "operationId": "PublishPage",
-        "parameters": [
-          {
-            "name": "pageId",
-            "in": "path",
-            "description": "The page's id.",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "description": "Cancels the request.",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PublishPageRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Published; the body is the page's content now.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PageContentDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The request is malformed.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No page exists with this id."
-          },
-          "409": {
-            "description": "The draft is no longer at this revision; the body is the current content.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PageContentDto"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "The draft has errors to fix first; the body lists all its issues.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishRejectedDto"
                 }
               }
             }
@@ -1225,29 +1100,6 @@
         },
         "additionalProperties": false
       },
-      "ContentCheckDto": {
-        "required": [
-          "draftRevision",
-          "issues"
-        ],
-        "type": "object",
-        "properties": {
-          "draftRevision": {
-            "type": "integer",
-            "description": "The draft revision that was checked.",
-            "format": "int32"
-          },
-          "issues": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ContentIssueDto"
-            },
-            "description": "Errors first, then warnings, each in page order. Empty when there is nothing to fix."
-          }
-        },
-        "additionalProperties": false,
-        "description": "The content issues of a page's draft."
-      },
       "ContentIssueDto": {
         "required": [
           "severity",
@@ -1803,12 +1655,10 @@
       "PageContentDto": {
         "required": [
           "pageId",
-          "draft",
-          "draftRevision",
-          "draftUpdatedAt",
-          "published",
-          "publishedAt",
-          "hasUnpublishedChanges"
+          "document",
+          "status",
+          "createdAt",
+          "updatedAt"
         ],
         "type": "object",
         "properties": {
@@ -1817,49 +1667,33 @@
             "description": "The page the content belongs to.",
             "format": "uuid"
           },
-          "draft": {
-            "description": "The working draft. A page without saved content gets an empty document (no sections).",
+          "document": {
+            "description": "The page's sections and blocks.",
             "$ref": "#/components/schemas/PageDocument"
           },
-          "draftRevision": {
-            "type": "integer",
-            "description": "The draft's revision: send it back as `baseRevision` when saving. 0 when nothing was saved yet.",
-            "format": "int32"
+          "status": {
+            "description": "`published` once visitors see it; `draft` for sample content that was never published.",
+            "$ref": "#/components/schemas/PageContentStatus"
           },
-          "draftUpdatedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "When the draft last changed (UTC); null when nothing was saved yet.",
+          "createdAt": {
+            "type": "string",
+            "description": "When the content was first stored (UTC).",
             "format": "date-time"
           },
-          "published": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "description": "What visitors see; null when the page was never published.",
-                "$ref": "#/components/schemas/PageDocument"
-              }
-            ]
-          },
-          "publishedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "When the page was last published (UTC); null when never.",
+          "updatedAt": {
+            "type": "string",
+            "description": "When the content last changed (UTC).",
             "format": "date-time"
-          },
-          "hasUnpublishedChanges": {
-            "type": "boolean",
-            "description": "True when there is no published version or it differs from the draft."
           }
         },
         "additionalProperties": false,
-        "description": "A page's draft and published Design Studio document."
+        "description": "A page's Design Studio document."
+      },
+      "PageContentStatus": {
+        "enum": [
+          "draft",
+          "published"
+        ]
       },
       "PageDocument": {
         "required": [
@@ -1964,37 +1798,41 @@
         },
         "additionalProperties": false
       },
-      "PublishPageRequest": {
+      "PublishedPageContentDto": {
         "required": [
-          "revision"
+          "content",
+          "warnings"
         ],
         "type": "object",
         "properties": {
-          "revision": {
-            "type": "integer",
-            "description": "The draft revision the person saw when they chose Publish.",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false,
-        "description": "Publishes a page's draft."
-      },
-      "PublishRejectedDto": {
-        "required": [
-          "issues"
-        ],
-        "type": "object",
-        "properties": {
-          "issues": {
+          "content": {
+            "description": "The page's content now.",
+            "$ref": "#/components/schemas/PageContentDto"
+          },
+          "warnings": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ContentIssueDto"
             },
-            "description": "All issues of the draft, errors first; at least one is an error."
+            "description": "Things worth a look that didn't block publishing, in page order. Empty when there are none."
           }
         },
         "additionalProperties": false,
-        "description": "Why a page wasn't published."
+        "description": "The result of publishing a page."
+      },
+      "PublishPageContentRequest": {
+        "required": [
+          "document"
+        ],
+        "type": "object",
+        "properties": {
+          "document": {
+            "description": "The complete document, as the studio normalised it.",
+            "$ref": "#/components/schemas/PageDocument"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Publishes a page: the document replaces what visitors see."
       },
       "ResponsiveSpacing": {
         "required": [
@@ -2027,52 +1865,6 @@
           }
         },
         "additionalProperties": false
-      },
-      "SavedDraftDto": {
-        "required": [
-          "revision",
-          "updatedAt",
-          "hasUnpublishedChanges"
-        ],
-        "type": "object",
-        "properties": {
-          "revision": {
-            "type": "integer",
-            "description": "The draft's revision now: send it as `baseRevision` with the next save. Unchanged when the document was identical.",
-            "format": "int32"
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "When the draft last changed (UTC).",
-            "format": "date-time"
-          },
-          "hasUnpublishedChanges": {
-            "type": "boolean",
-            "description": "True when there is no published version or it differs from the draft."
-          }
-        },
-        "additionalProperties": false,
-        "description": "The result of saving a draft."
-      },
-      "SaveDraftRequest": {
-        "required": [
-          "document",
-          "baseRevision"
-        ],
-        "type": "object",
-        "properties": {
-          "document": {
-            "description": "The complete draft document, as the studio normalised it.",
-            "$ref": "#/components/schemas/PageDocument"
-          },
-          "baseRevision": {
-            "type": "integer",
-            "description": "The draft revision this document was edited from (`draftRevision` from the last load or save); 0 when no draft was saved yet.",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false,
-        "description": "A new draft for a page."
       },
       "Section": {
         "required": [

@@ -13,10 +13,9 @@
       <PackageReference Include="Riok.Mapperly" Version="4.3.1" />
     </ItemGroup>
 
-    <!-- Sample page content, generated from the studio by `npm run studio:fixtures -w forma-app`. -->
+    <!-- Sample page content for the seeded sample pages. -->
     <ItemGroup>
-      <EmbeddedResource Include="..\Contracts\Studio\home.json" LogicalName="Forma.Application.Seeding.home.json" />
-      <EmbeddedResource Include="..\Contracts\Studio\page.json" LogicalName="Forma.Application.Seeding.page.json" />
+      <EmbeddedResource Include="Seeding\*.json" LogicalName="Forma.Application.Seeding.%(Filename)%(Extension)" />
     </ItemGroup>
 
     <ItemGroup>

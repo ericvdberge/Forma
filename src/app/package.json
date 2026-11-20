@@ -8,8 +8,7 @@
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",
-    "generate:api": "openapi-ts",
-    "studio:fixtures": "node scripts/studio-fixtures.mjs"
+    "generate:api": "openapi-ts"
   },
   "dependencies": {
     "@forma/design-system": "*",

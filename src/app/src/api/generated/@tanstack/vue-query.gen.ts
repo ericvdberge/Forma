@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/vue-query';
 
 import { client } from '../client.gen';
-import { checkPageContent, deleteMedia, getMediaImage, getMediaItem, getMediaItems, getMediaThumbnail, getPageContent, getPages, getWebsites, type Options, publishPage, savePageDraft, uploadMedia } from '../sdk.gen';
-import type { CheckPageContentData, CheckPageContentResponse, DeleteMediaData, DeleteMediaResponse, GetMediaImageData, GetMediaImageResponse, GetMediaItemData, GetMediaItemResponse, GetMediaItemsData, GetMediaItemsResponse, GetMediaThumbnailData, GetMediaThumbnailResponse, GetPageContentData, GetPageContentResponse, GetPagesData, GetPagesResponse, GetWebsitesData, GetWebsitesResponse, PublishPageData, PublishPageError, PublishPageResponse, SavePageDraftData, SavePageDraftError, SavePageDraftResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
+import { deleteMedia, getMediaImage, getMediaItem, getMediaItems, getMediaThumbnail, getPageContent, getPages, getWebsites, type Options, publishPageContent, uploadMedia } from '../sdk.gen';
+import type { DeleteMediaData, DeleteMediaResponse, GetMediaImageData, GetMediaImageResponse, GetMediaItemData, GetMediaItemResponse, GetMediaItemsData, GetMediaItemsResponse, GetMediaThumbnailData, GetMediaThumbnailResponse, GetPageContentData, GetPageContentResponse, GetPagesData, GetPagesResponse, GetWebsitesData, GetWebsitesResponse, PublishPageContentData, PublishPageContentError, PublishPageContentResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -155,9 +155,7 @@ export const getMediaThumbnailOptions = (options: Options<GetMediaThumbnailData>
 export const getPageContentQueryKey = (options: Options<GetPageContentData>) => createQueryKey('getPageContent', options);
 
 /**
- * Gets a page's draft and published document.
- *
- * A page without saved content gets an empty draft at revision 0 and no published version.
+ * Gets a page's content.
  */
 export const getPageContentOptions = (options: Options<GetPageContentData>) => queryOptions<GetPageContentResponse, DefaultError, GetPageContentResponse, ReturnType<typeof getPageContentQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -173,54 +171,16 @@ export const getPageContentOptions = (options: Options<GetPageContentData>) => q
 });
 
 /**
- * Replaces a page's draft. The Design Studio's autosave calls this.
+ * Publishes a page: stores the document and marks the content published. The studio calls this on Publish.
  *
- * The document must be complete and pass the structural rules (block types, ranges, safe links, allowed rich text).
- * Saving a document identical to the current draft returns the same revision, so retries are harmless.
+ * The document must pass the structural rules (block types, ranges, safe links, allowed rich text) and the content
+ * rules (no missing images, links that go somewhere). Errors are answered with a validation problem whose
+ * `issues` point at the sections and blocks to fix; warnings don't block and come back with the result.
  */
-export const savePageDraftMutation = (options?: Partial<Options<SavePageDraftData>>): UseMutationOptions<SavePageDraftResponse, SavePageDraftError, Options<SavePageDraftData>> => {
-    const mutationOptions: UseMutationOptions<SavePageDraftResponse, SavePageDraftError, Options<SavePageDraftData>> = {
+export const publishPageContentMutation = (options?: Partial<Options<PublishPageContentData>>): UseMutationOptions<PublishPageContentResponse, PublishPageContentError, Options<PublishPageContentData>> => {
+    const mutationOptions: UseMutationOptions<PublishPageContentResponse, PublishPageContentError, Options<PublishPageContentData>> = {
         mutationFn: async (fnOptions) => {
-            const { data } = await savePageDraft({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-/**
- * Lists what to fix in a page's draft before it can be published.
- *
- * Runs the same rules as publishing, without publishing. Errors block publishing; warnings don't.
- */
-export const checkPageContentMutation = (options?: Partial<Options<CheckPageContentData>>): UseMutationOptions<CheckPageContentResponse, DefaultError, Options<CheckPageContentData>> => {
-    const mutationOptions: UseMutationOptions<CheckPageContentResponse, DefaultError, Options<CheckPageContentData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await checkPageContent({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-/**
- * Publishes a page's draft: visitors see it from now on, and the page is marked published.
- *
- * Only the draft revision in the request is published, so nothing saved after the person chose Publish goes live
- * unseen. Drafts with error-level issues are refused with the issues; warnings don't block.
- */
-export const publishPageMutation = (options?: Partial<Options<PublishPageData>>): UseMutationOptions<PublishPageResponse, PublishPageError, Options<PublishPageData>> => {
-    const mutationOptions: UseMutationOptions<PublishPageResponse, PublishPageError, Options<PublishPageData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await publishPage({
+            const { data } = await publishPageContent({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

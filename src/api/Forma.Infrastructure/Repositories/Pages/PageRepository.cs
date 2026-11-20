@@ -12,7 +12,4 @@ public class PageRepository(FormaDbContext db) : IPageRepository
             .ApplyFilter(filter)
             .OrderByDescending(p => p.UpdatedAt)
             .ToListAsync(cancellationToken);
-
-    public async Task<PageDao?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-        await db.Pages.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 }

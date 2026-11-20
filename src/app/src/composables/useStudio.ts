@@ -1,47 +1,23 @@
 import { computed, inject, provide, ref, shallowRef, toValue, watch, type InjectionKey, type MaybeRefOrGetter } from 'vue'
-import { useQueryClient } from '@tanstack/vue-query'
 import type { Editor } from '@tiptap/vue-3'
-import { studioPageQueryKey, studioSavedQueryKey, toStudioPage, useStudioQuerier, type StudioPageSeed } from '@/queriers/useStudioQuerier'
-import { usePages } from '@/composables/usePages'
-import { useActivity } from '@/composables/useActivity'
-import { useMedia } from '@/composables/useMedia'
-import { useToast } from '@/composables/useToast'
-import { clone } from '@/studio/defaults'
-import { createBlock } from '@/studio/blocks'
-import { createSection, globalElements, sectionTemplates, withFreshIds } from '@/studio/sections'
+import { usePageContent } from '@/composables/usePageContent'
+import { useSavedItems } from '@/composables/useSavedItems'
+import { useStudioEditing, type Adding, type DragPayload, type DropTarget } from '@/composables/useStudioEditing'
+import { useStudioHistory } from '@/composables/useStudioHistory'
+import { useStudioMedia } from '@/composables/useStudioMedia'
+import { useStudioPublishing } from '@/composables/useStudioPublishing'
+import type { StudioPageSeed } from '@/queriers/usePageContentQuerier'
 import { textEditorKey, textPointerKey } from '@/studio/inject'
-import { mediaSrc } from '@/studio/media'
-import type { MediaItem } from '@/data/types'
-import type { Block, BlockType, Breakpoint, MediaAsset, PageDocument, SavedItem, Section, Selection, StudioPage } from '@/studio/types'
-import type { ContentIssueDto, PageContentDto } from '@/api/generated'
+import type { Breakpoint, Selection } from '@/studio/types'
 
-/** Something being dragged onto or around the canvas. */
-export type DragPayload =
-  | { kind: 'new-block'; type: BlockType }
-  | { kind: 'template'; id: string }
-  | { kind: 'saved'; id: string }
-  | { kind: 'move-block'; blockId: string }
-  | { kind: 'move-section'; sectionId: string }
-
-/** Where a drop would land: between sections, or at an index inside a section (and column, for split layouts). */
-export type DropTarget = { kind: 'section'; index: number } | { kind: 'block'; sectionId: string; index: number; column?: 0 | 1 }
+export { isSectionPayload, type DragPayload, type DropTarget } from '@/composables/useStudioEditing'
 
 export type StudioMode = 'simple' | 'advanced'
-
-/**
- * Where the draft stands with the server: `saved`; `pending` (edited, saving shortly); `saving`; `error` (the request
- * failed, retrying); `invalid` (the server refused the document); `conflict` (saved elsewhere since it was loaded).
- */
-export type SaveState = 'saved' | 'pending' | 'saving' | 'error' | 'invalid' | 'conflict'
-
-/** Autosave waits this long after the last edit. */
-const SAVE_DELAY_MS = 1500
-/** After a failed request, try again after this long. */
-const RETRY_DELAY_MS = 5000
 
 /** Simple mode hides the block library and technical settings; remembered per browser. */
 const MODE_KEY = 'forma.studioMode'
 const mode = ref<StudioMode>(readMode())
+
 function readMode(): StudioMode {
   try {
     return localStorage.getItem(MODE_KEY) === 'advanced' ? 'advanced' : 'simple'
@@ -49,6 +25,7 @@ function readMode(): StudioMode {
     return 'simple' /* storage unavailable */
   }
 }
+
 watch(mode, (m) => {
   try {
     localStorage.setItem(MODE_KEY, m)
@@ -57,55 +34,22 @@ watch(mode, (m) => {
   }
 })
 
-const HISTORY_LIMIT = 100
-/** Edits to the same field within this window are one undo step (e.g. typing). */
-const COALESCE_MS = 1000
-
-function setPath(target: Record<string, unknown>, path: string, value: unknown) {
-  const keys = path.split('.')
-  let obj = target
-  for (const k of keys.slice(0, -1)) {
-    if (typeof obj[k] !== 'object' || obj[k] === null) obj[k] = {}
-    obj = obj[k] as Record<string, unknown>
-  }
-  const last = keys.at(-1)!
-  if (value === undefined) delete obj[last]
-  else obj[last] = value
-}
-
-/** Whether a drag payload is placed as a section (not as a block inside one). */
-export function isSectionPayload(p: DragPayload, saved: SavedItem[]) {
-  if (p.kind === 'template' || p.kind === 'move-section') return true
-  if (p.kind === 'saved') return saved.find((s) => s.id === p.id)?.kind === 'section'
-  return false
-}
-
 /**
- * The Design Studio editor for one page. The page's draft and published documents are loaded from the API into the
- * vue-query cache (`['studio', 'page', id]`); every edit writes a new draft there and autosaves it to the API
- * (PUT /pages/{id}/draft). Selection, device and history are editor state.
+ * The Design Studio editor for one page, put together from one composable per concern: the page's content
+ * (usePageContent), the saved library (useSavedItems), media (useStudioMedia), undo (useStudioHistory), editing
+ * (useStudioEditing) and publishing (useStudioPublishing). Selection, device, zoom and drag state live here.
+ * Edits stay in the browser until the page is published.
  */
 export function createStudio(
   pageId: MaybeRefOrGetter<string>,
   seed: MaybeRefOrGetter<StudioPageSeed | undefined>,
   websiteId: MaybeRefOrGetter<string>,
 ) {
-  const queryClient = useQueryClient()
-  const querier = useStudioQuerier()
-  const { setPageStatus } = usePages()
-  const { logActivity } = useActivity()
-  const { notify } = useToast()
+  const content = usePageContent(pageId, seed)
+  const library = useSavedItems()
+  const studioMedia = useStudioMedia(websiteId)
 
-  const query = querier.getStudioPage(pageId, seed)
-  const mediaApi = useMedia()
-  /** The website's media library (GET /media): the same images as the Media page. */
-  const mediaQuery = mediaApi.getMediaItems(websiteId)
-  const savedQuery = querier.getSaved()
-
-  const page = computed(() => query.data.value)
-  const doc = computed(() => page.value?.draft)
-  const media = computed(() => mediaQuery.media.value.map(toAsset))
-  const saved = computed(() => savedQuery.data.value ?? [])
+  const doc = computed(() => content.page.value?.draft)
 
   /* ---------- Editor state ---------- */
   const selection = ref<Selection>(null)
@@ -119,22 +63,7 @@ export function createStudio(
   /** The rich-text editor of the text block being edited, for the formatting toolbar. */
   const textEditor = shallowRef<Editor | null>(null)
   const textPointer = shallowRef<{ x: number; y: number } | null>(null)
-  /** The Add dialog: a new section at an index, or a block into the selected section. */
-  const adding = ref<null | { mode: 'section'; index: number } | { mode: 'block' }>(null)
-
-  const past = shallowRef<PageDocument[]>([])
-  const future = shallowRef<PageDocument[]>([])
-  let lastCoalesce: { key: string; at: number } | null = null
-
-  watch(
-    () => toValue(pageId),
-    () => {
-      selection.value = null
-      past.value = []
-      future.value = []
-      lastCoalesce = null
-    },
-  )
+  const adding = ref<Adding>(null)
 
   const selectedSection = computed(() => (selection.value ? doc.value?.sections.find((s) => s.id === selection.value!.sectionId) : undefined))
   const selectedBlock = computed(() => {
@@ -142,499 +71,53 @@ export function createStudio(
     return sel?.kind === 'block' ? selectedSection.value?.blocks.find((b) => b.id === sel.blockId) : undefined
   })
 
-  const draftJson = computed(() => (page.value ? JSON.stringify(page.value.draft) : ''))
-  const hasChanges = computed(() => !!page.value && (!page.value.published || draftJson.value !== JSON.stringify(page.value.published)))
-  /** Edits the server doesn't have yet. */
-  const hasUnsavedChanges = computed(() => !!page.value && draftJson.value !== page.value.savedJson)
-  const isPublished = computed(() => !!page.value?.publishedAt)
-
-  /* ---------- Cache writes ---------- */
-  function writePage(update: (p: StudioPage) => StudioPage, id = toValue(pageId)) {
-    queryClient.setQueryData<StudioPage>(studioPageQueryKey(id), (old) => (old ? update(old) : old))
-  }
-
-  /** Applies `mutate` to a copy of the draft and stores it, recording an undo step. */
-  function change(mutate: (d: PageDocument) => void, coalesceKey?: string) {
-    const current = doc.value
-    if (!current) return
-    const now = Date.now()
-    const coalesce = coalesceKey && lastCoalesce?.key === coalesceKey && now - lastCoalesce.at < COALESCE_MS
-    if (!coalesce) past.value = [...past.value.slice(-HISTORY_LIMIT + 1), current]
-    future.value = []
-    lastCoalesce = coalesceKey ? { key: coalesceKey, at: now } : null
-    const next = clone(current)
-    mutate(next)
-    writePage((p) => ({ ...p, draft: next, updatedAt: now }))
-  }
-
-  function undo() {
-    const prev = past.value.at(-1)
-    if (!prev || !doc.value) return
-    future.value = [doc.value, ...future.value]
-    past.value = past.value.slice(0, -1)
-    lastCoalesce = null
-    writePage((p) => ({ ...p, draft: prev, updatedAt: Date.now() }))
-    keepSelectionValid(prev)
-  }
-
-  function redo() {
-    const next = future.value[0]
-    if (!next || !doc.value) return
-    past.value = [...past.value, doc.value]
-    future.value = future.value.slice(1)
-    lastCoalesce = null
-    writePage((p) => ({ ...p, draft: next, updatedAt: Date.now() }))
-    keepSelectionValid(next)
-  }
-
-  function keepSelectionValid(d: PageDocument) {
-    const sel = selection.value
-    if (!sel) return
-    const section = d.sections.find((s) => s.id === sel.sectionId)
-    if (!section) selection.value = null
-    else if (sel.kind === 'block' && !section.blocks.some((b) => b.id === sel.blockId)) selection.value = { kind: 'section', sectionId: section.id }
-  }
-
-  /* ---------- Lookups ---------- */
-  function locateBlock(d: PageDocument, blockId: string) {
-    for (const section of d.sections) {
-      const index = section.blocks.findIndex((b) => b.id === blockId)
-      if (index !== -1) return { section, index, block: section.blocks[index]! }
-    }
-  }
-
-  /** Which column of a split section a block index is in. */
-  const columnOf = (section: Section, index: number): 0 | 1 => (section.settings.layout === 'split' && index >= section.settings.splitAt ? 1 : 0)
-
-  function insertInto(section: Section, index: number, block: Block, column?: 0 | 1) {
-    const s = section.settings
-    if (s.layout === 'split' && (index < s.splitAt || (index === s.splitAt && column === 0))) s.splitAt++
-    section.blocks.splice(index, 0, block)
-  }
-
-  function removeFrom(section: Section, index: number) {
-    const s = section.settings
-    if (s.layout === 'split' && index < s.splitAt) s.splitAt--
-    return section.blocks.splice(index, 1)[0]!
-  }
-
-  /* ---------- Editing ---------- */
   function select(sel: Selection) {
     selection.value = sel
   }
 
-  function setSectionValue(sectionId: string, path: string, value: unknown) {
-    change((d) => {
-      const section = d.sections.find((s) => s.id === sectionId)
-      if (section) setPath(section.settings as unknown as Record<string, unknown>, path, value)
-    }, `${sectionId}:${path}`)
-  }
+  /* ---------- Composition ---------- */
+  const history = useStudioHistory(doc, (next) => content.writePage((p) => ({ ...p, draft: next, updatedAt: Date.now() })))
 
-  /** `path` starts with `props.` or `style.` */
-  function setBlockValue(blockId: string, path: string, value: unknown) {
-    change((d) => {
-      const found = locateBlock(d, blockId)
-      if (found) setPath(found.block as unknown as Record<string, unknown>, path, value)
-    }, `${blockId}:${path}`)
-  }
+  const editing = useStudioEditing({ doc, selection, saved: library.saved, adding, change: history.change })
 
-  function addSection(section: Section, index?: number) {
-    change((d) => d.sections.splice(index ?? d.sections.length, 0, section))
-    selection.value = { kind: 'section', sectionId: section.id }
-  }
-
-  function addBlock(block: Block, sectionId: string, index?: number, column?: 0 | 1) {
-    change((d) => {
-      const section = d.sections.find((s) => s.id === sectionId)
-      if (section) insertInto(section, index ?? section.blocks.length, block, column)
-    })
-    selection.value = { kind: 'block', sectionId, blockId: block.id }
-  }
-
-  /** A block on its own: wraps it in a new blank section at `index`. */
-  function addBlockAsSection(block: Block, index?: number) {
-    const section = createSection({}, [block])
-    change((d) => d.sections.splice(index ?? d.sections.length, 0, section))
-    selection.value = { kind: 'block', sectionId: section.id, blockId: block.id }
-  }
-
-  function moveSection(sectionId: string, toIndex: number) {
-    change((d) => {
-      const from = d.sections.findIndex((s) => s.id === sectionId)
-      if (from === -1) return
-      const [section] = d.sections.splice(from, 1)
-      d.sections.splice(toIndex > from ? toIndex - 1 : toIndex, 0, section!)
-    })
-  }
-
-  function moveBlock(blockId: string, toSectionId: string, toIndex: number, column?: 0 | 1) {
-    change((d) => {
-      const found = locateBlock(d, blockId)
-      const target = d.sections.find((s) => s.id === toSectionId)
-      if (!found || !target) return
-      const block = removeFrom(found.section, found.index)
-      const index = found.section === target && toIndex > found.index ? toIndex - 1 : toIndex
-      insertInto(target, index, block, column)
-    })
-    selection.value = { kind: 'block', sectionId: toSectionId, blockId }
-  }
-
-  /** Moves the selection one step up (-1) or down (1). */
-  function nudge(dir: -1 | 1) {
-    const sel = selection.value
-    const d = doc.value
-    if (!sel || !d) return
-    if (sel.kind === 'section') {
-      const i = d.sections.findIndex((s) => s.id === sel.sectionId)
-      const to = i + dir
-      if (i !== -1 && to >= 0 && to < d.sections.length) moveSection(sel.sectionId, dir === 1 ? to + 1 : to)
-    } else {
-      const found = locateBlock(d, sel.blockId)
-      if (!found) return
-      const to = found.index + dir
-      if (to < 0 || to >= found.section.blocks.length) return
-      // Stay in the same column when moving within a split section.
-      moveBlock(sel.blockId, found.section.id, dir === 1 ? to + 1 : to, columnOf(found.section, found.index))
-    }
-  }
-
-  function duplicate(sel: Selection = selection.value) {
-    const d = doc.value
-    if (!sel || !d) return
-    if (sel.kind === 'section') {
-      const i = d.sections.findIndex((s) => s.id === sel.sectionId)
-      if (i !== -1) addSection(withFreshIds(d.sections[i]!), i + 1)
-    } else {
-      const found = locateBlock(d, sel.blockId)
-      if (found) addBlock(withFreshIds(found.block), found.section.id, found.index + 1, columnOf(found.section, found.index))
-    }
-  }
-
-  function remove(sel: Selection = selection.value) {
-    if (!sel) return
-    change((d) => {
-      if (sel.kind === 'section') d.sections = d.sections.filter((s) => s.id !== sel.sectionId)
-      else {
-        const found = locateBlock(d, sel.blockId)
-        if (found) removeFrom(found.section, found.index)
-      }
-    })
-    selection.value = sel.kind === 'block' ? { kind: 'section', sectionId: sel.sectionId } : null
-  }
-
-  /* ---------- Library ---------- */
-  const templateById = (id: string) => [...sectionTemplates, ...globalElements].find((t) => t.id === id)
-
-  function sectionFromPayload(p: DragPayload): Section | undefined {
-    if (p.kind === 'template') return templateById(p.id)?.create()
-    if (p.kind === 'saved') {
-      const item = saved.value.find((s) => s.id === p.id)
-      if (item?.kind === 'section') return withFreshIds(item.section)
-    }
-  }
-
-  function blockFromPayload(p: DragPayload): Block | undefined {
-    if (p.kind === 'new-block') return createBlock(p.type)
-    if (p.kind === 'saved') {
-      const item = saved.value.find((s) => s.id === p.id)
-      if (item?.kind === 'block') return withFreshIds(item.block)
-    }
-  }
-
-  /** Places a library item or moves a canvas item to `target`. */
-  function drop(p: DragPayload, target: DropTarget) {
-    if (p.kind === 'move-section') {
-      if (target.kind === 'section') moveSection(p.sectionId, target.index)
-      return
-    }
-    if (p.kind === 'move-block') {
-      if (target.kind === 'block') moveBlock(p.blockId, target.sectionId, target.index, target.column)
-      else {
-        const d = doc.value
-        const found = d && locateBlock(d, p.blockId)
-        if (!found) return
-        // Dropped between sections: give the block a section of its own.
-        const block = found.block
-        change((draft) => {
-          const f = locateBlock(draft, p.blockId)!
-          removeFrom(f.section, f.index)
-          draft.sections.splice(target.index, 0, createSection({}, [block]))
-        })
-        const section = doc.value?.sections[target.index]
-        if (section) selection.value = { kind: 'block', sectionId: section.id, blockId: block.id }
-      }
-      return
-    }
-    const section = sectionFromPayload(p)
-    if (section) {
-      const d = doc.value
-      // Sections dropped inside a section go after it.
-      const index = target.kind === 'section' ? target.index : (d?.sections.findIndex((s) => s.id === target.sectionId) ?? -1) + 1
-      addSection(section, index)
-      return
-    }
-    const block = blockFromPayload(p)
-    if (!block) return
-    if (target.kind === 'block') addBlock(block, target.sectionId, target.index, target.column)
-    else addBlockAsSection(block, target.index)
-  }
-
-  /** Adds a library item next to the current selection (click instead of drag). */
-  function insert(p: DragPayload) {
-    const d = doc.value
-    if (!d) return
-    const sel = selection.value
-    const sectionIndex = sel ? d.sections.findIndex((s) => s.id === sel.sectionId) : -1
-    if (isSectionPayload(p, saved.value)) {
-      drop(p, { kind: 'section', index: sectionIndex === -1 ? d.sections.length : sectionIndex + 1 })
-      return
-    }
-    if (sel?.kind === 'block') {
-      const found = locateBlock(d, sel.blockId)
-      if (found) return drop(p, { kind: 'block', sectionId: found.section.id, index: found.index + 1, column: columnOf(found.section, found.index) })
-    }
-    if (sel?.kind === 'section') return drop(p, { kind: 'block', sectionId: sel.sectionId, index: d.sections[sectionIndex]!.blocks.length })
-    drop(p, { kind: 'section', index: d.sections.length })
-  }
-
-  /** Adds what was picked in the Add dialog where it was opened. */
-  function addPicked(p: DragPayload) {
-    const a = adding.value
-    adding.value = null
-    if (!a) return
-    if (a.mode === 'section') drop(p, { kind: 'section', index: a.index })
-    else insert(p)
-  }
-
-  function saveToLibrary(sel: Selection = selection.value, name?: string) {
-    const d = doc.value
-    if (!sel || !d) return
-    const section = d.sections.find((s) => s.id === sel.sectionId)
-    if (!section) return
-    let item: SavedItem
-    if (sel.kind === 'section') {
-      item = { id: crypto.randomUUID(), kind: 'section', name: name || section.settings.name || 'Saved section', section: clone(section), savedAt: Date.now() }
-    } else {
-      const block = section.blocks.find((b) => b.id === sel.blockId)
-      if (!block) return
-      item = { id: crypto.randomUUID(), kind: 'block', name: name || 'Saved block', block: clone(block), savedAt: Date.now() }
-    }
-    queryClient.setQueryData<SavedItem[]>(studioSavedQueryKey, (old) => [item, ...(old ?? [])])
-    notify(`Saved ‘${item.name}’ to your library`)
-  }
-
-  function removeSaved(id: string) {
-    queryClient.setQueryData<SavedItem[]>(studioSavedQueryKey, (old) => old?.filter((s) => s.id !== id))
-  }
-
-  /** Uploads images from the user's computer to the website's media library (POST /media). */
-  async function uploadMedia(files: FileList | File[]): Promise<MediaAsset[]> {
-    const images = [...files].filter((f) => f.type.startsWith('image/'))
-    if (!images.length) return []
-    const id = toValue(websiteId)
-    const items = await mediaApi.uploadFiles(id, images)
-    // The studio has no upload list like the Media page, so report a failure here and clear it.
-    const failed = mediaApi.getUploads(id).value.find((u) => u.status === 'failed')
-    if (failed) {
-      notify(failed.error ?? 'The upload failed. Try again.', 'error')
-      mediaApi.dismissFailed(id)
-    }
-    return items.map(toAsset)
-  }
-
-  /* ---------- Saving ---------- */
-  const saveState = ref<SaveState>('saved')
-  /** What the server said about a refused draft, for the console and the status line. */
-  const saveError = ref<string>()
-  /** The server's current content when it was saved elsewhere (`conflict`). */
-  const conflict = shallowRef<PageContentDto | null>(null)
-  let saveTimer: ReturnType<typeof setTimeout> | undefined
-  let saving: Promise<void> | null = null
-
-  function scheduleSave(delay = SAVE_DELAY_MS) {
-    clearTimeout(saveTimer)
-    saveTimer = setTimeout(() => void saveNow(), delay)
-  }
-
-  /** Saves the draft of `id` (the open page by default) now, if it has unsaved edits. */
-  async function saveNow(id = toValue(pageId)): Promise<void> {
-    clearTimeout(saveTimer)
-    // One request at a time; edits made meanwhile are saved when it returns.
-    if (saving) return saving
-    const p = id ? queryClient.getQueryData<StudioPage>(studioPageQueryKey(id)) : undefined
-    if (!p || saveState.value === 'conflict' || saveState.value === 'invalid') return
-    const json = JSON.stringify(p.draft)
-    if (json === p.savedJson) {
-      if (id === toValue(pageId)) saveState.value = 'saved'
-      return
-    }
-
-    saveState.value = 'saving'
-    saving = (async () => {
-      const outcome = await querier.saveDraft(id, p.draft, p.revision)
-      const current = id === toValue(pageId)
-      switch (outcome.kind) {
-        case 'saved':
-          writePage((old) => ({ ...old, revision: outcome.revision, savedJson: json }), id)
-          if (current) saveState.value = hasUnsavedChanges.value ? 'pending' : 'saved'
-          break
-        case 'conflict':
-          conflict.value = outcome.current
-          saveState.value = 'conflict'
-          break
-        case 'invalid':
-          // The studio produced something the API refuses: a bug, not something the person can fix.
-          console.error('The API refused the draft:', outcome.errors)
-          saveError.value = Object.entries(outcome.errors).map(([path, messages]) => `${path}: ${messages.join(' ')}`)[0]
-          saveState.value = 'invalid'
-          break
-        default:
-          saveState.value = 'error'
-          scheduleSave(RETRY_DELAY_MS)
-      }
-    })().finally(() => {
-      saving = null
-    })
-    await saving
-    // Edits made while the request was out.
-    if ((saveState.value as SaveState) === 'pending') scheduleSave()
-  }
-
-  // Every change to the draft (edits, undo, redo, discard) autosaves.
-  watch(draftJson, () => {
-    if (!page.value || ['saving', 'conflict', 'invalid'].includes(saveState.value)) return
-    if (!hasUnsavedChanges.value) {
-      saveState.value = 'saved'
-      return
-    }
-    saveState.value = 'pending'
-    scheduleSave()
+  const publishing = useStudioPublishing({
+    page: content.page,
+    writePage: content.writePage,
+    publishContent: content.publish,
+    change: history.change,
+    keepSelectionValid: editing.keepSelectionValid,
+    select,
   })
 
-  // Switching to another page: save the one being left right away, and start the new one clean.
+  function undo() {
+    const restored = history.undo()
+    if (restored) editing.keepSelectionValid(restored)
+  }
+
+  function redo() {
+    const restored = history.redo()
+    if (restored) editing.keepSelectionValid(restored)
+  }
+
+  // Another page: start with nothing selected and a fresh history.
   watch(
     () => toValue(pageId),
-    (_, previous) => {
-      if (previous) void saveNow(previous)
-      saveState.value = 'saved'
-      saveError.value = undefined
-      conflict.value = null
+    () => {
+      selection.value = null
+      history.reset()
     },
   )
 
-  /** After a conflict: replace the draft with the server's (`theirs`) or save this one over it (`mine`). */
-  function resolveConflict(keep: 'theirs' | 'mine') {
-    const server = conflict.value
-    if (!server) return
-    conflict.value = null
-    const latest = toStudioPage(server)
-    if (keep === 'theirs') {
-      queryClient.setQueryData(studioPageQueryKey(server.pageId), latest)
-      past.value = []
-      future.value = []
-      lastCoalesce = null
-      keepSelectionValid(latest.draft)
-      saveState.value = 'saved'
-      notify('Loaded the latest version')
-    } else {
-      writePage(
-        (old) => ({ ...old, revision: latest.revision, savedJson: latest.savedJson, published: latest.published, publishedAt: latest.publishedAt }),
-        server.pageId,
-      )
-      saveState.value = 'pending'
-      void saveNow(server.pageId)
-    }
-  }
-
-  /** Tries a refused or failed save again. */
-  function retrySave() {
-    saveError.value = undefined
-    saveState.value = 'pending'
-    void saveNow()
-  }
-
-  /* ---------- Publishing ---------- */
-  const publishing = ref(false)
-  /** What to fix (or look at) before publishing; the publish dialog shows it while set. */
-  const issues = shallowRef<ContentIssueDto[] | null>(null)
-
-  /** Saves what's left and waits for it, so the server publishes exactly what's on screen. */
-  async function settle(): Promise<boolean> {
-    for (let i = 0; i < 3 && hasUnsavedChanges.value; i++) {
-      if (['conflict', 'invalid'].includes(saveState.value)) break
-      if (saveState.value === 'error') saveState.value = 'pending'
-      await saveNow()
-    }
-    return !hasUnsavedChanges.value
-  }
-
-  /**
-   * Publishes the draft through the API. Checks it first and shows the issues when there are any; `anyway` skips that
-   * step after the person has seen the warnings. Errors always stop publishing (the server checks again).
-   */
-  async function publish(anyway = false) {
-    if (!page.value || publishing.value) return
-    publishing.value = true
-    try {
-      if (!(await settle())) {
-        notify('Couldn’t save the latest changes, so nothing was published', 'error')
-        return
-      }
-      const p = page.value
-      if (!anyway) {
-        const check = await querier.checkPage(p.pageId)
-        if (!check) return void notify('Couldn’t check the page. Try again.', 'error')
-        if (check.issues.length) return void (issues.value = check.issues)
-      }
-
-      const outcome = await querier.publish(p.pageId, p.revision)
-      switch (outcome.kind) {
-        case 'published': {
-          const latest = toStudioPage(outcome.content)
-          writePage((old) => ({ ...old, published: latest.published, publishedAt: latest.publishedAt }), p.pageId)
-          issues.value = null
-          setPageStatus(p.pageId, 'live')
-          break
-        }
-        case 'rejected':
-          issues.value = outcome.issues
-          break
-        case 'conflict':
-          issues.value = null
-          conflict.value = outcome.current
-          saveState.value = 'conflict'
-          break
-        default:
-          notify('Couldn’t publish the page. Try again.', 'error')
-      }
-    } finally {
-      publishing.value = false
-    }
-  }
-
-  /** Selects what an issue is about, so its settings open. */
-  function showIssue(issue: ContentIssueDto) {
-    issues.value = null
-    if (issue.blockId && issue.sectionId) select({ kind: 'block', sectionId: issue.sectionId, blockId: issue.blockId })
-    else if (issue.sectionId) select({ kind: 'section', sectionId: issue.sectionId })
-  }
-
-  function discard() {
-    const published = page.value?.published
-    if (!published || !hasChanges.value) return
-    change((d) => Object.assign(d, clone(published)))
-    keepSelectionValid(published)
-    logActivity('You discarded unpublished changes', 'page')
-    notify('Changes discarded')
-  }
-
   return {
-    query,
-    page,
+    query: content.query,
+    page: content.page,
     doc,
-    media,
-    mediaQuery,
-    saved,
+    media: studioMedia.media,
+    mediaQuery: studioMedia.mediaQuery,
+    uploadMedia: studioMedia.uploadMedia,
+    saved: library.saved,
+    saveToLibrary: (sel: Selection = selection.value, name?: string) => library.saveToLibrary(doc.value, sel, name),
+    removeSaved: library.removeSaved,
     selection,
     selectedSection,
     selectedBlock,
@@ -647,48 +130,15 @@ export function createStudio(
     textEditor,
     textPointer,
     adding,
-    addPicked,
-    hasChanges,
-    hasUnsavedChanges,
-    isPublished,
-    saveState,
-    saveError,
-    conflict,
-    saveNow,
-    retrySave,
-    resolveConflict,
-    canUndo: computed(() => past.value.length > 0),
-    canRedo: computed(() => future.value.length > 0),
     select,
-    change,
+    change: history.change,
     undo,
     redo,
-    setSectionValue,
-    setBlockValue,
-    addSection,
-    addBlock,
-    addBlockAsSection,
-    moveSection,
-    moveBlock,
-    nudge,
-    duplicate,
-    remove,
-    drop,
-    insert,
-    saveToLibrary,
-    removeSaved,
-    uploadMedia,
-    publish,
-    publishing,
-    issues,
-    showIssue,
-    discard,
+    canUndo: history.canUndo,
+    canRedo: history.canRedo,
+    ...editing,
+    ...publishing,
   }
-}
-
-function toAsset(m: MediaItem): MediaAsset {
-  // Documents keep the API route, not the URL the browser loads it from: see studio/media.ts.
-  return { id: m.id, name: m.fileName, src: mediaSrc(m.id), thumbnailUrl: m.thumbnailUrl }
 }
 
 export type Studio = ReturnType<typeof createStudio>

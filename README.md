@@ -119,14 +119,12 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 | `GET /media/{id}/thumbnail` | The WebP thumbnail's bytes                                      |
 | `POST /media`               | Uploads an image (multipart: `websiteId`, `file`), `201` or `400` |
 | `DELETE /media/{id}`        | Deletes a media item and its files, `204`                       |
-| `GET /pages/{id}/content`   | A page's Design Studio draft and published document             |
-| `PUT /pages/{id}/draft`     | Saves the draft (`{ document, baseRevision }`), `200`, `400` or `409` |
-| `POST /pages/{id}/check`   | What to fix before publishing: errors and warnings, each pointing at a block |
-| `POST /pages/{id}/publish` | Publishes a draft revision (`{ revision }`), `200`, `409` or `422` with the issues |
+| `GET /pages/{id}/content`   | A page's Design Studio content (`204` when it has none yet)      |
+| `PUT /pages/{id}/content`   | Publishes a page (`{ document }`): `200` with warnings, or `400` with the issues to fix |
 
 #### Page content
 
-A page's Design Studio content is one JSON document per version (draft and published) in the `PageDocuments` table. Every save is checked against the document model and its rules (block types, ranges, safe links, allowed rich text) and carries the draft revision it was edited from, so a save made elsewhere in the meantime answers `409`. Publishing runs content checks first (missing images, links that go nowhere, deleted media…): errors block it, warnings don't. Design and full spec: [`docs/design/page-content.md`](docs/design/page-content.md) and [`docs/design/page-content-api.md`](docs/design/page-content-api.md); future collection pages: [`docs/design/collections.md`](docs/design/collections.md).
+A page's Design Studio content is one JSON document per page in the `PageContents` table. The studio keeps edits in the browser and sends the page on Publish; the API checks it against the document model and its rules (block types, ranges, safe links, allowed rich text) and the content rules (missing images, links that go nowhere, deleted media…). Errors are a `400` problem that lists them; warnings don't block. Design and full spec: [`docs/design/page-content.md`](docs/design/page-content.md) and [`docs/design/page-content-api.md`](docs/design/page-content-api.md); future collection pages: [`docs/design/collections.md`](docs/design/collections.md).
 
 #### Media
 

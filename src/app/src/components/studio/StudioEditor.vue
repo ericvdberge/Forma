@@ -2,12 +2,12 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { TriangleAlert, X } from 'lucide-vue-next'
-import { FButton, FModal, FSkeleton, cn } from '@forma/design-system'
+import { FButton, FSkeleton, cn } from '@forma/design-system'
 import { useActiveWebsite } from '@/composables/useActiveWebsite'
 import { usePages } from '@/composables/usePages'
 import { useToast } from '@/composables/useToast'
 import { createStudio, provideStudio } from '@/composables/useStudio'
-import { StudioPageNotFoundError, type StudioPageSeed } from '@/queriers/useStudioQuerier'
+import { StudioPageNotFoundError, type StudioPageSeed } from '@/queriers/usePageContentQuerier'
 import AddDialog from './AddDialog.vue'
 import PublishDialog from './PublishDialog.vue'
 import StudioCanvas from './StudioCanvas.vue'
@@ -130,19 +130,15 @@ function onKey(e: KeyboardEvent) {
   }
 }
 
-/* Drafts autosave; closing the tab with edits the server doesn't have yet asks first (and starts saving them). */
+/* Edits stay in the browser until they are published, so closing the tab with unpublished changes asks first. */
 function onBeforeUnload(e: BeforeUnloadEvent) {
-  if (!studio.hasUnsavedChanges.value) return
-  void studio.saveNow()
-  e.preventDefault()
+  if (studio.hasChanges.value) e.preventDefault()
 }
 onMounted(() => {
   window.addEventListener('keydown', onKey)
   window.addEventListener('beforeunload', onBeforeUnload)
 })
 onBeforeUnmount(() => {
-  // Leaving the editor (e.g. back to Pages): save what's left now instead of after the autosave delay.
-  void studio.saveNow()
   window.removeEventListener('keydown', onKey)
   window.removeEventListener('beforeunload', onBeforeUnload)
 })
@@ -198,7 +194,7 @@ const notOnServer = computed(() => studio.query.error.value instanceof StudioPag
           <TriangleAlert class="size-5" aria-hidden="true" />
           <p class="font-medium">{{ notOnServer ? 'This page isn’t saved yet' : 'Couldn’t open this page' }}</p>
           <p v-if="notOnServer" class="max-w-sm text-sm text-muted">
-            It was created in this browser and the server doesn’t have it, so there’s nowhere to save its content.
+            It was created in this browser and the server doesn’t have it, so it can’t be published.
           </p>
           <FButton v-else size="sm" variant="secondary" @click="studio.query.refetch()">Try again</FButton>
         </div>
@@ -234,20 +230,6 @@ const notOnServer = computed(() => studio.query.error.value instanceof StudioPag
       @pick="studio.addPicked($event); drawer = null"
     />
     <PublishDialog />
-    <FModal :open="!!studio.conflict.value" size="sm" labelledby="conflict-title" @update:open="!$event && studio.resolveConflict('theirs')">
-      <div class="flex flex-col gap-5 p-6 sm:p-7">
-        <div>
-          <h2 id="conflict-title" class="font-display text-xl font-bold tracking-[-0.02em]">This page was changed somewhere else</h2>
-          <p class="mt-2 text-sm text-muted">
-            Someone (or you, in another tab) saved this page after you opened it. Load their version, or keep yours and save it over theirs.
-          </p>
-        </div>
-        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <FButton variant="secondary" size="sm" @click="studio.resolveConflict('mine')">Keep mine</FButton>
-          <FButton size="sm" data-autofocus @click="studio.resolveConflict('theirs')">Load the latest version</FButton>
-        </div>
-      </div>
-    </FModal>
     <AppToast />
   </div>
 </template>

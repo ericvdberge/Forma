@@ -188,10 +188,10 @@ The same two levels as pages ([page-content.md § 6](page-content.md#6-validatio
 | `PUT` | `/collections/{id}/fields/order` | Reorder fields |
 | `GET` | `/collections/{id}/items?status=&search=&sort=&page=` | Items, paged |
 | `POST` | `/collections/{id}/items` | Create `{ slug, values }` |
-| `GET` / `PUT` / `DELETE` | `/collection-items/{id}` | Read / save draft values (with `baseRevision`, like pages) / delete |
+| `GET` / `PUT` / `DELETE` | `/collection-items/{id}` | Read / save values / delete |
 | `POST` | `/collection-items/{id}/publish` / `unpublish` | Publish or take offline |
 
-Page content endpoints don't change: a template page's document is loaded and saved through `/pages/{id}/content` and `/pages/{id}/draft`, like any page.
+Page content endpoints don't change: a template page's document is loaded and published through `/pages/{id}/content`, like any page.
 
 ## 8. What phases 1–4 do now to keep this open
 

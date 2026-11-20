@@ -125,16 +125,12 @@ export interface PageDocument {
   sections: Section[]
 }
 
-/** What the studio keeps per page: the working draft and the last published version, as loaded from GET /pages/{id}/content. */
+/** What the studio keeps per page: the working draft and the last published version, as loaded from GET /pages/{id}/content. Edits stay in the browser until Publish. */
 export interface StudioPage {
   pageId: string
   draft: PageDocument
   /** Null when the page was never published. */
   published: PageDocument | null
-  /** Draft revision the server has; sent as `baseRevision` with the next save. */
-  revision: number
-  /** JSON of the draft the server has, so unsaved edits can be told apart. */
-  savedJson: string
   updatedAt: number
   publishedAt: number | null
 }

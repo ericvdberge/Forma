@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Forma.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(FormaDbContext))]
-    [Migration("20261117195536_AddPageDocuments")]
-    partial class AddPageDocuments
+    [Migration("20261120110627_AddPageContents")]
+    partial class AddPageContents
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -71,6 +71,34 @@ namespace Forma.Infrastructure.Persistence.Migrations
                     b.ToTable("Media", (string)null);
                 });
 
+            modelBuilder.Entity("Forma.Infrastructure.Daos.PageContentDao", b =>
+                {
+                    b.Property<Guid>("PageId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("PageId");
+
+                    b.ToTable("PageContents", (string)null);
+                });
+
             modelBuilder.Entity("Forma.Infrastructure.Daos.PageDao", b =>
                 {
                     b.Property<Guid>("Id")
@@ -107,38 +135,6 @@ namespace Forma.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Pages", (string)null);
-                });
-
-            modelBuilder.Entity("Forma.Infrastructure.Daos.PageDocumentDao", b =>
-                {
-                    b.Property<Guid>("PageId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Kind")
-                        .HasMaxLength(20)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ContentHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Revision")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("SchemaVersion")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("PageId", "Kind");
-
-                    b.ToTable("PageDocuments", (string)null);
                 });
 
             modelBuilder.Entity("Forma.Infrastructure.Daos.WebsiteDao", b =>
@@ -192,6 +188,17 @@ namespace Forma.Infrastructure.Persistence.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Forma.Infrastructure.Daos.PageContentDao", b =>
+                {
+                    b.HasOne("Forma.Infrastructure.Daos.PageDao", "Page")
+                        .WithOne()
+                        .HasForeignKey("Forma.Infrastructure.Daos.PageContentDao", "PageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Page");
+                });
+
             modelBuilder.Entity("Forma.Infrastructure.Daos.PageDao", b =>
                 {
                     b.HasOne("Forma.Infrastructure.Daos.WebsiteDao", "Website")
@@ -201,17 +208,6 @@ namespace Forma.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Website");
-                });
-
-            modelBuilder.Entity("Forma.Infrastructure.Daos.PageDocumentDao", b =>
-                {
-                    b.HasOne("Forma.Infrastructure.Daos.PageDao", "Page")
-                        .WithMany()
-                        .HasForeignKey("PageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Page");
                 });
 #pragma warning restore 612, 618
         }

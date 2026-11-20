@@ -8,8 +8,8 @@ import { blockDefinition } from '@/studio/blocks'
 import { sectionTypeLabels } from '@/studio/sections'
 
 /**
- * What to fix before publishing (errors) and what's worth a look (warnings), from POST /pages/{id}/check or a refused
- * publish. Choosing an issue selects the block or section it is about.
+ * What PUT /pages/{id}/content said about the page: errors that stopped it from being published, or warnings worth a
+ * look after it was published. Choosing an issue selects the block or section it is about.
  */
 const studio = useStudio()
 
@@ -39,13 +39,13 @@ function where(issue: ContentIssueDto) {
     <div class="flex max-h-[80dvh] flex-col gap-5 p-6 sm:p-7">
       <div>
         <h2 id="publish-issues-title" class="font-display text-xl font-bold tracking-[-0.02em]">
-          {{ errors.length ? 'Fix these before publishing' : 'Ready to publish?' }}
+          {{ errors.length ? 'Fix these before publishing' : 'Published' }}
         </h2>
         <p class="mt-2 text-sm text-muted">
           {{
             errors.length
               ? 'Visitors would see these as broken. Choose one to open its settings.'
-              : 'Nothing is broken, but these are worth a look. Choose one to open its settings, or publish anyway.'
+              : 'Your page is live. Nothing is broken, but these are worth a look. Choose one to open its settings.'
           }}
         </p>
       </div>
@@ -97,18 +97,7 @@ function where(issue: ContentIssueDto) {
       </div>
 
       <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <FButton variant="secondary" size="sm" :data-autofocus="errors.length ? '' : undefined" @click="open = false">
-          {{ errors.length ? 'Close' : 'Cancel' }}
-        </FButton>
-        <FButton
-          v-if="!errors.length"
-          size="sm"
-          data-autofocus
-          :disabled="studio.publishing.value"
-          @click="studio.publish(true)"
-        >
-          {{ studio.publishing.value ? 'Publishing…' : 'Publish anyway' }}
-        </FButton>
+        <FButton variant="secondary" size="sm" data-autofocus @click="open = false">Close</FButton>
       </div>
     </div>
   </FModal>

@@ -1,132 +1,213 @@
 using System.Net;
-using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.Sqlite;
+using Forma.Api.Dtos;
+using Forma.Application.Documents;
+using Forma.Application.Documents.Validation;
+using Forma.Application.Entities;
+using Forma.Tests.Builders;
+using Microsoft.AspNetCore.Http;
 
 namespace Forma.Tests.Api;
-
-/// <summary>The API with a fresh SQLite database (sample data seeded), shared by the tests of one class.</summary>
-public sealed class ApiFactory : WebApplicationFactory<Program>
-{
-    private readonly string _directory = Directory.CreateTempSubdirectory("forma-tests-").FullName;
-
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
-    {
-        builder.UseEnvironment("Development");
-        builder.UseSetting("ConnectionStrings:Forma", $"Data Source={Path.Combine(_directory, "forma.db")}");
-        builder.UseSetting("Assets:Path", Path.Combine(_directory, "assets"));
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        base.Dispose(disposing);
-        SqliteConnection.ClearAllPools();
-        try { Directory.Delete(_directory, recursive: true); } catch (IOException) { /* best effort */ }
-    }
-}
 
 public class PageContentApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
     private readonly HttpClient _client = factory.CreateClient();
 
-    private async Task<(Guid Home, Guid Contact, Guid About)> SamplePagesAsync()
-    {
-        var websites = await _client.GetFromJsonAsync<JsonArray>("/websites");
-        var websiteId = websites![0]!["id"]!.GetValue<Guid>();
-        var pages = await _client.GetFromJsonAsync<JsonArray>($"/pages?websiteId={websiteId}");
-        Guid Id(string slug) => pages!.First(p => p!["slug"]!.GetValue<string>() == slug)!["id"]!.GetValue<Guid>();
-        return (Id("home"), Id("contact"), Id("about"));
-    }
-
-    private Task<HttpResponseMessage> PutDraftAsync(Guid pageId, JsonNode document, int baseRevision) =>
-        _client.PutAsJsonAsync($"/pages/{pageId}/draft", new JsonObject { ["document"] = document.DeepClone(), ["baseRevision"] = baseRevision });
-
     [Fact]
     public async Task Sample_pages_have_seeded_content()
     {
-        // About (published) and Contact (draft) are never edited by the other tests in this class.
-        var (_, contact, about) = await SamplePagesAsync();
+        var about = await _client.SamplePageAsync("about");
+        var contact = await _client.SamplePageAsync("contact");
 
-        var aboutContent = await _client.GetFromJsonAsync<JsonObject>($"/pages/{about}/content");
-        var contactContent = await _client.GetFromJsonAsync<JsonObject>($"/pages/{contact}/content");
+        var aboutContent = await _client.GetAsync<PageContentDto>($"/pages/{about.Id}/content");
+        var contactContent = await _client.GetAsync<PageContentDto>($"/pages/{contact.Id}/content");
 
-        Assert.NotEmpty(aboutContent!["draft"]!["sections"]!.AsArray());
-        Assert.NotNull(aboutContent["published"]);
-        Assert.False(aboutContent["hasUnpublishedChanges"]!.GetValue<bool>());
-        // Contact is a draft page: content, but never published.
-        Assert.Null(contactContent!["published"]);
-        Assert.True(contactContent["hasUnpublishedChanges"]!.GetValue<bool>());
-        Assert.DoesNotContain("{{title}}", contactContent.ToJsonString());
+        Assert.Equal(PageContentStatus.Published, aboutContent.Status);
+        Assert.Equal(PageContentStatus.Draft, contactContent.Status);
+        Assert.NotEmpty(contactContent.Document.Sections);
+        Assert.DoesNotContain("{{title}}", PageDocumentSerializer.Serialize(contactContent.Document));
     }
 
     [Fact]
     public async Task Unknown_page_is_404()
     {
-        var response = await _client.GetAsync($"/pages/{Guid.NewGuid()}/content");
+        var document = new PageDocumentBuilder().WithSection("s_a").Build();
 
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var get = await _client.GetAsync($"/pages/{Guid.NewGuid()}/content");
+        var put = await _client.PublishAsync(Guid.NewGuid(), document);
+
+        Assert.Equal(HttpStatusCode.NotFound, get.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, put.StatusCode);
     }
 
     [Fact]
-    public async Task Saving_increments_the_revision_and_detects_conflicts()
+    public async Task Publishing_stores_the_document()
     {
-        var (home, _, _) = await SamplePagesAsync();
-        var content = await _client.GetFromJsonAsync<JsonObject>($"/pages/{home}/content");
-        var revision = content!["draftRevision"]!.GetValue<int>();
-        var draft = content["draft"]!.AsObject();
-        draft["sections"]!.AsArray().RemoveAt(0);
+        var page = await _client.SamplePageAsync("home");
+        var document = new PageDocumentBuilder()
+            .WithSection("s_hero", section => section.WithHeading("b_title", "<p>Welcome</p>", level: 1))
+            .Build();
 
-        var saved = await PutDraftAsync(home, draft, revision);
-        Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
-        var body = await saved.Content.ReadFromJsonAsync<JsonObject>();
-        Assert.Equal(revision + 1, body!["revision"]!.GetValue<int>());
-        Assert.True(body["hasUnpublishedChanges"]!.GetValue<bool>());
+        var response = await _client.PublishAsync(page.Id, document);
+        var content = await _client.GetAsync<PageContentDto>($"/pages/{page.Id}/content");
 
-        // Retrying the same save is harmless: same revision, nothing written.
-        var retry = await PutDraftAsync(home, draft, revision + 1);
-        Assert.Equal(revision + 1, (await retry.Content.ReadFromJsonAsync<JsonObject>())!["revision"]!.GetValue<int>());
-
-        // A save based on the old revision was made elsewhere: 409 with the current content.
-        var stale = await PutDraftAsync(home, content["draft"]!, revision);
-        Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
-        var current = await stale.Content.ReadFromJsonAsync<JsonObject>();
-        Assert.Equal(revision + 1, current!["draftRevision"]!.GetValue<int>());
-
-        var reloaded = await _client.GetFromJsonAsync<JsonObject>($"/pages/{home}/content");
-        Assert.True(JsonNode.DeepEquals(draft, reloaded!["draft"]));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(PageContentStatus.Published, content.Status);
+        JsonAssert.Equal("""
+            {
+              "version": 1,
+              "sections": [
+                {
+                  "id": "s_hero",
+                  "settings": {
+                    "type": "content",
+                    "name": "",
+                    "layout": "stack",
+                    "splitRatio": 50,
+                    "splitAt": 1,
+                    "verticalAlign": "center",
+                    "padding": { "desktop": { "top": 64, "bottom": 64, "left": 32, "right": 32 }, "tablet": null, "mobile": null },
+                    "background": {
+                      "kind": "none",
+                      "color": "#ffffff",
+                      "image": "",
+                      "position": "center",
+                      "gradientFrom": "#f5f4f0",
+                      "gradientTo": "#ffffff",
+                      "gradientAngle": 180,
+                      "overlayColor": "#000000",
+                      "overlayOpacity": 0
+                    },
+                    "contentWidth": "normal",
+                    "align": "left",
+                    "theme": "light",
+                    "minHeight": 0,
+                    "gap": 20,
+                    "radius": 0,
+                    "animation": { "entrance": "none", "delay": 0 },
+                    "anchor": "",
+                    "className": "",
+                    "visibility": { "desktop": true, "tablet": true, "mobile": true }
+                  },
+                  "blocks": [
+                    {
+                      "type": "heading",
+                      "id": "b_title",
+                      "style": {
+                        "align": "inherit",
+                        "marginTop": 0,
+                        "marginBottom": 0,
+                        "maxWidth": "none",
+                        "anchor": "",
+                        "className": "",
+                        "visibility": { "desktop": true, "tablet": true, "mobile": true }
+                      },
+                      "props": { "html": "<p>Welcome</p>", "level": 1, "size": "lg" }
+                    }
+                  ]
+                }
+              ]
+            }
+            """, content.Document);
     }
 
     [Fact]
-    public async Task Malformed_documents_get_a_validation_problem_with_the_json_path()
+    public async Task Warnings_do_not_block_publishing()
     {
-        var (_, contact, _) = await SamplePagesAsync();
-        var content = await _client.GetFromJsonAsync<JsonObject>($"/pages/{contact}/content");
-        var draft = content!["draft"]!.AsObject();
-        draft["sections"]![0]!["blocks"]![0]!["type"] = "marquee";
+        var page = await _client.SamplePageAsync("about");
+        var document = new PageDocumentBuilder()
+            .WithSection("s_cta", section => section.WithButton("b_cta", "Contact us", href: "#"))
+            .Build();
 
-        var response = await PutDraftAsync(contact, draft, content["draftRevision"]!.GetValue<int>());
+        var response = await _client.PublishAsync(page.Id, document);
+        var result = await response.ReadAsync<PublishedPageContentDto>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        JsonAssert.Equal("""
+            [
+              {
+                "severity": "warning",
+                "code": "link.placeholder",
+                "message": "The button ‘Contact us’ still links to # (nowhere).",
+                "sectionId": "s_cta",
+                "blockId": "b_cta",
+                "field": "href",
+                "itemIndex": null
+              }
+            ]
+            """, result.Warnings);
+    }
+
+    [Fact]
+    public async Task Content_errors_are_a_400_problem_with_the_issues()
+    {
+        var page = await _client.SamplePageAsync("contact");
+        var before = await _client.GetAsync<PageContentDto>($"/pages/{page.Id}/content");
+        var document = new PageDocumentBuilder()
+            .WithSection("s_photo", section => section.WithImage("b_photo", src: $"/media/{Guid.NewGuid()}/image"))
+            .Build();
+
+        var response = await _client.PublishAsync(page.Id, document);
+        var problem = await response.ReadAsync<HttpValidationProblemDetails>();
+        var issues = ((JsonElement)problem.Extensions["issues"]!).Deserialize<List<ContentIssueDto>>(PageDocumentJson.Options);
+        var after = await _client.GetAsync<PageContentDto>($"/pages/{page.Id}/content");
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
-        var key = Assert.Single(problem!["errors"]!.AsObject()).Key;
-        Assert.StartsWith("document.sections[0].blocks[0]", key);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(["This image was deleted from the media library."], problem.Errors["s_photo.b_photo.src"]);
+        Assert.Equal([new ContentIssueDto(IssueSeverity.Error, "media.not_found", "This image was deleted from the media library.", "s_photo", "b_photo", "src", null)], issues);
+        Assert.Equal(before.UpdatedAt, after.UpdatedAt);
     }
 
     [Fact]
-    public async Task Rule_violations_are_keyed_by_the_json_path()
+    public async Task Rule_violations_are_a_400_problem()
     {
-        var (_, contact, _) = await SamplePagesAsync();
-        var content = await _client.GetFromJsonAsync<JsonObject>($"/pages/{contact}/content");
-        var draft = content!["draft"]!.AsObject();
-        draft["sections"]![0]!["settings"]!["splitRatio"] = 99;
+        var page = await _client.SamplePageAsync("contact");
+        var document = new PageDocumentBuilder()
+            .WithSection("s_split", section => section.WithSettings(s => s with { SplitRatio = 99 }))
+            .Build();
 
-        var response = await PutDraftAsync(contact, draft, content["draftRevision"]!.GetValue<int>());
+        var response = await _client.PublishAsync(page.Id, document);
+        var problem = await response.ReadAsync<HttpValidationProblemDetails>();
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var problem = await response.Content.ReadFromJsonAsync<JsonObject>();
-        Assert.Contains("document.sections[0].settings.splitRatio", problem!["errors"]!.AsObject().Select(e => e.Key));
+        Assert.Contains("Document.Sections[0].Settings.SplitRatio", problem.Errors.Keys);
+    }
+
+    [Fact]
+    public async Task Malformed_json_is_a_400_problem()
+    {
+        var page = await _client.SamplePageAsync("contact");
+        var document = new PageDocumentBuilder()
+            .WithSection("s_a", section => section.WithHeading("b_a"))
+            .Build();
+        var json = JsonSerializer.Serialize(new PublishPageContentRequest(document), PageDocumentJson.Options)
+            .Replace("\"type\":\"heading\"", "\"type\":\"marquee\"");
+
+        var response = await _client.PutAsync($"/pages/{page.Id}/content", new StringContent(json, Encoding.UTF8, "application/json"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+    }
+}
+
+/// <summary>On its own database: the tests above change the sample pages.</summary>
+public class SamplePagesApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
+{
+    private readonly HttpClient _client = factory.CreateClient();
+
+    [Theory]
+    [InlineData("home")]
+    [InlineData("about")]
+    [InlineData("contact")]
+    public async Task Sample_pages_can_be_published(string slug)
+    {
+        var page = await _client.SamplePageAsync(slug);
+        var content = await _client.GetAsync<PageContentDto>($"/pages/{page.Id}/content");
+
+        var response = await _client.PublishAsync(page.Id, content.Document);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 }

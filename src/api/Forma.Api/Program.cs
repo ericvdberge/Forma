@@ -29,10 +29,8 @@ builder.Services.AddOpenApi(options =>
 // camelCase string enums and strict reading (unknown properties, missing values) for every JSON body;
 // page documents need exactly these rules, see PageDocumentJson.
 builder.Services.ConfigureHttpJsonOptions(options => PageDocumentJson.Configure(options.SerializerOptions));
+// Unreadable bodies and failed validation are answered with a 400 in problem+json format.
 builder.Services.AddProblemDetails();
-builder.Services.AddExceptionHandler<JsonBodyExceptionHandler>();
-// Always throw on unreadable bodies, so JsonBodyExceptionHandler can answer with the offending JSON path.
-builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
@@ -40,8 +38,6 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
-
-app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
@@ -56,9 +52,7 @@ if (Assembly.GetEntryAssembly()?.GetName().Name != "GetDocument.Insider")
     var seedSampleData = app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Database:SeedSampleData");
     await app.Services.InitializeDatabaseAsync(seedSampleData);
     if (seedSampleData)
-    {
         await app.Services.SeedPageContentAsync();
-    }
 }
 
 app.UseHttpsRedirection();

@@ -1,17 +1,17 @@
-namespace Forma.Application.Documents.Checks;
+namespace Forma.Application.Documents.Validation;
 
 public enum IssueSeverity
 {
     /// <summary>Blocks publishing.</summary>
     Error,
 
-    /// <summary>Shown before publishing, but doesn't block it.</summary>
+    /// <summary>Worth a look, but doesn't block publishing.</summary>
     Warning,
 }
 
 /// <summary>
-/// A problem a person can fix in a page's content (level 2 of <c>docs/design/page-content.md</c> § 6), pointing at
-/// the section, block and field it is about so the studio can select it.
+/// A problem a person can fix in a page's content, pointing at the section, block and field it is about
+/// so the studio can select it.
 /// </summary>
 /// <param name="Severity">Whether it blocks publishing.</param>
 /// <param name="Code">Stable machine-readable code, e.g. <c>image.missing</c>.</param>
@@ -27,15 +27,11 @@ public sealed record ContentIssue(
     string? SectionId = null,
     string? BlockId = null,
     string? Field = null,
-    int? ItemIndex = null);
-
-/// <summary>What the checks need to know beyond the document itself.</summary>
-/// <param name="WebsiteId">The website the page belongs to: media and links must be its own.</param>
-/// <param name="PageId">The page being checked.</param>
-public sealed record CheckContext(Guid WebsiteId, Guid PageId);
-
-/// <summary>Finds content issues (level 2): the rules a page must pass before it is published.</summary>
-public interface IPageDocumentChecker
+    int? ItemIndex = null)
 {
-    Task<IReadOnlyList<ContentIssue>> CheckAsync(PageDocument document, CheckContext context, CancellationToken cancellationToken = default);
+    /// <summary>Where the issue is, e.g. <c>s_hero.b_cta.href</c>; <c>document</c> when it is about the whole page.</summary>
+    public string Location =>
+        string.Join('.', new[] { SectionId, BlockId, ItemIndex is { } i ? $"{Field}[{i}]" : Field }.OfType<string>()) is { Length: > 0 } path
+            ? path
+            : "document";
 }

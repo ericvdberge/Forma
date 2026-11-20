@@ -9,9 +9,13 @@ internal static class PageQueryExtensions
 {
     public static IQueryable<PageDao> ApplyFilter(this IQueryable<PageDao> query, PageFilter filter) =>
         query
+            .WithId(filter.Id)
             .WithWebsiteId(filter.WebsiteId)
             .WithTitleContaining(filter.Title)
             .WithSlug(filter.Slug);
+
+    private static IQueryable<PageDao> WithId(this IQueryable<PageDao> query, Guid? id) =>
+        query.WhereIf(id.HasValue, p => p.Id == id);
 
     private static IQueryable<PageDao> WithWebsiteId(this IQueryable<PageDao> query, Guid? websiteId) =>
         query.WhereIf(websiteId.HasValue, p => p.WebsiteId == websiteId);

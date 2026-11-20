@@ -1,4 +1,4 @@
-using Forma.Application.Documents.Checks;
+using Forma.Application.Documents.Validation;
 
 namespace Forma.Api.Dtos;
 
@@ -18,16 +18,3 @@ public record ContentIssueDto(
     string? BlockId,
     string? Field,
     int? ItemIndex);
-
-/// <summary>The content issues of a page's draft.</summary>
-/// <param name="DraftRevision">The draft revision that was checked.</param>
-/// <param name="Issues">Errors first, then warnings, each in page order. Empty when there is nothing to fix.</param>
-public record ContentCheckDto(int DraftRevision, IReadOnlyList<ContentIssueDto> Issues);
-
-/// <summary>Why a page wasn't published.</summary>
-/// <param name="Issues">All issues of the draft, errors first; at least one is an error.</param>
-public record PublishRejectedDto(IReadOnlyList<ContentIssueDto> Issues);
-
-/// <summary>Publishes a page's draft.</summary>
-/// <param name="Revision">The draft revision the person saw when they chose Publish.</param>
-public record PublishPageRequest(int Revision);

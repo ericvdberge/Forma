@@ -19,11 +19,6 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <!-- The studio's content (npm run studio:fixtures -w forma-app): every fixture must pass the API's validation. -->
-  <ItemGroup>
-    <None Include="..\Contracts\Studio\*.json" Link="Contracts\Studio\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Forma.Application\Forma.Application.csproj" />
     <ProjectReference Include="..\Forma.Infrastructure\Forma.Infrastructure.csproj" />

@@ -209,20 +209,6 @@ export type CarouselSlide = {
 };
 
 /**
- * The content issues of a page's draft.
- */
-export type ContentCheckDto = {
-    /**
-     * The draft revision that was checked.
-     */
-    draftRevision: number;
-    /**
-     * Errors first, then warnings, each in page order. Empty when there is nothing to fix.
-     */
-    issues: Array<ContentIssueDto>;
-};
-
-/**
  * A problem in a page's content that a person can fix.
  */
 export type ContentIssueDto = {
@@ -422,7 +408,7 @@ export type NavProps = {
 };
 
 /**
- * A page's draft and published Design Studio document.
+ * A page's Design Studio document.
  */
 export type PageContentDto = {
     /**
@@ -430,27 +416,24 @@ export type PageContentDto = {
      */
     pageId: string;
     /**
-     * The working draft. A page without saved content gets an empty document (no sections).
+     * The page's sections and blocks.
      */
-    draft: PageDocument;
+    document: PageDocument;
     /**
-     * The draft's revision: send it back as `baseRevision` when saving. 0 when nothing was saved yet.
+     * `published` once visitors see it; `draft` for sample content that was never published.
      */
-    draftRevision: number;
+    status: PageContentStatus;
     /**
-     * When the draft last changed (UTC); null when nothing was saved yet.
+     * When the content was first stored (UTC).
      */
-    draftUpdatedAt: null | string;
-    published: null | PageDocument;
+    createdAt: string;
     /**
-     * When the page was last published (UTC); null when never.
+     * When the content last changed (UTC).
      */
-    publishedAt: null | string;
-    /**
-     * True when there is no published version or it differs from the draft.
-     */
-    hasUnpublishedChanges: boolean;
+    updatedAt: string;
 };
+
+export type PageContentStatus = 'draft' | 'published';
 
 export type PageDocument = {
     version: number;
@@ -478,61 +461,33 @@ export type ProblemDetails = {
 };
 
 /**
- * Publishes a page's draft.
+ * The result of publishing a page.
  */
-export type PublishPageRequest = {
+export type PublishedPageContentDto = {
     /**
-     * The draft revision the person saw when they chose Publish.
+     * The page's content now.
      */
-    revision: number;
+    content: PageContentDto;
+    /**
+     * Things worth a look that didn't block publishing, in page order. Empty when there are none.
+     */
+    warnings: Array<ContentIssueDto>;
 };
 
 /**
- * Why a page wasn't published.
+ * Publishes a page: the document replaces what visitors see.
  */
-export type PublishRejectedDto = {
+export type PublishPageContentRequest = {
     /**
-     * All issues of the draft, errors first; at least one is an error.
+     * The complete document, as the studio normalised it.
      */
-    issues: Array<ContentIssueDto>;
+    document: PageDocument;
 };
 
 export type ResponsiveSpacing = {
     desktop: Spacing;
     tablet?: null | SpacingOverride;
     mobile?: null | SpacingOverride;
-};
-
-/**
- * The result of saving a draft.
- */
-export type SavedDraftDto = {
-    /**
-     * The draft's revision now: send it as `baseRevision` with the next save. Unchanged when the document was identical.
-     */
-    revision: number;
-    /**
-     * When the draft last changed (UTC).
-     */
-    updatedAt: string;
-    /**
-     * True when there is no published version or it differs from the draft.
-     */
-    hasUnpublishedChanges: boolean;
-};
-
-/**
- * A new draft for a page.
- */
-export type SaveDraftRequest = {
-    /**
-     * The complete draft document, as the studio normalised it.
-     */
-    document: PageDocument;
-    /**
-     * The draft revision this document was edited from (`draftRevision` from the last load or save); 0 when no draft was saved yet.
-     */
-    baseRevision: number;
 };
 
 export type Section = {
@@ -838,18 +793,22 @@ export type GetPageContentErrors = {
 
 export type GetPageContentResponses = {
     /**
-     * The page's draft and published document.
+     * The page's content.
      */
     200: PageContentDto;
+    /**
+     * The page exists but has no content yet.
+     */
+    204: void;
 };
 
 export type GetPageContentResponse = GetPageContentResponses[keyof GetPageContentResponses];
 
-export type SavePageDraftData = {
+export type PublishPageContentData = {
     /**
      * Cancels the request.
      */
-    body: SaveDraftRequest;
+    body: PublishPageContentRequest;
     path: {
         /**
          * The page's id.
@@ -857,111 +816,34 @@ export type SavePageDraftData = {
         pageId: string;
     };
     query?: never;
-    url: '/pages/{pageId}/draft';
+    url: '/pages/{pageId}/content';
 };
 
-export type SavePageDraftErrors = {
+export type PublishPageContentErrors = {
     /**
-     * The document is malformed or breaks a structural rule.
+     * The document is malformed or has errors to fix first.
      */
     400: HttpValidationProblemDetails;
     /**
      * No page exists with this id.
      */
     404: unknown;
-    /**
-     * The draft was saved elsewhere since `baseRevision`; the body is the current content.
-     */
-    409: PageContentDto;
     /**
      * The request body is larger than 1 MB.
      */
     413: ProblemDetails;
 };
 
-export type SavePageDraftError = SavePageDraftErrors[keyof SavePageDraftErrors];
+export type PublishPageContentError = PublishPageContentErrors[keyof PublishPageContentErrors];
 
-export type SavePageDraftResponses = {
+export type PublishPageContentResponses = {
     /**
-     * The draft was saved (or was already identical).
+     * Published; the body is the content and any warnings.
      */
-    200: SavedDraftDto;
+    200: PublishedPageContentDto;
 };
 
-export type SavePageDraftResponse = SavePageDraftResponses[keyof SavePageDraftResponses];
-
-export type CheckPageContentData = {
-    body?: never;
-    path: {
-        /**
-         * The page's id.
-         */
-        pageId: string;
-    };
-    query?: never;
-    url: '/pages/{pageId}/check';
-};
-
-export type CheckPageContentErrors = {
-    /**
-     * No page exists with this id.
-     */
-    404: unknown;
-};
-
-export type CheckPageContentResponses = {
-    /**
-     * The checked draft revision and its issues (empty when there is nothing to fix).
-     */
-    200: ContentCheckDto;
-};
-
-export type CheckPageContentResponse = CheckPageContentResponses[keyof CheckPageContentResponses];
-
-export type PublishPageData = {
-    /**
-     * Cancels the request.
-     */
-    body: PublishPageRequest;
-    path: {
-        /**
-         * The page's id.
-         */
-        pageId: string;
-    };
-    query?: never;
-    url: '/pages/{pageId}/publish';
-};
-
-export type PublishPageErrors = {
-    /**
-     * The request is malformed.
-     */
-    400: HttpValidationProblemDetails;
-    /**
-     * No page exists with this id.
-     */
-    404: unknown;
-    /**
-     * The draft is no longer at this revision; the body is the current content.
-     */
-    409: PageContentDto;
-    /**
-     * The draft has errors to fix first; the body lists all its issues.
-     */
-    422: PublishRejectedDto;
-};
-
-export type PublishPageError = PublishPageErrors[keyof PublishPageErrors];
-
-export type PublishPageResponses = {
-    /**
-     * Published; the body is the page's content now.
-     */
-    200: PageContentDto;
-};
-
-export type PublishPageResponse = PublishPageResponses[keyof PublishPageResponses];
+export type PublishPageContentResponse = PublishPageContentResponses[keyof PublishPageContentResponses];
 
 export type GetPagesData = {
     body?: never;

@@ -1,25 +1,25 @@
 # Page content API
 
-Status: **phases 1–2 implemented**, phase 3 proposed. Design and rationale: [page-content.md](page-content.md).
+Status: **implemented** (content and publishing), saved items proposed. Design and rationale: [page-content.md](page-content.md).
 
 Conventions (the same as the rest of the API):
 
 - JSON with camelCase properties and camelCase string enums; dates are UTC ISO 8601.
-- Validation errors are `400` `application/problem+json` (`ValidationProblem`), keyed by JSON path.
+- Validation errors are `400` `application/problem+json` (`ValidationProblem`).
 - Ids are GUIDs, except section and block ids inside a document, which the studio creates (`s_ab12cd34`, `b_ab12cd34`).
 - The OpenAPI document (`src/api/Forma.Api/OpenApi/forma-api.json`) is generated on build and is the source of the app's typed client. This page explains intent; the OpenAPI document is the exact schema.
 
-| Phase | Method | Route | Purpose |
-|---|---|---|---|
-| 1 | `GET` | `/pages/{pageId}/content` | Draft and published document of a page |
-| 1 | `PUT` | `/pages/{pageId}/draft` | Save the draft (autosave) |
-| 2 | `POST` | `/pages/{pageId}/check` | Content issues of the draft, without publishing |
-| 2 | `POST` | `/pages/{pageId}/publish` | Publish the draft |
-| 3 | `GET` | `/saved-items?websiteId=` | The Saved tab |
-| 3 | `POST` | `/saved-items` | Save a section or block |
-| 3 | `PATCH` | `/saved-items/{id}` | Rename |
-| 3 | `DELETE` | `/saved-items/{id}` | Delete |
-| 3 | `DELETE` | `/media/{id}` (changed) | `409` when the image is used on a page |
+| Method | Route | Purpose |
+|---|---|---|
+| `GET` | `/pages/{pageId}/content` | A page's content |
+| `PUT` | `/pages/{pageId}/content` | Publish a page (the studio's **Publish** button) |
+| `GET` | `/saved-items?websiteId=` | The Saved tab (proposed) |
+| `POST` | `/saved-items` | Save a section or block (proposed) |
+| `PATCH` | `/saved-items/{id}` | Rename (proposed) |
+| `DELETE` | `/saved-items/{id}` | Delete (proposed) |
+| `DELETE` | `/media/{id}` (changed) | `409` when the image is used on a page (proposed) |
+
+The studio keeps edits in the browser and only sends a page when it is published: there are no drafts, autosave or revisions on the server.
 
 ---
 
@@ -108,87 +108,19 @@ Documents are always sent **complete** (normalised by the studio). A missing req
 ```json
 {
   "pageId": "0b6c…",
-  "draft": { "version": 1, "sections": [] },
-  "draftRevision": 12,
-  "draftUpdatedAt": "2026-11-17T19:02:11Z",
-  "published": { "version": 1, "sections": [] },
-  "publishedAt": "2026-11-15T08:30:00Z",
-  "hasUnpublishedChanges": true
+  "document": { "version": 1, "sections": [] },
+  "status": "published",
+  "createdAt": "2026-11-15T08:30:00Z",
+  "updatedAt": "2026-11-17T19:02:11Z"
 }
 ```
 
 | Property | Notes |
 |---|---|
-| `draft` | Never null: a page without content gets `{ "version": 1, "sections": [] }`. |
-| `draftRevision` | `0` when the draft has never been saved. Send it back as `baseRevision`. |
-| `draftUpdatedAt` | `null` when the draft has never been saved. |
-| `published`, `publishedAt` | `null` when the page has never been published. |
-| `hasUnpublishedChanges` | `true` when there is no published version or it differs from the draft. |
+| `status` | `published` once the page was published; `draft` only for seeded sample content that never was. |
+| `updatedAt` | When the content was last published (or seeded). |
 
----
-
-## Phase 1
-
-### `GET /pages/{pageId}/content`
-
-Loads a page's draft and published document. The studio calls it once when it opens a page.
-
-| Status | Body | When |
-|---|---|---|
-| `200` | `PageContent` | |
-| `404` | | No page with this id |
-
-### `PUT /pages/{pageId}/draft`
-
-Replaces the page's draft. The studio's autosave calls it.
-
-Request (max 1 MB):
-
-```json
-{ "document": { "version": 1, "sections": [ … ] }, "baseRevision": 12 }
-```
-
-| Status | Body | When |
-|---|---|---|
-| `200` | `{ "revision": 13, "updatedAt": "…", "hasUnpublishedChanges": true }` | Saved |
-| `400` | `ValidationProblem` | The document fails level 1 validation, or the JSON doesn't match the schema |
-| `404` | | No page with this id |
-| `409` | `PageContent` (the current state) | `baseRevision` isn't the current draft revision: it was saved elsewhere |
-| `413` | | Body larger than 1 MB |
-
-Rules:
-
-- Malformed JSON gets the same `400` shape, keyed by the JSON path of the offending value.
-
-- `baseRevision` must be ≥ 0. `0` means "there is no saved draft yet"; if one exists, the result is `409`.
-- Saving a document identical to the current draft still returns `200` with the **same** revision (no new revision, no `UpdatedAt` change). Autosave retries are therefore harmless.
-- The page's `UpdatedAt` is touched so the Pages list sorts recently edited pages first.
-
-Example `400`:
-
-```json
-{
-  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
-  "title": "One or more validation errors occurred.",
-  "status": 400,
-  "errors": {
-    "document.sections[0].blocks[3].props.href": ["Links must start with https://, http://, mailto:, tel:, / or #."],
-    "document.sections[1].settings.splitRatio": ["Must be between 20 and 80."]
-  }
-}
-```
-
----
-
-## Phase 2
-
-### `POST /pages/{pageId}/check`
-
-Runs the publish rules on the current draft without publishing.
-
-`200` → `{ "draftRevision": 13, "issues": [ ContentIssue ] }`, `404`.
-
-`ContentIssue`:
+### `ContentIssue`
 
 ```json
 { "severity": "warning", "code": "link.page_missing", "message": "The button ‘Pricing’ links to /pricing, which isn’t a page of this website.",
@@ -197,24 +129,57 @@ Runs the publish rules on the current draft without publishing.
 
 `itemIndex` points into a list prop (for example the third FAQ item). Codes are listed in [page-content.md § 6](page-content.md#6-validation).
 
-### `POST /pages/{pageId}/publish`
+---
 
-Request `{ "revision": 13 }`: the draft revision the user saw when they pressed Publish.
+## Endpoints
+
+### `GET /pages/{pageId}/content`
+
+Loads a page's content. The studio calls it once when it opens a page.
 
 | Status | Body | When |
 |---|---|---|
-| `200` | `PageContent` | Published: the draft was copied, `Pages.Status = Published` |
-| `404` | | No page |
-| `409` | `PageContent` | `revision` isn't the current draft revision |
-| `422` | `{ "issues": [ ContentIssue ] }` | At least one `error`-level issue. Warnings never block. |
+| `200` | `PageContent` | |
+| `204` | | The page has no content yet; the studio starts from its starter page |
+| `404` | | No page with this id |
+
+### `PUT /pages/{pageId}/content`
+
+Publishes a page: stores the document and sets its status to `published`. The studio calls it when **Publish** is chosen.
+
+Request (max 1 MB):
+
+```json
+{ "document": { "version": 1, "sections": [ … ] } }
+```
+
+| Status | Body | When |
+|---|---|---|
+| `200` | `{ "content": PageContent, "warnings": [ ContentIssue ] }` | Published. Warnings are worth a look but didn't block. |
+| `400` | `ValidationProblem` | The JSON doesn't match the schema, the document breaks a structural rule, or it has content errors |
+| `404` | | No page with this id |
+| `413` | | Body larger than 1 MB |
+
+Structural errors are keyed by the property path (`Document.Sections[0].Settings.SplitRatio`). Content errors are keyed by where they are (`sectionId.blockId.field`), and the problem's `issues` extension lists them in full so the studio can select the block:
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "The page has errors to fix before it can be published.",
+  "status": 400,
+  "errors": { "s_hero.b_img.src": ["This image has no picture yet."] },
+  "issues": [
+    { "severity": "error", "code": "image.missing", "message": "This image has no picture yet.",
+      "sectionId": "s_hero", "blockId": "b_img", "field": "src", "itemIndex": null }
+  ]
+}
+```
 
 ---
 
-## Phase 3 (sketch)
+## Saved items (sketch)
 
-### Saved items
-
-`SavedItem`: `{ id, websiteId, name, kind: "section" | "block", section?: Section, block?: Block, createdAt, updatedAt }`. The content is validated with the same level 1 rules as a page.
+`SavedItem`: `{ id, websiteId, name, kind: "section" | "block", section?: Section, block?: Block, createdAt, updatedAt }`. The content is validated with the same structural rules as a page.
 
 - `GET /saved-items?websiteId=` → `200 SavedItem[]`, newest first.
 - `POST /saved-items` with `{ websiteId, name, kind, section | block }` → `201`, `400`, `404` (website).
@@ -223,7 +188,7 @@ Request `{ "revision": 13 }`: the draft revision the user saw when they pressed 
 
 ### `DELETE /media/{id}` (changed)
 
-When the image is used by a page's draft or published version, the result is `409` with `{ "usages": [ { "pageId", "pageTitle", "kind": "draft" | "published" } ] }`. `?force=true` deletes it anyway. The pages then fail `media.not_found` on their next publish.
+When the image is used by a page, the result is `409` with `{ "usages": [ { "pageId", "pageTitle" } ] }`. `?force=true` deletes it anyway. The pages then fail `media.not_found` on their next publish.
 
 ---
 

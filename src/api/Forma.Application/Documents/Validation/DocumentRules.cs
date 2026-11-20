@@ -1,10 +1,9 @@
 using System.Text.RegularExpressions;
-using FluentValidation;
 
 namespace Forma.Application.Documents.Validation;
 
 /// <summary>
-/// Reusable value rules for page documents (and later saved items and collection values).
+/// Limits and value checks shared by the page document validators (and later saved items and collection values).
 /// Limits mirror the studio's inspector controls; see <c>docs/design/page-content.md</c> § 6.
 /// </summary>
 public static partial class DocumentRules
@@ -16,6 +15,7 @@ public static partial class DocumentRules
     public const int MaxHtmlLength = 20_000;
     public const int MaxUrlLength = 2_000;
     public const int MaxClassNameLength = 200;
+    public const int MaxDocumentBytes = 512 * 1024;
 
     /// <summary>Icons a Features item can show (<c>featureIcons</c> in <c>src/app/src/studio/blocks.ts</c>).</summary>
     public static readonly IReadOnlySet<string> FeatureIcons =
@@ -66,15 +66,11 @@ public static partial class DocumentRules
     public static bool IsLink(string value)
     {
         if (value.Length == 0 || value.StartsWith('#'))
-        {
             return !value.Any(char.IsWhiteSpace);
-        }
 
+        // "//host" is protocol-relative: another site, so it must be written as https://.
         if (value.StartsWith('/'))
-        {
-            // "//host" is protocol-relative: another site, so it must be written as https://.
             return !value.StartsWith("//") && !value.Any(char.IsWhiteSpace);
-        }
 
         return Uri.TryCreate(value, UriKind.Absolute, out var uri)
             && uri.Scheme is "http" or "https" or "mailto" or "tel";
@@ -83,33 +79,4 @@ public static partial class DocumentRules
     /// <summary>Gets the media item id out of an image source, or null for built-in images and empty sources.</summary>
     public static Guid? MediaId(string source) =>
         MediaImagePattern().IsMatch(source) ? Guid.Parse(source.AsSpan(7, 36)) : null;
-
-    // ── FluentValidation shorthands ───────────────────────────────────────
-
-    public static IRuleBuilderOptions<T, string> PlainText<T>(this IRuleBuilder<T, string> rule, int max = MaxTextLength) =>
-        rule.MaximumLength(max);
-
-    public static IRuleBuilderOptions<T, string> Link<T>(this IRuleBuilder<T, string> rule) =>
-        rule.MaximumLength(MaxUrlLength)
-            .Must(IsLink).WithMessage("Links must start with https://, http://, mailto:, tel:, / or #.");
-
-    public static IRuleBuilderOptions<T, string> ImageSource<T>(this IRuleBuilder<T, string> rule) =>
-        rule.Must(IsImageSource).WithMessage("Images must come from the media library.");
-
-    public static IRuleBuilderOptions<T, string> Color<T>(this IRuleBuilder<T, string> rule) =>
-        rule.Must(IsColor).WithMessage("Colours must be hex, e.g. #1a1a1a.");
-
-    public static IRuleBuilderOptions<T, string> RichText<T>(this IRuleBuilder<T, string> rule, IRichTextSanitizer sanitizer) =>
-        rule.MaximumLength(MaxHtmlLength)
-            .Must(sanitizer.IsClean).WithMessage("The text contains markup that isn't allowed.");
-
-    public static IRuleBuilderOptions<T, string> Anchor<T>(this IRuleBuilder<T, string> rule) =>
-        rule.Must(IsAnchor).WithMessage("Anchors may only contain a–z, 0–9 and dashes (at most 60).");
-
-    public static IRuleBuilderOptions<T, string> ClassName<T>(this IRuleBuilder<T, string> rule) =>
-        rule.MaximumLength(MaxClassNameLength)
-            .Must(IsClassName).WithMessage("Class names may only contain letters, digits, _ and -, separated by spaces.");
-
-    public static IRuleBuilderOptions<T, IReadOnlyList<TItem>> ListLimit<T, TItem>(this IRuleBuilder<T, IReadOnlyList<TItem>> rule) =>
-        rule.Must(items => items.Count <= MaxListItems).WithMessage($"At most {MaxListItems} items.");
 }

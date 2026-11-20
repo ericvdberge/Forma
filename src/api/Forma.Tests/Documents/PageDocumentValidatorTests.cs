@@ -1,40 +1,15 @@
-using System.Text.Json;
-using Forma.Application;
 using Forma.Application.Documents;
 using Forma.Application.Documents.Validation;
-using Microsoft.Extensions.DependencyInjection;
+using Forma.Tests.Builders;
 
 namespace Forma.Tests.Documents;
 
 public class PageDocumentValidatorTests
 {
-    private static readonly PageDocumentValidator Validator;
-
-    static PageDocumentValidatorTests()
-    {
-        // Sets the camelCase property name resolver the API uses.
-        new ServiceCollection().AddApplication();
-        Validator = new PageDocumentValidator(new RichTextSanitizer());
-    }
-
-    private static PageDocument Templates() =>
-        JsonSerializer.Deserialize<PageDocument>(
-            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Contracts", "Studio", "templates.json")),
-            PageDocumentJson.Options)!;
+    private static readonly PageDocumentValidator Validator = new(new RichTextSanitizer());
 
     private static IReadOnlyDictionary<string, string> Errors(PageDocument document) =>
         Validator.Validate(document).Errors.GroupBy(e => e.PropertyName).ToDictionary(g => g.Key, g => g.First().ErrorMessage);
-
-    private static PageDocument WithFirstBlock(PageDocument document, Block block)
-    {
-        var section = document.Sections[0];
-        return document with { Sections = [section with { Blocks = [block, .. section.Blocks.Skip(1)] }, .. document.Sections.Skip(1)] };
-    }
-
-    private static T FirstBlock<T>(PageDocument document) where T : Block =>
-        document.Sections.SelectMany(s => s.Blocks).OfType<T>().First();
-
-    private static BlockStyle Style() => FirstBlock<Block>(Templates()).Style;
 
     [Theory]
     [InlineData("javascript:alert(1)")]
@@ -43,11 +18,11 @@ public class PageDocumentValidatorTests
     [InlineData("ftp://files.example")]
     public void Rejects_unsafe_links(string href)
     {
-        var button = new ButtonBlock { Id = "b_x", Style = Style(), Props = new ButtonProps("Go", href, ButtonVariant.Primary, true, ButtonSize.Md) };
+        var document = new PageDocumentBuilder()
+            .WithSection("s_a", section => section.WithButton("b_cta", "Go", href))
+            .Build();
 
-        var errors = Errors(WithFirstBlock(Templates(), button));
-
-        Assert.Contains("sections[0].blocks[0].props.href", errors.Keys);
+        Assert.Equal("Button links must start with https://, http://, mailto:, tel:, / or #.", Errors(document)["Sections[0].Blocks[0].Props.Href"]);
     }
 
     [Theory]
@@ -59,9 +34,11 @@ public class PageDocumentValidatorTests
     [InlineData("tel:+31612345678")]
     public void Accepts_safe_links(string href)
     {
-        var button = new ButtonBlock { Id = "b_x", Style = Style(), Props = new ButtonProps("Go", href, ButtonVariant.Primary, true, ButtonSize.Md) };
+        var document = new PageDocumentBuilder()
+            .WithSection("s_a", section => section.WithButton("b_cta", "Go", href))
+            .Build();
 
-        Assert.True(Validator.Validate(WithFirstBlock(Templates(), button)).IsValid);
+        Assert.Empty(Errors(document));
     }
 
     [Theory]
@@ -72,76 +49,62 @@ public class PageDocumentValidatorTests
     [InlineData("<img src=x onerror=alert(1)>")]
     public void Rejects_markup_outside_the_allowlist(string html)
     {
-        var heading = new HeadingBlock { Id = "b_x", Style = Style(), Props = new HeadingProps(html, 2, HeadingSize.Lg) };
+        var document = new PageDocumentBuilder()
+            .WithSection("s_a", section => section.WithHeading("b_title", html))
+            .Build();
 
-        var errors = Errors(WithFirstBlock(Templates(), heading));
-
-        Assert.Equal("The text contains markup that isn't allowed.", errors["sections[0].blocks[0].props.html"]);
+        Assert.Equal("The heading contains markup that isn't allowed.", Errors(document)["Sections[0].Blocks[0].Props.Html"]);
     }
 
     [Fact]
     public void Rejects_absolute_image_urls()
     {
-        var image = new ImageBlock
-        {
-            Id = "b_x",
-            Style = Style(),
-            Props = new ImageProps("http://localhost:5134/media/0b6c0f6e-0000-4000-8000-000000000000/image", "", ImageAspect.Auto, 0, ""),
-        };
+        var document = new PageDocumentBuilder()
+            .WithSection("s_a", section => section.WithImage("b_photo", "http://localhost:5134/media/0b6c0f6e-0000-4000-8000-000000000000/image"))
+            .Build();
 
-        Assert.Contains("sections[0].blocks[0].props.src", Errors(WithFirstBlock(Templates(), image)).Keys);
+        Assert.Equal("Images must come from the media library.", Errors(document)["Sections[0].Blocks[0].Props.Src"]);
     }
 
-    [Fact]
-    public void Accepts_media_library_and_built_in_images()
+    [Theory]
+    [InlineData("/media/0b6c0f6e-0000-4000-8000-000000000000/image")]
+    [InlineData("/media/hero.svg")]
+    public void Accepts_media_library_and_built_in_images(string src)
     {
-        var image = new ImageBlock
-        {
-            Id = "b_x",
-            Style = Style(),
-            Props = new ImageProps("/media/0b6c0f6e-0000-4000-8000-000000000000/image", "", ImageAspect.Auto, 0, ""),
-        };
+        var document = new PageDocumentBuilder()
+            .WithSection("s_a", section => section.WithImage("b_photo", src))
+            .Build();
 
-        Assert.True(Validator.Validate(WithFirstBlock(Templates(), image)).IsValid);
-        Assert.True(DocumentRules.IsImageSource("/media/hero.svg"));
+        Assert.Empty(Errors(document));
     }
 
     [Fact]
     public void Rejects_duplicate_ids()
     {
-        var document = Templates();
-        var copy = document.Sections[0] with { };
+        var document = new PageDocumentBuilder()
+            .WithSection("s_a", section => section.WithText("b_same").WithText("b_same"))
+            .Build();
 
-        var errors = Errors(document with { Sections = [.. document.Sections, copy] });
-
-        Assert.Contains($"sections[{document.Sections.Count}].id", errors.Keys);
+        Assert.Equal("Every section and block needs its own id.", Assert.Single(Errors(document)).Value);
     }
 
     [Fact]
     public void Rejects_values_outside_the_inspector_ranges()
     {
-        var document = Templates();
-        var section = document.Sections[0];
-        var broken = section with { Settings = section.Settings with { SplitRatio = 95, Radius = -1 } };
+        var document = new PageDocumentBuilder()
+            .WithSection("s_a", section => section.WithSettings(s => s with { SplitRatio = 95, Radius = -1 }))
+            .Build();
 
-        var errors = Errors(document with { Sections = [broken, .. document.Sections.Skip(1)] });
-
-        Assert.Contains("sections[0].settings.splitRatio", errors.Keys);
-        Assert.Contains("sections[0].settings.radius", errors.Keys);
+        Assert.Equal(["Sections[0].Settings.Radius", "Sections[0].Settings.SplitRatio"], Errors(document).Keys.Order());
     }
 
     [Fact]
     public void Rejects_css_in_colours()
     {
-        var document = Templates();
-        var section = document.Sections[0];
-        var broken = section with
-        {
-            Settings = section.Settings with { Background = section.Settings.Background with { Color = "red;background:url(x)" } },
-        };
+        var document = new PageDocumentBuilder()
+            .WithSection("s_a", section => section.WithSettings(s => s with { Background = s.Background with { Color = "red;background:url(x)" } }))
+            .Build();
 
-        var errors = Errors(document with { Sections = [broken, .. document.Sections.Skip(1)] });
-
-        Assert.Contains("sections[0].settings.background.color", errors.Keys);
+        Assert.Equal("Colours must be hex, e.g. #1a1a1a.", Errors(document)["Sections[0].Settings.Background.Color"]);
     }
 }

@@ -1,6 +1,6 @@
 # Page content: backend design
 
-Status: **phases 1–2 implemented**, phases 3–5 proposed · Scope: storing, validating and publishing what the Design Studio edits.
+Status: **phases 1–2 implemented** (publish-only since the PR 16 review), phases 3–5 proposed · Scope: storing, validating and publishing what the Design Studio edits.
 
 Related:
 
@@ -9,8 +9,8 @@ Related:
 
 ## 1. Goals
 
-1. The Design Studio (`/pages/:id/edit`) saves its work to the API instead of the Vue Query cache.
-2. A page has a **draft**, which autosaves while you edit, and a **published** version, which visitors see.
+1. The Design Studio (`/pages/:id/edit`) stores its work through the API.
+2. Edits stay in the browser until **Publish**, which sends the whole page with one `PUT`. There are no server-side drafts, autosave or revisions.
 3. Anything stored has passed validation: a broken or malicious document never reaches the database, and a page with fixable problems (an image without a file, a link to a deleted page) can't be published.
 4. The model can grow into collection pages (see [collections.md](collections.md)) without a rewrite.
 
@@ -26,59 +26,59 @@ PageDocument { version, sections[] }
     Block    { id, type, props, style }   // props depend on type (16 block types)
 ```
 
-The studio clones it whole for undo, publishes by copying it, and never needs one block on its own. So it is stored **as one JSON value**, not spread over `Sections` and `Blocks` tables.
+The studio clones it whole for undo, publishes it whole, and never needs one block on its own. So it is stored **as one JSON value**, not spread over `Sections` and `Blocks` tables.
 
 | | One JSON document (chosen) | Section and block tables |
 |---|---|---|
 | Save | One row write | Diff and upsert up to hundreds of rows |
 | Order | Array order | Position columns to keep in step |
-| Publish / discard | Copy one value | Copy a tree of rows |
+| Publish | Write one value | Write a tree of rows |
 | Block-specific props | Typed in C#, stored as JSON | A JSON column anyway, or one table per type |
 | Query "pages that use X" | Derived usage tables (below) | Joins |
 
-Anything that needs relational integrity is pulled **out** of the document into small derived tables, rebuilt on every save (`PageMediaUsages` now, binding usages later).
+Anything that needs relational integrity is pulled **out** of the document into small derived tables, rebuilt on every publish (`PageMediaUsages` now, binding usages later).
 
 ## 3. Layers
 
-The existing flow stays the same: Endpoint → CoreService → Repository → Dao.
+The existing flow stays the same: Endpoint → CoreService → Repository → Dao. Core services and repositories only create, read, update and delete (see `CLAUDE.md`); rules and workflows live in supporting services and endpoints.
 
-| Layer | New in phase 1 | Notes |
+| Layer | Page content | Notes |
 |---|---|---|
-| `Forma.Api` | `PageContentEndpoints`, `PageContentDto`, `SaveDraftRequest`, `SavedDraftDto`, `SaveDraftRequestValidator` | Cheap request checks, mapping, HTTP results |
-| `Forma.Application` | `Documents/*` (the document model), `PageContent` entity, `IPageContentCoreService`, `IRichTextSanitizer` | Owns the document model and its rules |
-| `Forma.Infrastructure` | `PageDocumentDao`, `IPageDocumentRepository`, `IPageRepository.GetPageAsync` | Stores the document as a JSON string; knows nothing about blocks |
+| `Forma.Api` | `PageContentEndpoints`, `PageContentDto`, `PublishPageContentRequest` (+ validator), `PublishedPageContentDto`, `ContentIssueDto` | Request validation, the publish workflow, HTTP results |
+| `Forma.Application` | `Documents/*` (the document model and its validators), `PageContent` / `PageContentInsert` / `PageContentUpdate`, `IPageContentCoreService` (CRUD), `IPageContentValidationService` (content rules), `IRichTextSanitizer` | Owns the document model and its rules |
+| `Forma.Infrastructure` | `PageContentDao`, `IPageContentRepository` (CRUD), `PageContentFilter` + `ApplyFilter` | Stores the document as a JSON string; knows nothing about blocks |
+
+**Publishing** is done by the endpoint with core services only: find the page (`PageFilter { Id }`), run the content rules, then create the content or update it with `Status = Published`. Filters on every read (`PageContentFilter { PageId = page.Id }`) are how access will be scoped per website later (IDOR).
 
 **An exception to the DTO rule.** Elsewhere, Api DTOs are separate records mapped from Application entities. The document model (`Forma.Application.Documents`) is used **as is** in the DTOs. Mirroring 16 block types and their props as DTOs, plus two mappers, would only add drift. The document *is* the contract.
 
-**One source of truth for the shape.** The C# document model drives the OpenAPI document (`Forma.Api/OpenApi/forma-api.json`), and the app's generated client (`openapi-ts`) creates TS types from it. The studio keeps its own hand-written types (`src/app/src/studio/types.ts`: generic blocks and literal unions the editor relies on), and `src/app/src/studio/contract.ts` asserts at compile time that a studio document is assignable to the generated `PageDocument`. TypeScript's structural typing lets extra properties through, so the contract test below covers those. UI-only metadata (labels, icons, `advanced`) stays in `blocks.ts`.
+**One source of truth for the shape.** The C# document model drives the OpenAPI document (`Forma.Api/OpenApi/forma-api.json`), and the app's generated client (`openapi-ts`) creates TS types from it. The studio keeps its own hand-written types (`src/app/src/studio/types.ts`: generic blocks and literal unions the editor relies on), and `src/app/src/studio/contract.ts` asserts at compile time that a studio document is assignable to the generated `PageDocument`. UI-only metadata (labels, icons, `advanced`) stays in `blocks.ts`.
 
 ## 4. Database
 
 ### Phase 1
 
 ```
-PageDocuments
+PageContents
   PageId         GUID     PK, FK → Pages.Id (ON DELETE CASCADE)
-  Kind           TEXT(20) PK, 'Draft' | 'Published'
+  Status         TEXT(20) 'Draft' | 'Published'
   SchemaVersion  INT      the document's `version`
-  Content        TEXT     the document as JSON (canonical serialisation)
-  ContentHash    TEXT(64) SHA-256 of Content, hex
-  Revision       INT      Draft: incremented on every save (optimistic concurrency). Published: the draft revision it was copied from.
+  Content        TEXT     the document as JSON
+  CreatedAt      DATETIME UTC
   UpdatedAt      DATETIME UTC
 ```
 
-- **Why a separate table and not columns on `Pages`?** `GET /pages` keeps reading small rows, and the two versions share one shape.
-- **No row yet** means an empty draft at revision 0, and "never published".
-- **`hasUnpublishedChanges`** = no published row, or `Draft.ContentHash != Published.ContentHash`. Nothing is diffed at runtime.
-- **`publishedAt`** = `Published.UpdatedAt`. `Pages.Status` stays what the Pages list shows (`Published` once there is a published row).
-- **Seeding.** `PageContentSeeder` (Forma.Application, run with the sample data) gives the sample pages content from `src/api/Contracts/Studio`: `home.json` for `home`, the starter `page.json` for `about` and `contact`, plus a published copy for published pages. It reads each one into the model and writes it back, so stored JSON and hashes are canonical. Pages that already have content are left alone.
+- **Why a separate table and not columns on `Pages`?** `GET /pages` keeps reading small rows.
+- **No row yet** means the page has no content: `GET` answers `204` and the studio starts from its starter page.
+- **Publishing** creates the row, or updates `Content` and sets `Status = Published`. `Pages.Status` is not changed by it yet (the app updates its cached Pages list); that needs a page update endpoint.
+- **Seeding.** `PageContentSeeder` (Forma.Application, run with the sample data) gives the sample pages content from `Forma.Application/Seeding`: `home.json` for `home`, the starter `page.json` for `about` and `contact`. Content of published sample pages is stored as published. Pages that already have content are left alone.
 
 ### Later phases
 
 ```
 PageMediaUsages        (phase 3)
-  PageId, Kind, MediaItemId     PK all three; FK → Pages (cascade), FK → Media (restrict)
-  -- rebuilt from the document on every draft save and publish
+  PageId, MediaItemId           PK both; FK → Pages (cascade), FK → Media (restrict)
+  -- rebuilt from the document on every publish
 
 SavedItems             (phase 3)
   Id, WebsiteId FK (cascade), Name TEXT(100), Kind 'Section'|'Block',
@@ -96,7 +96,7 @@ The rule: a document stores **`/media/{id}/image`** (relative, the media item's 
 
 | Pattern | Meaning |
 |---|---|
-| `""` | No image yet (allowed in a draft, an error when publishing) |
+| `""` | No image yet (an error when publishing) |
 | `/media/{guid}/image` | A media item; must belong to the page's website |
 | `/media/{name}.svg` | A built-in demo image shipped with the app (allowlist) |
 
@@ -104,9 +104,9 @@ Phase 1 implementation: change `useMedia.ts` so `src` keeps the relative URL, an
 
 ## 6. Validation
 
-There are two levels, with different audiences and status codes.
+There are two levels, both run by `PUT /pages/{id}/content` and both answered with a `400` problem.
 
-### Level 1: structural (every draft save → `400`)
+### Level 1: structural (`PublishPageContentRequestValidator` → `400`)
 
 If this fails, the **frontend** has a bug, so it is rejected and logged. A user can't cause it from the studio.
 
@@ -115,7 +115,7 @@ If this fails, the **frontend** has a bug, so it is rejected and logged. A user 
    - enums are strict strings;
    - `UnmappedMemberHandling.Disallow` rejects unknown and misspelled properties;
    - `AllowOutOfOrderMetadataProperties` because the studio writes `id` before `type`.
-2. **`PageDocumentValidator`** (FluentValidation, in `Forma.Application`), using the inspector's ranges:
+2. **`PageDocumentValidator`** (FluentValidation, in `Forma.Application/Documents/Validation`, one small validator per part with its messages next to its rules), using the inspector's ranges:
 
 | Where | Rule |
 |---|---|
@@ -135,18 +135,20 @@ If this fails, the **frontend** has a bug, so it is rejected and logged. A user 
 
 **Rich text allowlist** (what the studio's Tiptap setup produces): `p, br, strong, em, u, s, a[href, rel], ul, ol[start], li, blockquote, span[data-muted]`. `href` allows `http(s)`, `mailto`, `tel` and relative links. The server **rejects** anything outside it: `IRichTextSanitizer.IsClean` parses the html and compares it with the sanitised version, so differences in how the same markup is written (entities, quoting) don't count. What is stored is exactly what was sent, so the client never has to reconcile a changed document. The renderer sanitises again before output (defence in depth). Implementation: Ganss.Xss `HtmlSanitizer` (`RichTextSanitizer`).
 
-**Error format.** A `ValidationProblem` (`400`), keyed by JSON path:
-`"document.sections[2].blocks[0].props.radius": ["Must be between 0 and 40."]`.
-Malformed JSON (unknown type, bad enum, unknown or missing property) gets the same `400` shape: `JsonBodyExceptionHandler` turns the serializer's error into an `errors` entry keyed by the JSON path, e.g. `"document.sections[0].blocks[2]": ["Read unrecognized type discriminator id 'marquee'."]`.
+**Error format.** A `ValidationProblem` (`400`), keyed by the property path:
+`"Document.Sections[2].Blocks[0].Props.Radius": ["'Radius' must be between 0 and 40."]`.
+Malformed JSON (unknown type, bad enum, unknown or missing property) is a `400` `application/problem+json` from ASP.NET Core itself.
 
 Numbers are read strictly (`"12"` is not a number), and an OpenAPI schema transformer describes them as plain `integer`/`number`, so the generated TS types aren't `number | string`.
 
-### Level 2: content (publish → `422`, also `POST /pages/{id}/check`)
+### Level 2: content (`IPageContentValidationService` → `400` with `issues`)
 
-These are problems a person can fix. They are returned as a list of issues, not as a ValidationProblem, so the studio can point at the block:
+These are problems a person can fix. Errors are returned in the `400` problem, keyed by `sectionId.blockId.field`, with the full list under `issues` so the studio can point at the block:
 
 ```json
 {
+  "status": 400,
+  "errors": { "s_hero.b_img.src": ["This image has no picture yet."] },
   "issues": [
     { "severity": "error", "code": "image.missing", "sectionId": "s_hero", "blockId": "b_img", "field": "src",
       "message": "This image has no picture yet." }
@@ -162,7 +164,6 @@ These are problems a person can fix. They are returned as a list of issues, not 
 | `video.missing` | error | video without a link |
 | `link.empty` | error | button, nav link or nav CTA (when it has a label) without `href` |
 | `form.no_fields` | error | form without fields |
-| `page.not_saved` | error | publishing a page whose draft was never saved |
 | `link.placeholder` | warning | link is still `#` |
 | `link.page_missing` | warning | `/slug` that is not a page of this website (`/` is the home page) |
 | `image.alt_missing` | warning | image without `alt` |
@@ -172,28 +173,24 @@ These are problems a person can fix. They are returned as a list of issues, not 
 
 Errors block publishing; warnings are shown but don't. **Calibrated on the sample content:** the studio's defaults and sample pages use `#` as a placeholder everywhere, and the sample home page links to `/signup` and `/templates`, which aren't pages. Both are therefore warnings, not errors. Otherwise no sample page could be published, and pages can't be created through the API yet. Once they can, `link.page_missing` can become an error.
 
-Issues come errors first, then in page order. The studio's **Publish** button saves what's left, calls `/check`, and publishes straight away when there are no issues. Otherwise it shows the issues: choosing one selects its block or section, and when there are only warnings, **Publish anyway** publishes. The server checks again on publish, so errors can never go live.
+Issues come errors first, then in page order. The studio's **Publish** button sends the page; when the answer is a `400` with issues, it lists them and choosing one selects its block or section. Warnings come back with the `200` and are shown after publishing. These checks need lookups (media, page slugs, later collection fields), so they live in a supporting service, `IPageContentValidationService`, built on the core services, and the endpoint calls it before storing anything.
 
-Publishing copies the stored draft at the requested revision inside one transaction. A no-op write on the draft row takes SQLite's write lock first, so a save can't slip in between the check and the copy. These checks need lookups (media, page slugs, later collection fields), so they live in the core service as an `IPageDocumentChecker` with a `CheckContext` (website, page, later the collection scope; see [collections.md](collections.md#5-validation)).
+### Tests
 
-### Contract test (keeps C# and TS in step)
+`Forma.Tests` builds documents with `PageDocumentBuilder` (studio defaults; a test only sets what it is about) and compares API results with the expected JSON. `SamplePagesApiTests` publishes every seeded sample page, so the seed content always passes validation.
 
-- `npm run studio:fixtures -w forma-app` writes `src/api/Contracts/Studio/*.json` (`src/app/src/studio/fixtures.ts`): every block type with its defaults, every section template, the saved items, and the sample pages `home.json` / `page.json`.
-- `Forma.Tests` (`StudioContractTests`) deserialises each fixture, validates it with level 1 and checks it round-trips through storage without losing anything.
-- CI runs both, so a slider whose max goes past the server rule fails the build.
+## 7. Saving and schema versions
 
-## 7. Saving, concurrency and schema versions
-
-- **Autosave.** The studio PUTs the whole draft about 1.5 s after the last change (flushed when leaving the editor), one request at a time, and shows "Saving… / Saved / Couldn't save". Undo history stays client-side. Discard is an ordinary undoable change that autosaves the published document, so it needs no endpoint.
-- **Concurrency.** Each save sends `baseRevision`. If it no longer matches, the API returns `409` with the current content, and the studio offers "Load the latest version" or "Keep mine" (the latter re-saves with the new revision).
-- **Schema versions.** Adding a field with a default needs no new version: C# model defaults and `normalizeDocument` fill it in. Renaming or removing a field adds an `IDocumentUpgrader` (`v1 → v2`) that runs on **read**; the next save writes the latest version.
+- **Publish only.** The studio keeps edits (and undo history) in the browser and sends the whole page on Publish. Closing the tab with unpublished changes asks first. Discard is an ordinary undoable change back to the published document.
+- **Concurrency.** None for now: the last publish wins. Revisions (`If-Match`) can come back with multiple users or publish history (phase 4).
+- **Schema versions.** Adding a field with a default needs no new version: C# model defaults and `normalizeDocument` fill it in. Renaming or removing a field adds an upgrader (`v1 → v2`) in `PageDocumentSerializer.Deserialize` that runs on **read**; the next publish writes the latest version.
 
 ## 8. Phases
 
 | Phase | Backend | Frontend |
 |---|---|---|
-| **1** ✅ | Document model, `PageDocuments`, `GET /pages/{id}/content`, `PUT /pages/{id}/draft`, level 1 validation, sanitiser, seeding, contract test | Load from the API, autosave, conflict dialog, relative media URLs, types from the generated client |
-| 2 ✅ | `POST /pages/{id}/publish`, `POST /pages/{id}/check`, level 2 issues | Publish through the API, issues panel that selects the block |
+| **1** ✅ | Document model, `PageContents`, `GET /pages/{id}/content`, level 1 validation, sanitiser, seeding | Load from the API, relative media URLs, types from the generated client |
+| 2 ✅ | `PUT /pages/{id}/content` (publish), level 2 issues | Publish through the API, issues dialog that selects the block |
 | 3 | `SavedItems` endpoints, `PageMediaUsages`, `409` on deleting used media | Saved tab through the API, "used on N pages" on the Media page |
 | 4 | `PageRevisions`, shared header/footer, public renderer | History panel |
 | 5 | Collections (see [collections.md](collections.md)) | Collection editor, bindings in the studio |
@@ -201,4 +198,4 @@ Publishing copies the stored draft at the requested revision inside one transact
 ## 9. Open questions
 
 1. Should a 0-section draft of a seeded page show the starter template (frontend) or should the server create one on page creation? *Proposal: the server, when `POST /pages` exists; the seeder covers it until then.*
-2. Should the level 2 warnings also run on draft save, so the studio can show them live? *Proposal: yes, later, through `/check` called after an autosave; not in the save response.*
+2. Should the level 2 warnings run before publishing, so the studio can show them live? *Proposal: later, from the editor's own copy of the rules or a dry-run flag on the `PUT`.*

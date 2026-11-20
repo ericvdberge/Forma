@@ -6,28 +6,27 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Forma.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class AddPageDocuments : Migration
+    public partial class AddPageContents : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "PageDocuments",
+                name: "PageContents",
                 columns: table => new
                 {
                     PageId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Kind = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
+                    Status = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
                     SchemaVersion = table.Column<int>(type: "INTEGER", nullable: false),
                     Content = table.Column<string>(type: "TEXT", nullable: false),
-                    ContentHash = table.Column<string>(type: "TEXT", maxLength: 64, nullable: false),
-                    Revision = table.Column<int>(type: "INTEGER", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PageDocuments", x => new { x.PageId, x.Kind });
+                    table.PrimaryKey("PK_PageContents", x => x.PageId);
                     table.ForeignKey(
-                        name: "FK_PageDocuments_Pages_PageId",
+                        name: "FK_PageContents_Pages_PageId",
                         column: x => x.PageId,
                         principalTable: "Pages",
                         principalColumn: "Id",
@@ -39,7 +38,7 @@ namespace Forma.Infrastructure.Persistence.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "PageDocuments");
+                name: "PageContents");
         }
     }
 }
