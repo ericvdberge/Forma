@@ -1,13 +1,29 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useClipboard } from '@vueuse/core'
+import { useClipboard, useLocalStorage } from '@vueuse/core'
 import { ArrowRight, Check, CircleHelp, ExternalLink, Package, Puzzle, RefreshCw } from 'lucide-vue-next'
-import { FArchitectureArt, FBadge, FButton, FPillTabs, FSelect, FSkeleton } from '@forma/design-system'
+import {
+  FArchitectureArt,
+  FBadge,
+  FButton,
+  FCollection,
+  FMenu,
+  FPillTabs,
+  FSelect,
+  FSkeleton,
+  FSwitch,
+  FViewSwitch,
+  type FCollectionColumn,
+  type FCollectionView,
+} from '@forma/design-system'
 import type { PluginDto } from '@/api/generated'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import InstallPluginDialog from '@/components/plugins/InstallPluginDialog.vue'
 import PluginCard from '@/components/plugins/PluginCard.vue'
+import PluginFeatures from '@/components/plugins/PluginFeatures.vue'
+import PluginStatusBadge from '@/components/plugins/PluginStatusBadge.vue'
+import { pluginIcon, pluginIconTone, pluginMenu, pluginStatus } from '@/components/plugins/pluginLook'
 import PluginRunsDialog from '@/components/plugins/PluginRunsDialog.vue'
 import { DOCS_URL } from '@/components/plugins/links'
 import { HOOK_EVENTS, usePlugins } from '@/composables/usePlugins'
@@ -85,6 +101,19 @@ const copyId = async (id: string) => {
   await copy(id)
   notify('Plugin id copied')
 }
+
+/* Cards or a list, remembered per browser like the media library. */
+const view = useLocalStorage<FCollectionView>('forma.pluginsView', 'grid')
+const listColumns: FCollectionColumn[] = [
+  // Takes the room that's left; long descriptions are cut off instead of widening the table.
+  { key: 'plugin', label: 'Plugin', class: 'w-full max-w-0' },
+  { key: 'adds', label: 'What it adds', class: 'hidden w-[15rem] min-w-[12rem] md:table-cell' },
+  { key: 'status', label: 'Status', class: 'w-32 whitespace-nowrap' },
+  { key: 'enabled', label: 'On', stop: true, class: 'w-16' },
+  { key: 'actions', label: 'Actions', hideLabel: true, stop: true, class: 'w-14' },
+]
+const menuFor = (p: PluginDto) =>
+  pluginMenu(p, { open: (x) => openPlugin(x.id), copyId: (x) => copyId(x.id), delete: (x) => (pendingDelete.value = x) })
 const scrollToList = () => document.getElementById('installed-plugins')?.scrollIntoView({ behavior: 'smooth' })
 const perks = ['Check pages before they go live', 'React when pages are saved or published', 'Run safely in a sandbox']
 </script>
@@ -113,98 +142,135 @@ const perks = ['Check pages before they go live', 'React when pages are saved or
       </div>
     </section>
 
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-      <!-- Installed plugins -->
-      <section id="installed-plugins" class="flex min-w-0 scroll-mt-24 flex-col gap-5" aria-label="Installed plugins">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <FPillTabs v-model="filter" :options="tabs" label="Filter plugins" />
-          <div class="flex items-center gap-1">
-            <button
-              type="button"
-              class="grid size-9 place-items-center rounded-full text-muted hover:bg-white hover:text-charcoal"
-              aria-label="Reload plugins"
-              title="Reload plugins"
-              @click="refetch()"
+    <!-- Installed plugins: full width, so the list never has to scroll sideways -->
+    <section id="installed-plugins" class="flex min-w-0 scroll-mt-24 flex-col gap-5" aria-label="Installed plugins">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <FPillTabs v-model="filter" :options="tabs" label="Filter plugins" />
+        <div class="flex items-center gap-1">
+          <button
+            type="button"
+            class="grid size-9 place-items-center rounded-full text-muted hover:bg-white hover:text-charcoal"
+            aria-label="Reload plugins"
+            title="Reload plugins"
+            @click="refetch()"
+          >
+            <RefreshCw :class="['size-4', isFetching && 'animate-spin']" aria-hidden="true" />
+          </button>
+          <FSelect v-model="sort" label="Sort" hide-label size="sm" variant="plain" :options="sortOptions" class="w-[9.5rem]" />
+          <FViewSwitch v-model="view" />
+        </div>
+      </div>
+
+      <div v-if="isPending" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <FSkeleton v-for="i in 3" :key="i" class="h-[188px] rounded-[1.25rem]" />
+      </div>
+
+      <div v-else-if="isError" class="rounded-[1.25rem] bg-white p-8 text-center ring-1 ring-charcoal/[0.06]">
+        <p class="font-medium">Couldn’t load the plugins.</p>
+        <FButton variant="secondary" size="sm" class="mt-4" @click="refetch()">Try again</FButton>
+      </div>
+
+      <div
+        v-else-if="!plugins.length"
+        class="flex flex-col items-center gap-3 rounded-[1.25rem] bg-white px-6 py-12 text-center ring-1 ring-charcoal/[0.06]"
+      >
+        <span class="grid size-12 place-items-center rounded-xl bg-canvas" aria-hidden="true"><Puzzle class="size-6" /></span>
+        <p class="font-display text-lg font-semibold">No plugins installed yet</p>
+        <p class="max-w-sm text-sm text-muted">Add one to the server’s plugins folder and restart the API.</p>
+        <FButton size="sm" arrow @click="installOpen = true">How to install</FButton>
+      </div>
+
+      <p v-else-if="!visible.length" class="rounded-[1.25rem] bg-white px-6 py-10 text-center text-sm text-muted ring-1 ring-charcoal/[0.06]">
+        No plugins match this filter.
+      </p>
+
+      <FCollection
+        v-else
+        :view="view"
+        :items="visible"
+        :item-key="(p) => p.id"
+        :columns="listColumns"
+        label="Installed plugins"
+        :selected-key="selected?.id"
+        min-table-width="480px"
+        grid-class="grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
+        @open="(p) => openPlugin(p.id)"
+      >
+        <template #card="{ item: p }">
+          <PluginCard :plugin="p" :menu="menuFor(p)" @open="openPlugin(p.id)" @toggle="setEnabled(p, $event)" />
+        </template>
+        <template #cell-plugin="{ item: p }">
+          <div class="flex items-center gap-3">
+            <span
+              :class="['grid size-10 shrink-0 place-items-center rounded-xl', pluginIconTone(p), pluginStatus(p) === 'off' && 'opacity-40 grayscale']"
+              aria-hidden="true"
             >
-              <RefreshCw :class="['size-4', isFetching && 'animate-spin']" aria-hidden="true" />
-            </button>
-            <FSelect v-model="sort" label="Sort" hide-label size="sm" variant="plain" :options="sortOptions" class="w-[9.5rem]" />
+              <component :is="pluginIcon(p)" class="size-5" />
+            </span>
+            <div class="min-w-0">
+              <p class="truncate font-medium">
+                {{ p.name }} <span v-if="p.version" class="text-xs font-normal text-subtle">v{{ p.version }}</span>
+              </p>
+              <p v-if="p.loaded" class="truncate text-xs text-muted" :title="p.description ?? undefined">
+                {{ p.description || 'No description.' }}
+              </p>
+              <p v-else class="truncate text-xs text-danger" :title="p.error ?? undefined">Couldn’t load: {{ p.error }}</p>
+            </div>
           </div>
-        </div>
-
-        <div v-if="isPending" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <FSkeleton v-for="i in 3" :key="i" class="h-[188px] rounded-[1.25rem]" />
-        </div>
-
-        <div v-else-if="isError" class="rounded-[1.25rem] bg-white p-8 text-center ring-1 ring-charcoal/[0.06]">
-          <p class="font-medium">Couldn’t load the plugins.</p>
-          <FButton variant="secondary" size="sm" class="mt-4" @click="refetch()">Try again</FButton>
-        </div>
-
-        <div
-          v-else-if="!plugins.length"
-          class="flex flex-col items-center gap-3 rounded-[1.25rem] bg-white px-6 py-12 text-center ring-1 ring-charcoal/[0.06]"
-        >
-          <span class="grid size-12 place-items-center rounded-xl bg-canvas" aria-hidden="true"><Puzzle class="size-6" /></span>
-          <p class="font-display text-lg font-semibold">No plugins installed yet</p>
-          <p class="max-w-sm text-sm text-muted">Add one to the server’s plugins folder and restart the API.</p>
-          <FButton size="sm" arrow @click="installOpen = true">How to install</FButton>
-        </div>
-
-        <p v-else-if="!visible.length" class="rounded-[1.25rem] bg-white px-6 py-10 text-center text-sm text-muted ring-1 ring-charcoal/[0.06]">
-          No plugins match this filter.
-        </p>
-
-        <div v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <PluginCard
-            v-for="p in visible"
-            :key="p.id"
-            :plugin="p"
-            @open="openPlugin"
-            @copy-id="copyId"
-            @toggle="setEnabled(p, $event)"
-            @delete="pendingDelete = p"
+        </template>
+        <template #cell-adds="{ item: p }"><PluginFeatures :plugin="p" /></template>
+        <template #cell-status="{ item: p }"><PluginStatusBadge :status="pluginStatus(p)" /></template>
+        <template #cell-enabled="{ item: p }">
+          <FSwitch
+            :model-value="p.loaded && p.enabled"
+            :label="`${p.name}: ${p.loaded && p.enabled ? 'on' : 'off'}`"
+            hide-label
+            :disabled="!p.loaded"
+            @update:model-value="setEnabled(p, $event)"
           />
-        </div>
-      </section>
+        </template>
+        <template #cell-actions="{ item: p }">
+          <FMenu :items="menuFor(p)" :label="`More for ${p.name}`" />
+        </template>
+      </FCollection>
+    </section>
 
-      <!-- Side -->
-      <aside class="flex flex-col gap-4">
-        <div
-          class="relative overflow-hidden rounded-[1.25rem] bg-gradient-to-b from-sage/15 to-white p-6 text-center ring-1 ring-charcoal/[0.05]"
-        >
-          <span class="mx-auto grid size-12 place-items-center rounded-xl bg-white shadow-soft" aria-hidden="true">
+    <!-- Build your own: one wide strip under the list instead of a side column -->
+    <section
+      class="relative overflow-hidden rounded-[1.25rem] bg-gradient-to-r from-sage/15 via-white to-white p-6 ring-1 ring-charcoal/[0.05] sm:p-7"
+      aria-labelledby="build-plugins-title"
+    >
+      <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-10">
+        <div class="flex items-start gap-4 lg:w-[34%] lg:shrink-0">
+          <span class="grid size-12 shrink-0 place-items-center rounded-xl bg-white shadow-soft" aria-hidden="true">
             <Package class="size-6" />
           </span>
-          <h2 class="mt-4 font-display text-xl font-bold tracking-[-0.02em]">Build without limits</h2>
-          <p class="mt-1.5 text-sm text-muted">Write your own plugin in any language that compiles to WebAssembly.</p>
-          <ul class="mt-4 flex flex-col gap-2 text-left text-sm">
-            <li v-for="p in perks" :key="p" class="flex items-start gap-2">
-              <Check class="mt-0.5 size-4 shrink-0 text-positive" aria-hidden="true" /> {{ p }}
-            </li>
-          </ul>
-          <FButton size="sm" class="mt-5" :href="DOCS_URL" target="_blank">
+          <div>
+            <h2 id="build-plugins-title" class="font-display text-xl font-bold tracking-[-0.02em]">Build without limits</h2>
+            <p class="mt-1 text-sm text-muted">Write your own plugin in any language that compiles to WebAssembly.</p>
+          </div>
+        </div>
+        <ul class="flex flex-1 flex-col gap-2 text-sm sm:flex-row sm:flex-wrap sm:gap-x-6">
+          <li v-for="p in perks" :key="p" class="flex items-center gap-2">
+            <Check class="size-4 shrink-0 text-positive" aria-hidden="true" /> {{ p }}
+          </li>
+        </ul>
+        <div class="flex flex-wrap items-center gap-2 lg:shrink-0">
+          <FButton size="sm" :href="DOCS_URL" target="_blank">
             Build a plugin <ArrowRight class="size-4" aria-hidden="true" />
           </FButton>
+          <a
+            :href="DOCS_URL"
+            target="_blank"
+            rel="noopener"
+            class="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm text-muted transition hover:bg-white hover:text-charcoal"
+          >
+            <CircleHelp class="size-4" aria-hidden="true" /> Need help?
+            <ExternalLink class="size-3.5" aria-hidden="true" />
+          </a>
         </div>
-
-        <a
-          :href="DOCS_URL"
-          target="_blank"
-          rel="noopener"
-          class="flex items-center gap-3 rounded-[1.25rem] bg-white p-4 ring-1 ring-charcoal/[0.06] transition hover:ring-charcoal/20"
-        >
-          <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-canvas" aria-hidden="true">
-            <CircleHelp class="size-5" />
-          </span>
-          <span class="min-w-0 flex-1">
-            <span class="block text-sm font-medium">Need help?</span>
-            <span class="block text-xs text-muted">Read how plugins work.</span>
-          </span>
-          <ExternalLink class="size-4 shrink-0 text-subtle" aria-hidden="true" />
-        </a>
-      </aside>
-    </div>
+      </div>
+    </section>
 
     <PluginRunsDialog :plugin="selected" @close="closePlugin" />
     <InstallPluginDialog v-model:open="installOpen" />
