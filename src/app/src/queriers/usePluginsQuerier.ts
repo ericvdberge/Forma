@@ -1,6 +1,11 @@
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
-import { getPluginRunsOptions, getPluginsOptions } from '@/api/generated/@tanstack/vue-query.gen'
+import { useMutation, useQuery } from '@tanstack/vue-query'
+import {
+  deletePluginMutation,
+  getPluginRunsOptions,
+  getPluginsOptions,
+  setPluginEnabledMutation,
+} from '@/api/generated/@tanstack/vue-query.gen'
 
 /** TanStack Query calls for the plugins API. Call the sub-functions during component setup. */
 export function usePluginsQuerier() {
@@ -20,5 +25,15 @@ export function usePluginsQuerier() {
     )
   }
 
-  return { getPlugins, getPluginRuns }
+  /** PUT /plugins/{id}/enabled */
+  function setPluginEnabled() {
+    return useMutation(setPluginEnabledMutation())
+  }
+
+  /** DELETE /plugins/{id} */
+  function deletePlugin() {
+    return useMutation(deletePluginMutation())
+  }
+
+  return { getPlugins, getPluginRuns, setPluginEnabled, deletePlugin }
 }

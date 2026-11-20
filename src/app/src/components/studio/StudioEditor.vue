@@ -5,6 +5,8 @@ import { TriangleAlert, X } from 'lucide-vue-next'
 import { FButton, FModal, FSkeleton, cn } from '@forma/design-system'
 import { useActiveWebsite } from '@/composables/useActiveWebsite'
 import { usePages } from '@/composables/usePages'
+import { usePlugins } from '@/composables/usePlugins'
+import { setPluginBlocks } from '@/studio/pluginBlocks'
 import { useToast } from '@/composables/useToast'
 import { createStudio, provideStudio } from '@/composables/useStudio'
 import { StudioPageNotFoundError, type StudioPageSeed } from '@/queriers/useStudioQuerier'
@@ -26,6 +28,10 @@ const { getPages } = usePages()
 const { notify } = useToast()
 const pagesQuery = getPages(() => activeWebsite.value.id)
 const { pages } = pagesQuery
+
+/* Blocks that installed plugins add to the library. */
+const { data: plugins } = usePlugins().getPlugins()
+watch(plugins, (list) => setPluginBlocks(list ?? []), { immediate: true })
 
 /* The page from the URL. One that isn't in the active website (deleted, or another website's) goes back to Pages. */
 const pageId = computed(() => (typeof route.params.pageId === 'string' ? route.params.pageId : ''))

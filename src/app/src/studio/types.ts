@@ -106,7 +106,11 @@ export interface BlockPropsMap {
   testimonials: { items: Array<{ quote: string; name: string; role: string }>; columns: number }
   features: { items: Array<{ icon: string; title: string; text: string }>; columns: number; card: boolean }
   nav: { logo: string; links: LinkItem[]; ctaLabel: string; ctaHref: string; orientation: 'horizontal' | 'vertical'; card: boolean }
+  /** A block an installed plugin adds (see studio/pluginBlocks.ts); `values` holds its fields by key. */
+  plugin: { plugin: string; block: string; values: Record<string, PluginBlockValue> }
 }
+
+export type PluginBlockValue = string | number | boolean
 
 export type BlockType = keyof BlockPropsMap
 

@@ -12,6 +12,7 @@ import HeadingBlock from './HeadingBlock.vue'
 import ImageBlock from './ImageBlock.vue'
 import MapBlock from './MapBlock.vue'
 import NavBlock from './NavBlock.vue'
+import PluginBlock from './PluginBlock.vue'
 import SpacerBlock from './SpacerBlock.vue'
 import TestimonialsBlock from './TestimonialsBlock.vue'
 import TextBlock from './TextBlock.vue'
@@ -35,4 +36,5 @@ export const blockComponents: Record<BlockType, Component> = {
   testimonials: TestimonialsBlock,
   features: FeaturesBlock,
   nav: NavBlock,
+  plugin: PluginBlock,
 }

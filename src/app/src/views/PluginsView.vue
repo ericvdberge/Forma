@@ -5,6 +5,7 @@ import { useClipboard } from '@vueuse/core'
 import { ArrowRight, Check, CircleHelp, ExternalLink, Package, Puzzle, RefreshCw } from 'lucide-vue-next'
 import { FArchitectureArt, FBadge, FButton, FPillTabs, FSelect, FSkeleton } from '@forma/design-system'
 import type { PluginDto } from '@/api/generated'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import InstallPluginDialog from '@/components/plugins/InstallPluginDialog.vue'
 import PluginCard from '@/components/plugins/PluginCard.vue'
 import PluginRunsDialog from '@/components/plugins/PluginRunsDialog.vue'
@@ -12,7 +13,7 @@ import { DOCS_URL } from '@/components/plugins/links'
 import { HOOK_EVENTS, usePlugins } from '@/composables/usePlugins'
 import { useToast } from '@/composables/useToast'
 
-const { getPlugins } = usePlugins()
+const { getPlugins, setEnabled, deletePlugin, isDeleting } = usePlugins()
 const { data, isPending, isError, isFetching, refetch } = getPlugins()
 const plugins = computed(() => data.value ?? [])
 const { notify } = useToast()
@@ -21,18 +22,24 @@ const route = useRoute()
 const router = useRouter()
 
 /* Filters */
-type Filter = 'all' | 'checks' | 'notifications' | 'broken'
+type Filter = 'all' | 'blocks' | 'checks' | 'notifications' | 'off' | 'broken'
 const filter = ref<Filter>('all')
 const matches: Record<Filter, (p: PluginDto) => boolean> = {
   all: () => true,
+  blocks: (p) => p.blocks.length > 0,
   checks: (p) => p.events.some((e) => HOOK_EVENTS.has(e)),
   notifications: (p) => p.events.some((e) => !HOOK_EVENTS.has(e)),
+  off: (p) => p.loaded && !p.enabled,
   broken: (p) => !p.loaded,
 }
 const tabs = computed(() => [
   { value: 'all' as const, label: 'All' },
+  { value: 'blocks' as const, label: 'Blocks', count: plugins.value.filter(matches.blocks).length },
   { value: 'checks' as const, label: 'Page checks', count: plugins.value.filter(matches.checks).length },
   { value: 'notifications' as const, label: 'Notifications', count: plugins.value.filter(matches.notifications).length },
+  ...(plugins.value.some(matches.off)
+    ? [{ value: 'off' as const, label: 'Turned off', count: plugins.value.filter(matches.off).length }]
+    : []),
   ...(plugins.value.some(matches.broken)
     ? [{ value: 'broken' as const, label: 'Needs attention', count: plugins.value.filter(matches.broken).length }]
     : []),
@@ -55,6 +62,23 @@ const visible = computed(() => {
 const selected = computed(() => plugins.value.find((p) => p.id === route.query.plugin) ?? null)
 const openPlugin = (id: string) => router.replace({ query: { ...route.query, plugin: id } })
 const closePlugin = () => router.replace({ query: { ...route.query, plugin: undefined } })
+
+/* Delete, after asking */
+const pendingDelete = ref<PluginDto | null>(null)
+const confirmOpen = computed({
+  get: () => !!pendingDelete.value,
+  set: (v: boolean) => {
+    if (!v) pendingDelete.value = null
+  },
+})
+async function confirmDelete() {
+  const plugin = pendingDelete.value
+  if (!plugin) return
+  if (await deletePlugin(plugin)) {
+    pendingDelete.value = null
+    if (route.query.plugin === plugin.id) closePlugin()
+  }
+}
 
 const installOpen = ref(false)
 const copyId = async (id: string) => {
@@ -132,7 +156,15 @@ const perks = ['Check pages before they go live', 'React when pages are saved or
         </p>
 
         <div v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <PluginCard v-for="p in visible" :key="p.id" :plugin="p" @open="openPlugin" @copy-id="copyId" />
+          <PluginCard
+            v-for="p in visible"
+            :key="p.id"
+            :plugin="p"
+            @open="openPlugin"
+            @copy-id="copyId"
+            @toggle="setEnabled(p, $event)"
+            @delete="pendingDelete = p"
+          />
         </div>
       </section>
 
@@ -176,5 +208,13 @@ const perks = ['Check pages before they go live', 'React when pages are saved or
 
     <PluginRunsDialog :plugin="selected" @close="closePlugin" />
     <InstallPluginDialog v-model:open="installOpen" />
+    <ConfirmDialog
+      v-model:open="confirmOpen"
+      :title="`Delete “${pendingDelete?.name ?? ''}”?`"
+      message="Its files are removed from the server, and it stops running at once. Pages that use its blocks keep them, but they won’t show until it’s installed again."
+      confirm-label="Delete plugin"
+      :busy="isDeleting"
+      @confirm="confirmDelete"
+    />
   </div>
 </template>

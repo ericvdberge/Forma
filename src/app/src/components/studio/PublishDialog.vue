@@ -5,7 +5,7 @@ import { FButton, FModal } from '@forma/design-system'
 import type { ContentIssueDto } from '@/api/generated'
 import { issuePluginId, usePlugins } from '@/composables/usePlugins'
 import { useStudio } from '@/composables/useStudio'
-import { blockDefinition } from '@/studio/blocks'
+import { definitionOf } from '@/studio/blocks'
 import { sectionTypeLabels } from '@/studio/sections'
 
 /**
@@ -39,7 +39,7 @@ function where(issue: ContentIssueDto) {
   const block = section.blocks.find((b) => b.id === issue.blockId)
   if (!block) return `${sectionLabel} section`
   const item = issue.itemIndex != null ? `, item ${issue.itemIndex + 1}` : ''
-  return `${blockDefinition(block.type).label}${item} in ${sectionLabel}`
+  return `${definitionOf(block).label}${item} in ${sectionLabel}`
 }
 </script>
 

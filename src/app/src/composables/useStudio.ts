@@ -8,6 +8,7 @@ import { useMedia } from '@/composables/useMedia'
 import { useToast } from '@/composables/useToast'
 import { clone } from '@/studio/defaults'
 import { createBlock } from '@/studio/blocks'
+import { createPluginBlock } from '@/studio/pluginBlocks'
 import { createSection, globalElements, sectionTemplates, withFreshIds } from '@/studio/sections'
 import { textEditorKey, textPointerKey } from '@/studio/inject'
 import { mediaSrc } from '@/studio/media'
@@ -18,6 +19,8 @@ import type { ContentIssueDto, PageContentDto } from '@/api/generated'
 /** Something being dragged onto or around the canvas. */
 export type DragPayload =
   | { kind: 'new-block'; type: BlockType }
+  /** A block from an installed plugin (studio/pluginBlocks.ts). */
+  | { kind: 'new-plugin-block'; plugin: string; block: string }
   | { kind: 'template'; id: string }
   | { kind: 'saved'; id: string }
   | { kind: 'move-block'; blockId: string }
@@ -335,6 +338,7 @@ export function createStudio(
 
   function blockFromPayload(p: DragPayload): Block | undefined {
     if (p.kind === 'new-block') return createBlock(p.type)
+    if (p.kind === 'new-plugin-block') return createPluginBlock(p.plugin, p.block)
     if (p.kind === 'saved') {
       const item = saved.value.find((s) => s.id === p.id)
       if (item?.kind === 'block') return withFreshIds(item.block)
