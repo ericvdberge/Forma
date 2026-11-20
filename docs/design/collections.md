@@ -1,6 +1,26 @@
-# Collections: list and detail pages (future)
+# Collections: list and detail pages
 
-Status: **direction for review, not scheduled** (phase 5 in [page-content.md](page-content.md#8-phases)). This document exists so that phases 1–4 don't close doors.
+Status: **first version built** (phase 5 in [page-content.md](page-content.md#8-phases)). [§ 0](#0-what-is-built) says what exists and where it differs from the direction below; the rest of this document is still the direction for what comes next.
+
+## 0. What is built
+
+- **Collections and fields** (`/collections` in the app): name, singular name, slug and an ordered list of fields of type `text`, `richText`, `image`, `url`, `number`, `date` or `boolean`, with presets (Blog posts, Team members, Projects). Field ids (`fld_…`) are given by the API and never change.
+- **Items**: a form built from the fields; save as draft or publish. Values are checked against the fields by `CollectionItemValidationService` (types, required, unknown fields, the same text, link, image and rich-text rules as pages, images must be in the website's media library) and come back as a `400` keyed `values.{fieldId}`.
+- **Detail page**: creating a collection creates its page (`Kind = CollectionTemplate`, slug `{collection}/{item}`). The studio starts it from a design built from the fields and shows it with a preview item. Blocks connect props to fields through `bindings` (§ 3.1), with `scope: page` only.
+- **Collection cards** (`collectionCards` block): a grid of a collection's items with an image, title and text field picked by the person, a "Read more" link to `/{collection}/{item}`, columns, order and limit.
+- **Sample data**: development databases get a *Blog posts* collection with three published posts.
+
+Where it differs from the direction below, and why:
+
+| Direction | Built | Why |
+|---|---|---|
+| `CollectionFields` table, field endpoints (§ 4, § 7) | Fields are a JSON column on `Collections`, saved whole with `PUT /collections/{id}` | The editor edits the list as one form; a collection is read and written whole, like a page document |
+| `PublishedValues` beside the draft (§ 4) | One set of values and a `Status` | Enough until there is a public site to render; adding it later doesn't change the API shape |
+| `collectionList` with nested `itemBlocks` (§ 3.2) | `collectionCards` with a fixed card design | Covers the common case without nested editing in the studio; `collectionList` can come next |
+| A static page's slug may not equal a collection slug (§ 4) | Allowed | `/blog` (a page with the cards) and `/blog/{item}` don't clash: they have a different number of segments |
+| `PageBindingUsages`, `409` on breaking a bound field (§ 4, § 5) | Not yet | Publishing reports `binding.field_missing` and `binding.type_mismatch`, so nothing broken goes live |
+| `GET /collections/{id}/items?status=…` (§ 7) | No query filters yet | Lists are small; the studio filters published items itself |
+| `/collection-items/{id}` (§ 7) | `/collections/{collectionId}/items/{itemId}` | Every item read is narrowed by its collection (IDOR) |
 
 ## 1. What it is for
 

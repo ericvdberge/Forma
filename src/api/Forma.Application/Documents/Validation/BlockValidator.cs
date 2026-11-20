@@ -11,6 +11,13 @@ public class BlockValidator : AbstractValidator<Block>
             .Must(DocumentRules.IsId).WithMessage("Not a valid block id.");
 
         RuleFor(b => b.Style).SetValidator(new BlockStyleValidator());
+
+        RuleForEach(b => b.Bindings)
+            .Must((block, binding) => BindableProps.IsBindable(block, binding.Key))
+            .WithMessage((_, binding) => $"‘{binding.Key}’ can't be connected to a collection field.")
+            .Must(binding => DocumentRules.IsFieldId(binding.Value.Field))
+            .WithMessage("Not a valid field id.")
+            .OverridePropertyName("bindings");
     }
 }
 

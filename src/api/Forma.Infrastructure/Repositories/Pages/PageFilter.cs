@@ -1,3 +1,5 @@
+using Forma.Infrastructure.Daos;
+
 namespace Forma.Infrastructure.Repositories.Pages;
 
 /// <summary>
@@ -17,4 +19,10 @@ public class PageFilter
 
     /// <summary>Only the page with exactly this slug.</summary>
     public string? Slug { get; init; }
+
+    /// <summary>Only pages of this kind.</summary>
+    public PageDaoKind? Kind { get; init; }
+
+    /// <summary>Only the detail page of this collection.</summary>
+    public Guid? CollectionId { get; init; }
 }

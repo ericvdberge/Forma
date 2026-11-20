@@ -1,6 +1,8 @@
 using Forma.Infrastructure.Imaging;
 using Forma.Infrastructure.Persistence;
 
+using Forma.Infrastructure.Repositories.CollectionItems;
+using Forma.Infrastructure.Repositories.Collections;
 using Forma.Infrastructure.Repositories.Media;
 using Forma.Infrastructure.Repositories.PageContents;
 using Forma.Infrastructure.Repositories.Pages;
@@ -25,6 +27,8 @@ public static class DependencyInjection
         services.AddScoped<IPageRepository, PageRepository>();
         services.AddScoped<IMediaRepository, MediaRepository>();
         services.AddScoped<IPageContentRepository, PageContentRepository>();
+        services.AddScoped<ICollectionRepository, CollectionRepository>();
+        services.AddScoped<ICollectionItemRepository, CollectionItemRepository>();
 
         // Uploaded media are plain files under Assets:Path (relative paths resolve from the working directory).
         var assetsPath = configuration["Assets:Path"] is { Length: > 0 } path ? path : "assets";

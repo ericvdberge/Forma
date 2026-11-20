@@ -3,6 +3,7 @@ import type { BlockType } from '@/studio/types'
 import BadgeBlock from './BadgeBlock.vue'
 import ButtonBlock from './ButtonBlock.vue'
 import CarouselBlock from './CarouselBlock.vue'
+import CollectionCardsBlock from './CollectionCardsBlock.vue'
 import DividerBlock from './DividerBlock.vue'
 import FaqBlock from './FaqBlock.vue'
 import FeaturesBlock from './FeaturesBlock.vue'
@@ -35,4 +36,5 @@ export const blockComponents: Record<BlockType, Component> = {
   testimonials: TestimonialsBlock,
   features: FeaturesBlock,
   nav: NavBlock,
+  collectionCards: CollectionCardsBlock,
 }

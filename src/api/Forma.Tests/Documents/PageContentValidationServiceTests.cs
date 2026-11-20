@@ -2,6 +2,7 @@ using Forma.Application.Documents;
 using Forma.Application.Documents.Validation;
 using Forma.Application.Entities;
 using Forma.Application.Services;
+using Forma.Infrastructure.Repositories.Collections;
 using Forma.Infrastructure.Repositories.Pages;
 using Forma.Tests.Builders;
 
@@ -12,10 +13,36 @@ public class PageContentValidationServiceTests
     private static readonly Guid WebsiteId = Guid.NewGuid();
     private static readonly Guid KnownMedia = Guid.NewGuid();
 
-    private readonly PageContentValidationService _service = new(new FakeMedia(), new FakePages());
+    private static readonly Collection Blog = new()
+    {
+        Id = Guid.NewGuid(),
+        WebsiteId = WebsiteId,
+        Name = "Blog posts",
+        SingularName = "Blog post",
+        Slug = "blog",
+        Fields =
+        [
+            new CollectionField("fld_title", "Title", CollectionFieldType.Text, Required: true),
+            new CollectionField("fld_cover", "Cover", CollectionFieldType.Image, Required: false),
+            new CollectionField("fld_body", "Body", CollectionFieldType.RichText, Required: true),
+        ],
+    };
 
-    private Task<IReadOnlyList<ContentIssue>> ValidateAsync(PageDocument document) =>
-        _service.ValidateAsync(document, WebsiteId);
+    private static readonly Page StaticPage = new() { WebsiteId = WebsiteId, Title = "About", Slug = "about" };
+
+    private static readonly Page BlogDetailPage = new()
+    {
+        WebsiteId = WebsiteId,
+        Title = "Blog post page",
+        Slug = "blog/{item}",
+        Kind = PageKind.CollectionTemplate,
+        CollectionId = Blog.Id,
+    };
+
+    private readonly PageContentValidationService _service = new(new FakeMedia(), new FakePages(), new FakeCollections());
+
+    private Task<IReadOnlyList<ContentIssue>> ValidateAsync(PageDocument document, Page? page = null) =>
+        _service.ValidateAsync(document, page ?? StaticPage);
 
     [Theory]
     [InlineData("", "link.empty", IssueSeverity.Error)]
@@ -36,6 +63,7 @@ public class PageContentValidationServiceTests
     [Theory]
     [InlineData("/about")]
     [InlineData("/about#team")]
+    [InlineData("/blog/opening-our-studio")]
     [InlineData("/")]
     [InlineData("https://example.com")]
     [InlineData("mailto:hi@example.com")]
@@ -103,6 +131,76 @@ public class PageContentValidationServiceTests
         Assert.Equal(("page.empty", "document"), (issue.Code, issue.Location));
     }
 
+    [Fact]
+    public async Task Accepts_bindings_to_fields_of_the_detail_pages_collection()
+    {
+        var document = new PageDocumentBuilder()
+            .WithSection("s_a", section => section
+                .WithHeading("b_title", level: 1, bindings: Bind("html", "fld_title"))
+                .WithText("b_body", bindings: Bind("html", "fld_body")))
+            .Build();
+
+        Assert.Empty(await ValidateAsync(document, BlogDetailPage));
+    }
+
+    [Fact]
+    public async Task Flags_bindings_that_cant_be_shown()
+    {
+        var document = new PageDocumentBuilder()
+            .WithSection("s_a", section => section
+                .WithImage("b_title_as_image", src: "", bindings: Bind("src", "fld_title"))
+                .WithHeading("b_removed", level: 1, bindings: Bind("html", "fld_gone"))
+                .WithImage("b_cover", src: "", bindings: Bind("src", "fld_cover")))
+            .Build();
+
+        var issues = await ValidateAsync(document, BlogDetailPage);
+
+        Assert.Equal(
+            [
+                ("binding.type_mismatch", "s_a.b_title_as_image.bindings.src"),
+                ("binding.field_missing", "s_a.b_removed.bindings.html"),
+                ("binding.optional_field", "s_a.b_cover.bindings.src"),
+            ],
+            issues.Select(i => (i.Code, i.Location)));
+    }
+
+    [Fact]
+    public async Task Bindings_need_a_detail_page()
+    {
+        var document = new PageDocumentBuilder()
+            .WithSection("s_a", section => section.WithHeading("b_title", level: 1, bindings: Bind("html", "fld_title")))
+            .Build();
+
+        var issue = Assert.Single(await ValidateAsync(document));
+
+        Assert.Equal(("binding.page_scope", IssueSeverity.Error), (issue.Code, issue.Severity));
+    }
+
+    [Fact]
+    public async Task Checks_the_collection_and_fields_of_cards()
+    {
+        var document = new PageDocumentBuilder()
+            .WithSection("s_a", section => section
+                .WithCollectionCards("b_none", collectionId: null)
+                .WithCollectionCards("b_deleted", collectionId: Guid.NewGuid())
+                .WithCollectionCards("b_wrong_image", Blog.Id, imageField: "fld_title")
+                .WithCollectionCards("b_fine", Blog.Id, imageField: "fld_cover", titleField: "fld_title", textField: "fld_body"))
+            .Build();
+
+        var issues = await ValidateAsync(document);
+
+        Assert.Equal(
+            [
+                ("list.collection_missing", "s_a.b_none.collectionId"),
+                ("list.collection_missing", "s_a.b_deleted.collectionId"),
+                ("binding.type_mismatch", "s_a.b_wrong_image.imageField"),
+            ],
+            issues.Select(i => (i.Code, i.Location)));
+    }
+
+    private static Dictionary<string, Binding> Bind(string prop, string fieldId) =>
+        new() { [prop] = new Binding(BindingScope.Page, fieldId) };
+
     private sealed class FakeMedia : IMediaCoreService
     {
         public Task<IReadOnlyList<MediaItem>> GetMediaItemsAsync(Guid websiteId, CancellationToken cancellationToken = default) =>
@@ -123,5 +221,19 @@ public class PageContentValidationServiceTests
             Task.FromResult<IReadOnlyList<Page>>([new Page { WebsiteId = WebsiteId, Title = "About", Slug = "about" }]);
 
         public Task<Page?> GetPageAsync(PageFilter filter, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<Page> CreateAsync(PageInsert insert, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<Page?> UpdateAsync(Guid id, PageUpdate update, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
+    private sealed class FakeCollections : ICollectionCoreService
+    {
+        public Task<IReadOnlyList<Collection>> GetCollectionsAsync(CollectionFilter filter, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Collection>>(filter.WebsiteId == WebsiteId ? [Blog] : []);
+
+        public Task<Collection?> GetCollectionAsync(CollectionFilter filter, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<Collection> CreateAsync(CollectionInsert insert, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<Collection?> UpdateAsync(Guid id, CollectionUpdate update, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 }

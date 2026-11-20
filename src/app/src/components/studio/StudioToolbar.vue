@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ArrowLeft, ArrowRight, Eye, EyeOff, Monitor, PanelRight, Plus, Redo2, Smartphone, Tablet, Undo2 } from 'lucide-vue-next'
+import type { RouteLocationRaw } from 'vue-router'
+import { ArrowLeft, ArrowRight, ChevronDown, Database, Eye, EyeOff, Monitor, PanelRight, Plus, Redo2, Smartphone, Tablet, Undo2 } from 'lucide-vue-next'
 import { FButton, FLogo, cn } from '@forma/design-system'
 import { useStudio, type StudioMode } from '@/composables/useStudio'
 import type { Breakpoint } from '@/studio/types'
+import { itemTitle } from '@/utils/collections'
 
-/** The editor's top bar: back to Pages, the page, view controls and publishing. */
-defineProps<{ pageTitle: string; pagePath: string }>()
+/**
+ * The editor's top bar: back to Pages (or to the collection, for its detail page), the page, view controls and
+ * publishing. A detail page also picks the item it is previewed with.
+ */
+defineProps<{ pageTitle: string; pagePath: string; back?: { to: RouteLocationRaw; label: string } }>()
 const emit = defineEmits<{ library: []; inspector: [] }>()
 const studio = useStudio()
 
@@ -31,15 +36,20 @@ function discard() {
   if (window.confirm('Throw away all changes since the last publish? You can still undo this.')) studio.discard()
 }
 
+const previewOptions = computed(() => {
+  const c = studio.pageCollection.value
+  return c ? studio.previewItems.value.map((i) => ({ value: i.id, label: `${itemTitle(c, i)}${i.status === 'live' ? '' : ' (draft)'}` })) : []
+})
+
 const textBtn =
   'inline-flex h-10 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-medium text-charcoal/80 transition-colors hover:bg-charcoal/5 hover:text-charcoal disabled:pointer-events-none disabled:opacity-35'
 </script>
 
 <template>
   <header class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-charcoal/[0.06] bg-white px-3 py-2.5 sm:px-4">
-    <RouterLink :to="{ name: 'pages' }" :class="textBtn" title="Back to all pages">
+    <RouterLink :to="back?.to ?? { name: 'pages' }" :class="textBtn" :title="back ? `Back to ${back.label}` : 'Back to all pages'">
       <ArrowLeft class="size-5" :stroke-width="1.6" aria-hidden="true" />
-      <span>Pages</span>
+      <span class="max-w-32 truncate">{{ back?.label ?? 'Pages' }}</span>
     </RouterLink>
     <FLogo variant="mark" class="hidden h-6 lg:block" />
 
@@ -80,6 +90,25 @@ const textBtn =
         <Redo2 class="size-[18px]" :stroke-width="1.6" aria-hidden="true" /><span class="hidden 2xl:inline">Redo</span>
         <span class="sr-only 2xl:hidden">Redo</span>
       </button>
+    </div>
+
+    <div v-if="studio.pageCollection.value" class="flex items-center gap-2 rounded-xl bg-accent-50 py-1 pl-3 pr-1 text-sm text-accent-700">
+      <Database class="size-4 shrink-0" aria-hidden="true" />
+      <label for="preview-item" class="hidden whitespace-nowrap lg:inline">Previewing</label>
+      <span v-if="!previewOptions.length" class="py-1.5 pr-2 text-accent-700/80">
+        No {{ studio.pageCollection.value.name.toLowerCase() }} yet
+      </span>
+      <div v-else class="relative">
+        <select
+          id="preview-item"
+          v-model="studio.previewItemId.value"
+          class="h-8 max-w-48 cursor-pointer appearance-none truncate rounded-lg bg-white pl-3 pr-8 text-sm font-medium text-charcoal outline-none ring-1 ring-accent-200 focus:ring-2 focus:ring-accent"
+          :title="`Show this page with one of the ${studio.pageCollection.value.name.toLowerCase()}`"
+        >
+          <option v-for="o in previewOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+        </select>
+        <ChevronDown class="pointer-events-none absolute right-2 top-1/2 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+      </div>
     </div>
 
     <div class="ml-auto flex flex-wrap items-center gap-2">

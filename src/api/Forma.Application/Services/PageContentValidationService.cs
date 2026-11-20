@@ -1,5 +1,7 @@
 using Forma.Application.Documents;
 using Forma.Application.Documents.Validation;
+using Forma.Application.Entities;
+using Forma.Infrastructure.Repositories.Collections;
 using Forma.Infrastructure.Repositories.Pages;
 
 namespace Forma.Application.Services;
@@ -8,32 +10,50 @@ namespace Forma.Application.Services;
 /// The rules a page's content must pass before it is published, on top of the document's structural validation.
 /// Errors are things visitors would see as broken (an image with no picture, a button that goes nowhere);
 /// warnings are worth a look but often intentional (a placeholder link, missing alt text).
+/// Collection bindings and lists are checked against the website's collections (<c>docs/design/collections.md</c> § 5).
 /// </summary>
 public interface IPageContentValidationService
 {
-    /// <summary>The issues of <paramref name="document"/> on a page of <paramref name="websiteId"/>: errors first, then warnings.</summary>
-    Task<IReadOnlyList<ContentIssue>> ValidateAsync(PageDocument document, Guid websiteId, CancellationToken cancellationToken = default);
+    /// <summary>The issues of <paramref name="document"/> on <paramref name="page"/>: errors first, then warnings.</summary>
+    Task<IReadOnlyList<ContentIssue>> ValidateAsync(PageDocument document, Page page, CancellationToken cancellationToken = default);
 }
 
-public class PageContentValidationService(IMediaCoreService mediaCoreService, IPageCoreService pageCoreService) : IPageContentValidationService
+public class PageContentValidationService(
+    IMediaCoreService mediaCoreService,
+    IPageCoreService pageCoreService,
+    ICollectionCoreService collectionCoreService) : IPageContentValidationService
 {
-    public async Task<IReadOnlyList<ContentIssue>> ValidateAsync(PageDocument document, Guid websiteId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ContentIssue>> ValidateAsync(PageDocument document, Page page, CancellationToken cancellationToken = default)
     {
-        // Everything the rules look up, loaded once: the website's media and its page slugs.
-        var media = await mediaCoreService.GetMediaItemsAsync(websiteId, cancellationToken);
-        var pages = await pageCoreService.GetPagesAsync(new PageFilter { WebsiteId = websiteId }, cancellationToken);
+        // Everything the rules look up, loaded once: the website's media, page slugs and collections.
+        var media = await mediaCoreService.GetMediaItemsAsync(page.WebsiteId, cancellationToken);
+        var pages = await pageCoreService.GetPagesAsync(new PageFilter { WebsiteId = page.WebsiteId }, cancellationToken);
+        var collections = await collectionCoreService.GetCollectionsAsync(new CollectionFilter { WebsiteId = page.WebsiteId }, cancellationToken);
 
-        var mediaIds = media.Select(m => m.Id).ToHashSet();
-        var slugs = pages.Select(p => p.Slug).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var lookups = new Lookups(
+            Media: media.Select(m => m.Id).ToHashSet(),
+            Slugs: pages.Where(p => p.Kind == PageKind.Static).Select(p => p.Slug).ToHashSet(StringComparer.OrdinalIgnoreCase),
+            Collections: collections.ToDictionary(c => c.Id),
+            PageCollection: collections.FirstOrDefault(c => page.Kind == PageKind.CollectionTemplate && c.Id == page.CollectionId));
 
         var issues = new List<ContentIssue>();
-        new Walker(issues, mediaIds, slugs).Visit(document);
+        new Walker(issues, lookups).Visit(document);
 
         // Errors first, then in page order (List.Sort isn't stable, OrderBy is).
         return issues.OrderBy(i => i.Severity).ToList();
     }
 
-    private sealed class Walker(List<ContentIssue> issues, HashSet<Guid> media, HashSet<string> slugs)
+    /// <param name="Media">Ids of the website's media items.</param>
+    /// <param name="Slugs">Slugs of the website's own pages.</param>
+    /// <param name="Collections">The website's collections by id.</param>
+    /// <param name="PageCollection">The collection whose items the page shows, when it is a collection's detail page.</param>
+    private sealed record Lookups(
+        HashSet<Guid> Media,
+        HashSet<string> Slugs,
+        Dictionary<Guid, Collection> Collections,
+        Collection? PageCollection);
+
+    private sealed class Walker(List<ContentIssue> issues, Lookups lookups)
     {
         private Section _section = null!;
         private Block? _block;
@@ -75,17 +95,22 @@ public class PageContentValidationService(IMediaCoreService mediaCoreService, IP
 
         private void VisitBlock(Block block)
         {
+            CheckBindings(block);
+
             switch (block)
             {
                 case HeadingBlock heading:
                     CheckHeading(heading.Props.Level);
                     break;
-                case ButtonBlock button:
+                case ButtonBlock button when !IsBound(block, "href"):
                     CheckLink(button.Props.Href, "href", $"The button ‘{button.Props.Label}’");
+                    break;
+                case ImageBlock image when IsBound(block, "src"):
+                    CheckMedia(image.Props.Src, "src");
                     break;
                 case ImageBlock image:
                     CheckImage(image.Props.Src, "src");
-                    if (image.Props.Src.Length > 0 && image.Props.Alt.Trim().Length == 0)
+                    if (image.Props.Src.Length > 0 && image.Props.Alt.Trim().Length == 0 && !IsBound(block, "alt"))
                         Warn("image.alt_missing", "This image has no description for people who can't see it.", "alt");
                     break;
                 case GalleryBlock gallery:
@@ -104,7 +129,7 @@ public class PageContentValidationService(IMediaCoreService mediaCoreService, IP
                         CheckImage(carousel.Props.Slides[i].Src, "slides", i);
 
                     break;
-                case VideoBlock video when video.Props.Url.Length == 0:
+                case VideoBlock video when video.Props.Url.Length == 0 && !IsBound(block, "url"):
                     Error("video.missing", "This video has no link yet.", "url");
                     break;
                 case FormBlock form when form.Props.Fields.Count == 0:
@@ -119,7 +144,68 @@ public class PageContentValidationService(IMediaCoreService mediaCoreService, IP
                         CheckLink(nav.Props.CtaHref, "ctaHref", $"The menu button ‘{nav.Props.CtaLabel}’");
 
                     break;
+                case CollectionCardsBlock cards:
+                    CheckCollectionCards(cards.Props);
+                    break;
             }
+        }
+
+        private static bool IsBound(Block block, string prop) => block.Bindings?.ContainsKey(prop) == true;
+
+        /// <summary>Bound props need a detail page, and a field of its collection that can feed them.</summary>
+        private void CheckBindings(Block block)
+        {
+            foreach (var (prop, binding) in block.Bindings ?? new Dictionary<string, Binding>())
+            {
+                var field = $"bindings.{prop}";
+
+                if (lookups.PageCollection is not { } collection)
+                {
+                    Error("binding.page_scope", "This is connected to a collection field, but the page isn't a collection's detail page.", field);
+                    continue;
+                }
+
+                var definition = collection.Fields.FirstOrDefault(f => f.Id == binding.Field);
+
+                if (definition is null)
+                    Error("binding.field_missing", $"This is connected to a field that was removed from {collection.Name}.", field);
+                else if (!BindableProps.Accepts(block, prop, definition.Type))
+                    Error("binding.type_mismatch", $"The field ‘{definition.Label}’ can't be shown here.", field);
+                else if (!definition.Required)
+                    Warn("binding.optional_field", $"‘{definition.Label}’ isn't required, so some items will show the placeholder.", field);
+            }
+        }
+
+        private void CheckCollectionCards(CollectionCardsProps props)
+        {
+            if (props.CollectionId is not { } id)
+            {
+                Error("list.collection_missing", "Choose which collection these cards show.", "collectionId");
+                return;
+            }
+
+            if (!lookups.Collections.TryGetValue(id, out var collection))
+            {
+                Error("list.collection_missing", "The collection these cards show was deleted.", "collectionId");
+                return;
+            }
+
+            CheckCardField(collection, props.ImageField, "imageField", [CollectionFieldType.Image]);
+            CheckCardField(collection, props.TitleField, "titleField", [CollectionFieldType.Text, CollectionFieldType.RichText, CollectionFieldType.Number, CollectionFieldType.Date]);
+            CheckCardField(collection, props.TextField, "textField", [CollectionFieldType.Text, CollectionFieldType.RichText, CollectionFieldType.Number, CollectionFieldType.Date]);
+        }
+
+        private void CheckCardField(Collection collection, string fieldId, string prop, CollectionFieldType[] types)
+        {
+            if (fieldId.Length == 0)
+                return;
+
+            var definition = collection.Fields.FirstOrDefault(f => f.Id == fieldId);
+
+            if (definition is null)
+                Error("binding.field_missing", $"The cards use a field that was removed from {collection.Name}.", prop);
+            else if (!types.Contains(definition.Type))
+                Error("binding.type_mismatch", $"The field ‘{definition.Label}’ can't be shown here.", prop);
         }
 
         private void CheckHeading(int level)
@@ -143,7 +229,7 @@ public class PageContentValidationService(IMediaCoreService mediaCoreService, IP
 
         private void CheckMedia(string src, string field, int? item = null)
         {
-            if (DocumentRules.MediaId(src) is { } id && !media.Contains(id))
+            if (DocumentRules.MediaId(src) is { } id && !lookups.Media.Contains(id))
                 Error("media.not_found", "This image was deleted from the media library.", field, item);
         }
 
@@ -157,11 +243,19 @@ public class PageContentValidationService(IMediaCoreService mediaCoreService, IP
                 Warn("link.page_missing", $"{what} links to {href}, which isn't a page of this website.", field, item);
         }
 
-        /// <summary>Whether a site-relative link points at one of the website's pages (<c>/</c> is the home page).</summary>
+        /// <summary>
+        /// Whether a site-relative link points at one of the website's pages (<c>/</c> is the home page) or at an item
+        /// of one of its collections (<c>/blog/opening-our-studio</c>).
+        /// </summary>
         private bool IsPage(string href)
         {
             var path = href.Split('#', '?')[0].Trim('/');
-            return path.Length == 0 || slugs.Contains(path);
+            if (path.Length == 0 || lookups.Slugs.Contains(path))
+                return true;
+
+            var segments = path.Split('/');
+
+            return segments.Length == 2 && lookups.Collections.Values.Any(c => string.Equals(c.Slug, segments[0], StringComparison.OrdinalIgnoreCase));
         }
 
         private void Error(string code, string message, string? field = null, int? item = null) =>

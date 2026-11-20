@@ -2,12 +2,17 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { ImageOff, Link, LoaderCircle, Upload, X } from 'lucide-vue-next'
 import { FButton, FSkeleton } from '@forma/design-system'
-import { useStudio } from '@/composables/useStudio'
+import { useActiveWebsite } from '@/composables/useActiveWebsite'
+import { useStudioMedia } from '@/composables/useStudioMedia'
 import { ACCEPT_ATTRIBUTE } from '@/composables/useMedia'
 
-/** The media library: the website's images from the media API. Uploads go to the same library. */
+/**
+ * The media library: the active website's images from the media API. Uploads go to the same library.
+ * Used by the studio and by the collection item editor.
+ */
 const emit = defineEmits<{ close: []; select: [src: string] }>()
-const studio = useStudio()
+const website = useActiveWebsite().getActiveWebsite()
+const studio = useStudioMedia(() => website.value.id)
 const { isPending, isError, refetch } = studio.mediaQuery
 const fileInput = ref<HTMLInputElement | null>(null)
 const url = ref('')

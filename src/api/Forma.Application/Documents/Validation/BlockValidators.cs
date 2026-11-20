@@ -242,3 +242,32 @@ public class NavBlockValidator : AbstractValidator<NavBlock>
             .Must(DocumentRules.IsLink).WithMessage("The menu button's link must start with https://, http://, mailto:, tel:, / or #.");
     }
 }
+
+public class CollectionCardsBlockValidator : AbstractValidator<CollectionCardsBlock>
+{
+    public CollectionCardsBlockValidator()
+    {
+        RuleFor(b => b.Props.ImageField)
+            .Must(IsEmptyOrFieldId).WithMessage("Not a valid field id.");
+
+        RuleFor(b => b.Props.TitleField)
+            .Must(IsEmptyOrFieldId).WithMessage("Not a valid field id.");
+
+        RuleFor(b => b.Props.TextField)
+            .Must(IsEmptyOrFieldId).WithMessage("Not a valid field id.");
+
+        RuleFor(b => b.Props.Limit).InclusiveBetween(1, 24);
+
+        RuleFor(b => b.Props.Columns).InclusiveBetween(1, 4);
+
+        RuleFor(b => b.Props.Gap).InclusiveBetween(0, 48);
+
+        RuleFor(b => b.Props.Radius).InclusiveBetween(0, 40);
+
+        RuleFor(b => b.Props.ButtonLabel).MaximumLength(100);
+
+        RuleFor(b => b.Props.EmptyText).MaximumLength(DocumentRules.MaxTextLength);
+    }
+
+    private static bool IsEmptyOrFieldId(string value) => value.Length == 0 || DocumentRules.IsFieldId(value);
+}

@@ -279,6 +279,18 @@ function onClick(e: MouseEvent) {
   outline: 2px solid #3b82f6;
   outline-offset: 4px;
 }
+/* Blocks that show a collection field: a faint outline always, the field's name on hover and when selected. */
+.studio-block--bound {
+  outline-color: rgb(59 130 246 / 0.3);
+}
+.studio-block__fields {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.studio-block--editing:hover > .studio-block__fields,
+.studio-block--selected > .studio-block__fields {
+  opacity: 1;
+}
 
 @keyframes studio-fade {
   from { opacity: 0; }

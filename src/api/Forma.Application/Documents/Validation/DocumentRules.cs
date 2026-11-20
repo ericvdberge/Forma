@@ -24,6 +24,12 @@ public static partial class DocumentRules
     [GeneratedRegex("^[a-z]+_[A-Za-z0-9_-]{1,40}$")]
     private static partial Regex IdPattern();
 
+    [GeneratedRegex("^fld_[A-Za-z0-9_-]{1,40}$")]
+    private static partial Regex FieldIdPattern();
+
+    [GeneratedRegex("^[a-z0-9]+(-[a-z0-9]+)*$")]
+    private static partial Regex SlugPattern();
+
     [GeneratedRegex("^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")]
     private static partial Regex ColorPattern();
 
@@ -46,6 +52,12 @@ public static partial class DocumentRules
     private static partial Regex VideoPattern();
 
     public static bool IsId(string value) => IdPattern().IsMatch(value);
+
+    /// <summary>A collection field id, e.g. <c>fld_ab12cd34</c>.</summary>
+    public static bool IsFieldId(string value) => FieldIdPattern().IsMatch(value);
+
+    /// <summary>Lowercase words separated by single dashes, e.g. <c>opening-our-studio</c>.</summary>
+    public static bool IsSlug(string value) => SlugPattern().IsMatch(value);
 
     public static bool IsColor(string value) => ColorPattern().IsMatch(value);
 

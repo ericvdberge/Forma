@@ -2,7 +2,9 @@ import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { getPageContent, publishPageContent, type ContentIssueDto, type PageContentDto } from '@/api/generated'
 import pageJson from '@/data/studio/page.json'
+import type { Collection } from '@/data/types'
 import { fromApiDocument, toApiDocument } from '@/studio/contract'
+import { detailPageSections } from '@/studio/detailPage'
 import { normalizeDocument, type PageDocumentJson } from '@/studio/sections'
 import type { PageDocument, StudioPage } from '@/studio/types'
 
@@ -12,6 +14,8 @@ export const pageContentQueryKey = (pageId: string) => ['page-content', pageId] 
 export interface StudioPageSeed {
   title: string
   websiteName: string
+  /** On a collection's detail page: the collection, so the starter design shows its fields. */
+  collection?: Collection
 }
 
 /** Thrown when the API has no such page (e.g. one created in this browser that the API doesn't have). */
@@ -21,12 +25,20 @@ export class StudioPageNotFoundError extends Error {
   }
 }
 
-/** Starter content for a page that has none yet: a header, an intro and a footer. */
-export function starterDocument({ title, websiteName }: StudioPageSeed): PageDocument {
+/**
+ * Starter content for a page that has none yet: a header, an intro and a footer. A collection's detail page gets
+ * sections that show the item's fields in place of the intro.
+ */
+export function starterDocument({ title, websiteName, collection }: StudioPageSeed): PageDocument {
   const json = JSON.stringify(pageJson)
     .replaceAll('{{title}}', title.replace(/["\\<>]/g, ''))
     .replaceAll('{{website}}', websiteName.replace(/["\\<>]/g, ''))
-  return normalizeDocument(JSON.parse(json) as PageDocumentJson)
+  const doc = normalizeDocument(JSON.parse(json) as PageDocumentJson)
+  if (!collection) return doc
+
+  const intro = doc.sections.findIndex((s) => s.id === 's_intro')
+  doc.sections.splice(intro, 1, ...detailPageSections(collection))
+  return doc
 }
 
 /** The API's page content as the studio keeps it. A page without content starts from the starter page. */

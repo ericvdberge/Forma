@@ -2,6 +2,7 @@ import type { Component } from 'vue'
 import {
   AlignLeft,
   ClipboardList,
+  Database,
   GalleryHorizontal,
   Globe,
   Heading,
@@ -27,6 +28,7 @@ import {
   WandSparkles,
   Zap,
 } from 'lucide-vue-next'
+import type { CollectionFieldType } from '@/data/types'
 import { defaultBlockStyle, merge, newId } from './defaults'
 import type { Block, BlockPropsMap, BlockStyle, BlockType } from './types'
 
@@ -54,6 +56,10 @@ export type Field = { advanced?: boolean } & (
   | { key: string; label: string; kind: 'select' | 'segmented'; options: Option[] }
   | { key: string; label: string; kind: 'toggle' }
   | { key: string; label: string; kind: 'image' | 'color' }
+  /** One of the website's collections; the inspector fills in the choices. */
+  | { key: string; label: string; kind: 'collection' }
+  /** A field of the collection chosen in the block's `collectionId`, of one of `fieldTypes`; empty means none. */
+  | { key: string; label: string; kind: 'collectionField'; fieldTypes: CollectionFieldType[]; noneLabel: string }
   | {
       key: string
       label: string
@@ -423,6 +429,39 @@ const definitions: { [K in BlockType]: BlockDefinition<K> } = {
       { key: 'card', label: 'Floating bar', kind: 'toggle' },
     ],
   },
+  collectionCards: {
+    type: 'collectionCards',
+    label: 'Collection cards',
+    icon: Database,
+    props: () => ({
+      collectionId: null,
+      imageField: '',
+      titleField: '',
+      textField: '',
+      sort: 'newest',
+      limit: 6,
+      columns: 3,
+      gap: 24,
+      radius: 16,
+      card: true,
+      buttonLabel: 'Read more',
+      emptyText: 'Nothing here yet.',
+    }),
+    fields: [
+      { key: 'collectionId', label: 'Show items of', kind: 'collection' },
+      { key: 'imageField', label: 'Image', kind: 'collectionField', fieldTypes: ['image'], noneLabel: 'No image' },
+      { key: 'titleField', label: 'Title', kind: 'collectionField', fieldTypes: ['text', 'number', 'date'], noneLabel: 'The item’s address' },
+      { key: 'textField', label: 'Text', kind: 'collectionField', fieldTypes: ['text', 'richText', 'number', 'date'], noneLabel: 'No text' },
+      columns(4),
+      { key: 'limit', label: 'Show at most', kind: 'slider', min: 1, max: 24, unit: '' },
+      { key: 'sort', label: 'Order', kind: 'segmented', options: [{ value: 'newest', label: 'Newest first' }, { value: 'oldest', label: 'Oldest first' }] },
+      { key: 'buttonLabel', label: 'Link text', kind: 'text', placeholder: 'Leave empty to hide' },
+      { key: 'card', label: 'Show as cards', kind: 'toggle' },
+      { key: 'gap', label: 'Gap', kind: 'slider', min: 0, max: 48, unit: 'px', advanced: true },
+      radius,
+      { key: 'emptyText', label: 'When there are no items', kind: 'text', advanced: true },
+    ],
+  },
 }
 
 export function blockDefinition<T extends BlockType>(type: T): BlockDefinition<T> {
@@ -446,6 +485,7 @@ export const libraryBlocks: BlockType[] = [
   'faq',
   'testimonials',
   'features',
+  'collectionCards',
 ]
 
 /** A new block with defaults, optionally overridden. */

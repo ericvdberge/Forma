@@ -32,6 +32,7 @@ const blockHelp: Record<BlockType, string> = {
   testimonials: 'Quotes from happy customers',
   features: 'A few highlights with icons',
   nav: 'A menu with links',
+  collectionCards: 'Cards for your blog posts, projects or team',
 }
 
 interface Choice {

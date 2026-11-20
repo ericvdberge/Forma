@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { TriangleAlert, X } from 'lucide-vue-next'
 import { FButton, FSkeleton, cn } from '@forma/design-system'
 import { useActiveWebsite } from '@/composables/useActiveWebsite'
+import { useCollections } from '@/composables/useCollections'
 import { usePages } from '@/composables/usePages'
 import { useToast } from '@/composables/useToast'
 import { createStudio, provideStudio } from '@/composables/useStudio'
@@ -45,12 +46,17 @@ watch(page, (p) => {
   if (p) document.title = `${p.title} · Design Studio · Forma`
 })
 
-const seed = computed<StudioPageSeed | undefined>(() =>
-  page.value
-    ? { title: page.value.title, websiteName: activeWebsite.value.name }
-    : undefined,
-)
-const studio = createStudio(() => (page.value ? pageId.value : ''), seed, () => activeWebsite.value.id)
+/* A collection's detail page starts from a design that shows the collection's fields, so it waits for the collection. */
+const { collections, isPending: collectionsPending } = useCollections().getCollections(() => activeWebsite.value.id)
+const pageCollectionId = computed(() => (page.value?.kind === 'collectionTemplate' ? page.value.collectionId : null))
+const pageCollection = computed(() => collections.value.find((c) => c.id === pageCollectionId.value))
+
+const seed = computed<StudioPageSeed | undefined>(() => {
+  if (!page.value) return undefined
+  if (pageCollectionId.value && collectionsPending.value) return undefined
+  return { title: page.value.title, websiteName: activeWebsite.value.name, collection: pageCollection.value }
+})
+const studio = createStudio(() => (page.value ? pageId.value : ''), seed, () => activeWebsite.value.id, pageCollectionId)
 provideStudio(studio)
 
 
@@ -152,6 +158,7 @@ const notOnServer = computed(() => studio.query.error.value instanceof StudioPag
     <StudioToolbar
       :page-title="page?.title ?? ''"
       :page-path="page ? `${activeWebsite.domain}/${page.slug}` : ''"
+      :back="pageCollection ? { to: { name: 'collection', params: { collectionId: pageCollection.id } }, label: pageCollection.name } : undefined"
       @library="openAdd"
       @inspector="drawer = 'inspector'"
     />
