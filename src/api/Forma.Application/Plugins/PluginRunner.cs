@@ -24,7 +24,7 @@ public sealed class PluginRunner(
 {
     public IReadOnlyList<(InstalledPlugin Plugin, PluginRun Run)> Run(PluginEventEnvelope envelope)
     {
-        var subscribed = catalog.Plugins.Where(p => p.IsLoaded && p.Manifest!.Events.Contains(envelope.Event)).ToList();
+        var subscribed = catalog.Plugins.Where(p => p.IsActive && p.Manifest!.Events.Contains(envelope.Event)).ToList();
         if (subscribed.Count == 0)
         {
             return [];

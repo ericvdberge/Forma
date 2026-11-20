@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { CheckPageContentData, CheckPageContentErrors, CheckPageContentResponses, DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, GetMediaImageData, GetMediaImageErrors, GetMediaImageResponses, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaItemsData, GetMediaItemsResponses, GetMediaThumbnailData, GetMediaThumbnailErrors, GetMediaThumbnailResponses, GetPageContentData, GetPageContentErrors, GetPageContentResponses, GetPagesData, GetPagesResponses, GetPluginRunsData, GetPluginRunsErrors, GetPluginRunsResponses, GetPluginsData, GetPluginsResponses, GetWebsitesData, GetWebsitesResponses, PublishPageData, PublishPageErrors, PublishPageResponses, SavePageDraftData, SavePageDraftErrors, SavePageDraftResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
+import type { CheckPageContentData, CheckPageContentErrors, CheckPageContentResponses, DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, DeletePluginData, DeletePluginErrors, DeletePluginResponses, GetMediaImageData, GetMediaImageErrors, GetMediaImageResponses, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaItemsData, GetMediaItemsResponses, GetMediaThumbnailData, GetMediaThumbnailErrors, GetMediaThumbnailResponses, GetPageContentData, GetPageContentErrors, GetPageContentResponses, GetPagesData, GetPagesResponses, GetPluginRunsData, GetPluginRunsErrors, GetPluginRunsResponses, GetPluginsData, GetPluginsResponses, GetWebsitesData, GetWebsitesResponses, PublishPageData, PublishPageErrors, PublishPageResponses, SavePageDraftData, SavePageDraftErrors, SavePageDraftResponses, SetPluginEnabledData, SetPluginEnabledErrors, SetPluginEnabledResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -123,6 +123,29 @@ export const getPlugins = <ThrowOnError extends boolean = false>(options?: Optio
  * Kept in memory: the last 25 runs per plugin since the API started.
  */
 export const getPluginRuns = <ThrowOnError extends boolean = false>(options: Options<GetPluginRunsData, ThrowOnError>): RequestResult<GetPluginRunsResponses, GetPluginRunsErrors, ThrowOnError> => (options.client ?? client).get<GetPluginRunsResponses, GetPluginRunsErrors, ThrowOnError>({ url: '/plugins/{pluginId}/runs', ...options });
+
+/**
+ * Turns a plugin on or off, at once and across restarts.
+ *
+ * A plugin that is off stays installed: it isn't run for any event and its blocks aren't offered in the studio.
+ * Pages that already use its blocks keep them; the publish check warns that they won't show. Remembered in
+ * `plugins.state.json` in the plugins folder.
+ */
+export const setPluginEnabled = <ThrowOnError extends boolean = false>(options: Options<SetPluginEnabledData, ThrowOnError>): RequestResult<SetPluginEnabledResponses, SetPluginEnabledErrors, ThrowOnError> => (options.client ?? client).put<SetPluginEnabledResponses, SetPluginEnabledErrors, ThrowOnError>({
+    url: '/plugins/{pluginId}/enabled',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Deletes a plugin: its folder is removed and it stops running at once.
+ *
+ * Pages that use its blocks keep them; the publish check warns that they won't show.
+ */
+export const deletePlugin = <ThrowOnError extends boolean = false>(options: Options<DeletePluginData, ThrowOnError>): RequestResult<DeletePluginResponses, DeletePluginErrors, ThrowOnError> => (options.client ?? client).delete<DeletePluginResponses, DeletePluginErrors, ThrowOnError>({ url: '/plugins/{pluginId}', ...options });
 
 /**
  * Lists all websites, most recently updated first.

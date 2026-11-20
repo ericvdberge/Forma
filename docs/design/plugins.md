@@ -135,21 +135,65 @@ The host calls `forma_alloc`, copies the envelope in, calls `forma_handle`, and 
   "name": "Secure links",
   "version": "1.0.0",
   "description": "Warns about links that use plain http:// before a page is published.",
-  "events": ["page.check", "page.published"],
-  "module": "plugin.wasm"               // optional; a file inside the folder
+  "events": ["page.check", "page.published"],   // may be empty when the plugin only adds blocks
+  "module": "plugin.wasm",              // optional; a file inside the folder
+  "blocks": []                          // optional; see "Blocks" below
 }
 ```
 
-Plugins are read at startup (restart the API to add, update or remove one). A folder that can't be loaded (unreadable manifest, unknown property or event, id/folder mismatch, missing or invalid module, a forbidden import) is **listed with its error and skipped**; it never stops the API.
+Plugins are read at startup (restart the API to add or update one). A folder that can't be loaded (unreadable manifest, unknown property or event, id/folder mismatch, missing or invalid module, a forbidden import) is **listed with its error and skipped**; it never stops the API.
 
 ### API
 
 | Endpoint | Returns |
 |---|---|
-| `GET /plugins` | Every plugin folder: id, name, version, events, `loaded`, `error`, the module's SHA-256 |
+| `GET /plugins` | Every plugin folder: id, name, version, events, `loaded`, `enabled`, `error`, the module's SHA-256, its `blocks` |
 | `GET /plugins/{id}/runs` | The plugin's last 25 runs, newest first: event, success, error, duration, fuel, logs. `404` for an unknown id |
+| `PUT /plugins/{id}/enabled` | Body `{ "enabled": false }`: turns the plugin off (or on) at once. Returns the plugin |
+| `DELETE /plugins/{id}` | Deletes the plugin's folder; it stops running at once. `204` |
 
 The run history is in memory and resets when the API restarts; it is there to answer "did my plugin run, and why did it fail?".
+
+### Turning plugins off and deleting them
+
+A plugin that is **off** stays installed and loaded, but isn't run for any event and its blocks aren't offered in the studio. Which plugins are off is kept in `{Plugins:Path}/plugins.state.json` (`{ "disabled": ["secure-links"] }`), next to the plugins so it moves with them; a damaged file turns every plugin on. **Deleting** removes the plugin's folder. Both take effect immediately: the catalog swaps its list as a whole, so a run already in progress finishes with the plugin it started with (its module is freed by the garbage collector, not disposed under it).
+
+Both need the API to write to the plugins folder; `docker compose` mounts it read-write. When it can't (e.g. a read-only mount), the endpoints answer `409` and nothing changes. Pages that use blocks of a plugin that is off or deleted keep them; the publish check warns with `plugin.block_missing`.
+
+Anyone who can use the app can do this until there are users and roles (see Roadmap).
+
+### Blocks
+
+A plugin can add blocks to the studio's library, declared in its manifest:
+
+```json
+"blocks": [{
+  "id": "product-card",                 // same rules as a plugin id, unique within the plugin
+  "label": "Product card",
+  "description": "A product with photo, price and a buy button",
+  "icon": "shopping-bag",               // a Lucide icon name; unknown names get a puzzle piece
+  "fields": [                           // the inspector, in order; at most 20
+    { "key": "name", "label": "Product name", "kind": "text", "default": "Lounge chair" },
+    { "key": "image", "label": "Photo", "kind": "image" },
+    { "key": "accent", "label": "Button colour", "kind": "color", "default": "#0b0b0f", "advanced": true }
+  ],
+  "template": "<div style=\"...\"><img data-if=\"image\" src=\"{{image}}\" alt=\"{{name}}\"><h3>{{name}}</h3>…</div>"
+}]
+```
+
+Field kinds are the built-in inspector controls: `text`, `textarea`, `url`, `image`, `color`, `number` and `slider` (with `min`/`max`), `toggle`, `select` and `segmented` (with `options`). A page stores the block as `{ "type": "plugin", "props": { "plugin": "product-card", "block": "product-card", "values": { … } } }`; values are strings (≤ 2,000 characters), numbers or booleans, and aren't checked against the plugin's fields, so pages stay saveable when the plugin changes or is removed.
+
+**Why a declarative template, not a render hook.** Drawing on the canvas happens on every keystroke; a round trip to the API (and a sandbox run) per edit would be slow, and a template can be checked once, at load. A plugin that needs logic about its block uses the `page.check` hook, which receives the block like any other.
+
+**What a template may contain**, checked when the plugin loads (a template that breaks a rule fails the plugin with the reason) and again in the studio when the block is drawn:
+
+- tags: `div`, `span`, `p`, `h2`–`h4`, `strong`, `em`, `small`, `s`, `br`, `hr`, `ul`, `ol`, `li`, `figure`, `figcaption`, `a`, `img`;
+- attributes: `style`, `href` (on `a`), `src` (on `img`), `alt`, `title`, and `data-if="key"`, which drops the element when that value is empty or off. No scripts, event handlers or classes;
+- `href` and `src` are a single `{{key}}` slot or a fixed `https://`, relative or `#` address. In the studio a slot only takes `http(s):`, `mailto:`, `tel:`, `#` or relative links, and `https:` or relative images;
+- `style` can't load anything (`url()`, `@import`, `expression()`, escapes). A slot in a `style` only takes a colour (`#rrggbb`) or a number;
+- `{{key}}` in text becomes plain text, never markup; every slot must be one of the block's fields.
+
+The studio is the only renderer today; a public renderer must apply the same rules.
 
 ## 7. Layers and performance
 
@@ -157,13 +201,13 @@ The run history is in memory and resets when the API restarts; it is there to an
 |---|---|---|
 | `Forma.Api` | `PluginEndpoints`, `PluginDto`, `PluginRunDto` | HTTP |
 | `Forma.Application` | `PluginEvents` (names and payloads), `PluginRunner`, `PluginEventQueue` + `PluginEventDispatcher`, `PluginContentChecker`, `PluginRunLog`, `PluginCoreService`; `PageContentCoreService` publishes the events | Events and their meaning |
-| `Forma.Infrastructure` | `WasmSandbox`, `PluginCatalog`, `PluginManifest`, `PluginOptions` | Bytes in, bytes out; nothing about pages |
+| `Forma.Infrastructure` | `WasmSandbox`, `PluginCatalog` (incl. on/off and delete), `PluginManifest`, `PluginBlockDefinition` + `PluginBlockTemplate` (block rules), `PluginOptions` | Bytes in, bytes out; nothing about pages |
 
 Measured with the example plugin on the About page (≈ 10 KB document): **0.5–0.7 ms** per invocation once warm, ≈ 30 ms for the very first one, ≈ 0.6–0.7 M fuel. Compilation happens once, at startup. If many hook plugins make checks slow, the next step is Wasmtime's pooling allocator and instance pre-instantiation (`InstancePre`), not keeping instances alive (which would break isolation).
 
 ## 8. Later phases
 
-**Phase 2: managing plugins from the app.** Upload a plugin (`POST /plugins`, multipart manifest + module, validated exactly as at startup, hot-loaded), enable it per website (`WebsitePlugins` table: `WebsiteId`, `PluginId`, `Enabled`, `Settings` JSON), and pass the website's settings in the envelope (`config`). A Plugins page in the app lists plugins, their status and run history. Only administrators may upload (needs users, see Roadmap).
+**Phase 2: managing plugins from the app.** Turning plugins off and deleting them is done (see above). Still to do: upload a plugin (`POST /plugins`, multipart manifest + module, validated exactly as at startup, hot-loaded), enable it per website (`WebsitePlugins` table: `WebsiteId`, `PluginId`, `Enabled`, `Settings` JSON), and pass the website's settings in the envelope (`config`). A Plugins page in the app lists plugins, their status and run history. Only administrators may upload (needs users, see Roadmap).
 
 **Phase 3: capabilities.** Narrow host functions, each declared in the manifest (`"capabilities": ["http:api.example.com", "kv"]`) and shown to whoever installs the plugin:
 

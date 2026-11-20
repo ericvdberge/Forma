@@ -13,8 +13,17 @@ public static class PluginDtoMapper
         plugin.Description,
         plugin.Events,
         plugin.Loaded,
+        plugin.Enabled,
         plugin.Error,
-        plugin.ModuleSha256);
+        plugin.ModuleSha256,
+        plugin.Blocks.Select(b => new PluginBlockDto(
+            b.Id,
+            b.Label,
+            b.Description,
+            b.Icon,
+            b.Template,
+            b.Fields.Select(f => new PluginBlockFieldDto(
+                f.Key, f.Label, f.Kind, f.Default, f.Options, f.Placeholder, f.Min, f.Max, f.Step, f.Unit, f.Advanced)).ToList())).ToList());
 
     public static PluginRunDto ToDto(this PluginRun run) => new(
         run.Id,

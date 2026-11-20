@@ -9,10 +9,12 @@ namespace Forma.Infrastructure.Plugins;
 /// <param name="Description">One sentence about what it does.</param>
 /// <param name="Events">The events it is called for, e.g. <c>page.published</c> or the <c>page.check</c> hook.</param>
 /// <param name="Module">The WebAssembly file, relative to the plugin's folder.</param>
+/// <param name="Blocks">Blocks the plugin adds to the studio's library; see <see cref="PluginBlockDefinition"/>.</param>
 public sealed record PluginManifest(
     string Id,
     string Name,
     string Version,
     IReadOnlyList<string> Events,
     string? Description = null,
-    string Module = "plugin.wasm");
+    string Module = "plugin.wasm",
+    IReadOnlyList<PluginBlockDefinition>? Blocks = null);
