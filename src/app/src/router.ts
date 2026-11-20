@@ -17,6 +17,13 @@ export const router = createRouter({
       component: () => import('@/views/StudioView.vue'),
       meta: { title: 'Edit page' },
     },
+    // The website as visitors will see it, full-screen too: `/preview/{websiteId}/about`.
+    {
+      path: '/preview/:websiteId/:slug?',
+      name: 'preview',
+      component: () => import('@/views/WebsitePreviewView.vue'),
+      meta: { title: 'Preview' },
+    },
     {
       path: '/',
       component: AppShell,
