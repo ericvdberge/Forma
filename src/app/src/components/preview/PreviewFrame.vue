@@ -30,12 +30,17 @@ onMounted(() => {
 
 onBeforeUnmount(() => resizer?.disconnect())
 
+/** On a computer the site fills the window, like a real visit; tablets and phones get a device-sized frame. */
+const fullWidth = computed(() => props.device === 'desktop')
+
 const width = computed(() => frameWidth[props.device])
 
 watch(
-  [available, width],
-  ([a, w]) => {
-    if (a)
+  [available, width, fullWidth],
+  ([a, w, full]) => {
+    if (full)
+      zoom.value = 1
+    else if (a)
       zoom.value = Math.min(1, Math.max(0.2, (a - 32) / w))
   },
   { immediate: true },
@@ -87,14 +92,16 @@ defineExpose({ showFromTop })
 </script>
 
 <template>
-  <div ref="viewport" class="min-h-0 flex-1 overflow-auto bg-[#ecebe8] p-4">
-    <div class="mx-auto origin-top transition-[width] duration-300" :style="{ width: `${width}px`, zoom }">
+  <div ref="viewport" :class="cn('min-h-0 flex-1 overflow-auto', fullWidth ? 'bg-white' : 'bg-[#ecebe8] p-4')">
+    <div
+      :class="cn('origin-top', fullWidth ? 'min-h-full w-full' : 'mx-auto transition-[width] duration-300')"
+      :style="fullWidth ? undefined : { width: `${width}px`, zoom }"
+    >
       <div
         :class="
           cn(
-            'relative flex min-h-[640px] flex-col gap-3 bg-[#f7f7f5] p-3 font-sans text-charcoal',
-            device !== 'desktop' && 'rounded-[28px] shadow-card ring-1 ring-charcoal/[0.06]',
-            device === 'desktop' && 'rounded-2xl shadow-soft',
+            'relative flex flex-col bg-white font-sans text-charcoal',
+            fullWidth ? 'min-h-full' : 'min-h-[640px] overflow-hidden rounded-[28px] shadow-card ring-1 ring-charcoal/[0.06]',
           )
         "
         @click="onClick"
