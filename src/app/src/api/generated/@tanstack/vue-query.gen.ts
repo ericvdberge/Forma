@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/vue-query';
 
 import { client } from '../client.gen';
-import { checkPageContent, deleteMedia, getMediaImage, getMediaItem, getMediaItems, getMediaThumbnail, getPageContent, getPages, getWebsites, type Options, publishPage, savePageDraft, uploadMedia } from '../sdk.gen';
-import type { CheckPageContentData, CheckPageContentResponse, DeleteMediaData, DeleteMediaResponse, GetMediaImageData, GetMediaImageResponse, GetMediaItemData, GetMediaItemResponse, GetMediaItemsData, GetMediaItemsResponse, GetMediaThumbnailData, GetMediaThumbnailResponse, GetPageContentData, GetPageContentResponse, GetPagesData, GetPagesResponse, GetWebsitesData, GetWebsitesResponse, PublishPageData, PublishPageError, PublishPageResponse, SavePageDraftData, SavePageDraftError, SavePageDraftResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
+import { checkPageContent, deleteMedia, deletePlugin, getMediaImage, getMediaItem, getMediaItems, getMediaThumbnail, getPageContent, getPages, getPluginRuns, getPlugins, getWebsites, type Options, publishPage, savePageDraft, setPluginEnabled, uploadMedia } from '../sdk.gen';
+import type { CheckPageContentData, CheckPageContentResponse, DeleteMediaData, DeleteMediaResponse, DeletePluginData, DeletePluginResponse, GetMediaImageData, GetMediaImageResponse, GetMediaItemData, GetMediaItemResponse, GetMediaItemsData, GetMediaItemsResponse, GetMediaThumbnailData, GetMediaThumbnailResponse, GetPageContentData, GetPageContentResponse, GetPagesData, GetPagesResponse, GetPluginRunsData, GetPluginRunsResponse, GetPluginsData, GetPluginsResponse, GetWebsitesData, GetWebsitesResponse, PublishPageData, PublishPageError, PublishPageResponse, SavePageDraftData, SavePageDraftError, SavePageDraftResponse, SetPluginEnabledData, SetPluginEnabledResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -248,6 +248,84 @@ export const getPagesOptions = (options: Options<GetPagesData>) => queryOptions<
     },
     queryKey: getPagesQueryKey(options)
 });
+
+export const getPluginsQueryKey = (options?: Options<GetPluginsData>) => createQueryKey('getPlugins', options);
+
+/**
+ * Lists the installed plugins, including ones that couldn't be loaded and why.
+ */
+export const getPluginsOptions = (options?: Options<GetPluginsData>) => queryOptions<GetPluginsResponse, DefaultError, GetPluginsResponse, ReturnType<typeof getPluginsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPlugins({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPluginsQueryKey(options)
+});
+
+export const getPluginRunsQueryKey = (options: Options<GetPluginRunsData>) => createQueryKey('getPluginRuns', options);
+
+/**
+ * Lists a plugin's recent runs, newest first, with what it logged and why a run failed.
+ *
+ * Kept in memory: the last 25 runs per plugin since the API started.
+ */
+export const getPluginRunsOptions = (options: Options<GetPluginRunsData>) => queryOptions<GetPluginRunsResponse, DefaultError, GetPluginRunsResponse, ReturnType<typeof getPluginRunsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPluginRuns({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPluginRunsQueryKey(options)
+});
+
+/**
+ * Turns a plugin on or off, at once and across restarts.
+ *
+ * A plugin that is off stays installed: it isn't run for any event and its blocks aren't offered in the studio.
+ * Pages that already use its blocks keep them; the publish check warns that they won't show. Remembered in
+ * `plugins.state.json` in the plugins folder.
+ */
+export const setPluginEnabledMutation = (options?: Partial<Options<SetPluginEnabledData>>): UseMutationOptions<SetPluginEnabledResponse, DefaultError, Options<SetPluginEnabledData>> => {
+    const mutationOptions: UseMutationOptions<SetPluginEnabledResponse, DefaultError, Options<SetPluginEnabledData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await setPluginEnabled({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Deletes a plugin: its folder is removed and it stops running at once.
+ *
+ * Pages that use its blocks keep them; the publish check warns that they won't show.
+ */
+export const deletePluginMutation = (options?: Partial<Options<DeletePluginData>>): UseMutationOptions<DeletePluginResponse, DefaultError, Options<DeletePluginData>> => {
+    const mutationOptions: UseMutationOptions<DeletePluginResponse, DefaultError, Options<DeletePluginData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deletePlugin({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const getWebsitesQueryKey = (options?: Options<GetWebsitesData>) => createQueryKey('getWebsites', options);
 

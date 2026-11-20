@@ -105,8 +105,8 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 | Project                | Responsibility                                                       |
 | ---------------------- | -------------------------------------------------------------------- |
 | `Forma.Api`            | Minimal API endpoints, DTOs and Mapperly mappers, OpenAPI + Scalar   |
-| `Forma.Application`    | Domain entities, core services, the page document model and its validation |
-| `Forma.Infrastructure` | EF Core `DbContext`, SQLite, migrations, seeding, repositories, media file storage and image processing |
+| `Forma.Application`    | Domain entities, core services, the page document model and its validation, plugin events |
+| `Forma.Infrastructure` | EF Core `DbContext`, SQLite, migrations, seeding, repositories, media file storage and image processing, the WebAssembly plugin sandbox |
 | `Forma.Tests`          | xUnit: studio contract tests, validation and API tests (`dotnet test src/api/Forma.Api.slnx`) |
 
 | Endpoint                    | Returns                                                         |
@@ -123,10 +123,16 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 | `PUT /pages/{id}/draft`     | Saves the draft (`{ document, baseRevision }`), `200`, `400` or `409` |
 | `POST /pages/{id}/check`   | What to fix before publishing: errors and warnings, each pointing at a block |
 | `POST /pages/{id}/publish` | Publishes a draft revision (`{ revision }`), `200`, `409` or `422` with the issues |
+| `GET /plugins`              | The installed plugins, including ones that failed to load and why |
+| `GET /plugins/{id}/runs`    | A plugin's recent runs: event, success, error, duration, logs   |
 
 #### Page content
 
 A page's Design Studio content is one JSON document per version (draft and published) in the `PageDocuments` table. Every save is checked against the document model and its rules (block types, ranges, safe links, allowed rich text) and carries the draft revision it was edited from, so a save made elsewhere in the meantime answers `409`. Publishing runs content checks first (missing images, links that go nowhere, deleted media…): errors block it, warnings don't. Design and full spec: [`docs/design/page-content.md`](docs/design/page-content.md) and [`docs/design/page-content-api.md`](docs/design/page-content-api.md); future collection pages: [`docs/design/collections.md`](docs/design/collections.md).
+
+#### Plugins
+
+Plugins are WebAssembly modules that react to events: `page.draftSaved` and `page.published` (notifications, run in the background after the change is stored) and `page.check` (a hook that adds its own errors and warnings to the publish check). They run in a [Wasmtime](https://wasmtime.dev) sandbox: no files, network, clock or WASI at all, a fresh instance per event, and limits on instructions (fuel), time and memory. A plugin that crashes or hits a limit is reported in its run history and never breaks a save or a publish. Install one by putting its folder (`plugin.json` + `plugin.wasm`) under `Plugins:Path` (the repository's [`plugins/`](plugins) in development and with `docker compose`, `/app/plugins` in the image) and restarting the API. Design: [`docs/design/plugins.md`](docs/design/plugins.md); a complete example in Rust: [`examples/plugins/secure-links`](examples/plugins/secure-links).
 
 #### Media
 
@@ -176,10 +182,10 @@ The [`Dockerfile`](Dockerfile) builds Forma into one image. [supervisord](http:/
 
 ```bash
 docker build -t forma .
-docker run -p 8080:8080 -v forma-assets:/app/assets -v forma-data:/app/data forma
+docker run -p 8080:8080 -v forma-assets:/app/assets -v forma-data:/app/data -v ./plugins:/app/plugins:ro forma
 ```
 
-Or run `docker compose up --build forma` ([`docker-compose.yml`](docker-compose.yml)). Run `docker exec <container> supervisorctl -c /etc/supervisor/forma.conf status` to see the processes. Uploaded media are plain files in `/app/assets`, a volume. The API applies database migrations on start. Because websites can't be created yet, an empty database gets the sample websites and pages; set `FORMA_SAMPLE_DATA=false` to start without them.
+Or run `docker compose up --build forma` ([`docker-compose.yml`](docker-compose.yml)). Run `docker exec <container> supervisorctl -c /etc/supervisor/forma.conf status` to see the processes. Uploaded media are plain files in `/app/assets`, a volume. Plugins are read from `/app/plugins`. The API applies database migrations on start. Because websites can't be created yet, an empty database gets the sample websites and pages; set `FORMA_SAMPLE_DATA=false` to start without them.
 
 ## Project structure
 
@@ -193,6 +199,8 @@ Forma/
 │       ├── Forma.Api/             endpoints, DTOs, OpenAPI document
 │       ├── Forma.Application/     entities + core services
 │       └── Forma.Infrastructure/  EF Core, SQLite, repositories, media storage
+├── docs/design/         design docs: page content, collections, plugins
+├── examples/plugins/    example plugins (Rust → WebAssembly)
 ├── docker/              nginx, supervisord and entrypoint for the image
 ├── Dockerfile           app + API in one image
 └── package.json         npm workspaces root
@@ -271,6 +279,8 @@ Forma speaks with clarity and quiet confidence. No hype, no jargon, no exaggerat
 - [x] Design Studio: drag & drop editor (frontend, mock content)
 - [ ] Templates, blocks & global styles
 - [ ] Publishing & custom domains
+- [x] Plugins: event-driven, sandboxed in WebAssembly
+- [ ] Plugins: install from the app, per-website settings, capabilities
 - [ ] Self-hosting guide
 
 ## Contributing

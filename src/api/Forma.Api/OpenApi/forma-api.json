@@ -508,6 +508,145 @@
         }
       }
     },
+    "/plugins": {
+      "get": {
+        "tags": [
+          "Plugins"
+        ],
+        "summary": "Lists the installed plugins, including ones that couldn't be loaded and why.",
+        "operationId": "GetPlugins",
+        "responses": {
+          "200": {
+            "description": "The installed plugins; empty when there are none.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PluginDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/plugins/{pluginId}/runs": {
+      "get": {
+        "tags": [
+          "Plugins"
+        ],
+        "summary": "Lists a plugin's recent runs, newest first, with what it logged and why a run failed.",
+        "description": "Kept in memory: the last 25 runs per plugin since the API started.",
+        "operationId": "GetPluginRuns",
+        "parameters": [
+          {
+            "name": "pluginId",
+            "in": "path",
+            "description": "The plugin's id.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The plugin's recent runs; empty when it hasn't run yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PluginRunDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No plugin is installed with this id."
+          }
+        }
+      }
+    },
+    "/plugins/{pluginId}/enabled": {
+      "put": {
+        "tags": [
+          "Plugins"
+        ],
+        "summary": "Turns a plugin on or off, at once and across restarts.",
+        "description": "A plugin that is off stays installed: it isn't run for any event and its blocks aren't offered in the studio.\r\nPages that already use its blocks keep them; the publish check warns that they won't show. Remembered in\r\n`plugins.state.json` in the plugins folder.",
+        "operationId": "SetPluginEnabled",
+        "parameters": [
+          {
+            "name": "pluginId",
+            "in": "path",
+            "description": "The plugin's id.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Service that changes the plugin.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPluginEnabledRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The plugin, turned on or off.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No plugin is installed with this id."
+          }
+        }
+      }
+    },
+    "/plugins/{pluginId}": {
+      "delete": {
+        "tags": [
+          "Plugins"
+        ],
+        "summary": "Deletes a plugin: its folder is removed and it stops running at once.",
+        "description": "Pages that use its blocks keep them; the publish check warns that they won't show.",
+        "operationId": "DeletePlugin",
+        "parameters": [
+          {
+            "name": "pluginId",
+            "in": "path",
+            "description": "The plugin's id.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The plugin was deleted."
+          },
+          "404": {
+            "description": "No plugin is installed with this id."
+          }
+        }
+      }
+    },
     "/websites": {
       "get": {
         "tags": [
@@ -654,6 +793,9 @@
           },
           {
             "$ref": "#/components/schemas/BlockNavBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockPluginBlock"
           }
         ],
         "discriminator": {
@@ -674,7 +816,8 @@
             "faq": "#/components/schemas/BlockFaqBlock",
             "testimonials": "#/components/schemas/BlockTestimonialsBlock",
             "features": "#/components/schemas/BlockFeaturesBlock",
-            "nav": "#/components/schemas/BlockNavBlock"
+            "nav": "#/components/schemas/BlockNavBlock",
+            "plugin": "#/components/schemas/BlockPluginBlock"
           }
         }
       },
@@ -984,6 +1127,31 @@
           },
           "props": {
             "$ref": "#/components/schemas/NavProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockPluginBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "plugin"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/PluginBlockProps"
           },
           "id": {
             "type": "string"
@@ -1639,6 +1807,7 @@
           "warning"
         ]
       },
+      "JsonElement": { },
       "MapProps": {
         "required": [
           "address",
@@ -1926,6 +2095,358 @@
           "draft",
           "published"
         ]
+      },
+      "PluginBlockDto": {
+        "required": [
+          "id",
+          "label",
+          "description",
+          "icon",
+          "template",
+          "fields"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The block's id within the plugin."
+          },
+          "label": {
+            "type": "string",
+            "description": "Its name in the library."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "One line about it."
+          },
+          "icon": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A Lucide icon name, e.g. `shopping-bag`."
+          },
+          "template": {
+            "type": "string",
+            "description": "Restricted HTML with `{{key}}` slots, checked when the plugin loaded."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PluginBlockFieldDto"
+            },
+            "description": "The inspector fields, in order."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A block a plugin adds to the studio. Stored in a page as `{ type: \"plugin\", props: { plugin, block, values } }`."
+      },
+      "PluginBlockFieldDto": {
+        "required": [
+          "key",
+          "label",
+          "kind",
+          "default",
+          "options",
+          "placeholder",
+          "min",
+          "max",
+          "step",
+          "unit",
+          "advanced"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The value's name, also its `{{key}}` slot in the template."
+          },
+          "label": {
+            "type": "string",
+            "description": "The field's label in the inspector."
+          },
+          "kind": {
+            "type": "string",
+            "description": "text, textarea, url, image, color, number, slider, toggle, select or segmented."
+          },
+          "default": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "The value of a new block: a string, number or boolean.",
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          },
+          "options": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/PluginBlockFieldOption"
+            },
+            "description": "The choices of a select or segmented field."
+          },
+          "placeholder": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Hint shown in an empty text field."
+          },
+          "min": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Lowest value of a number or slider.",
+            "format": "double"
+          },
+          "max": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Highest value of a number or slider.",
+            "format": "double"
+          },
+          "step": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Step of a number or slider.",
+            "format": "double"
+          },
+          "unit": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Unit shown next to a slider's value, e.g. `px`."
+          },
+          "advanced": {
+            "type": "boolean",
+            "description": "Hidden in the studio's Simple mode."
+          }
+        },
+        "additionalProperties": false,
+        "description": "An inspector field of a plugin block; its value is stored under `props.values[key]`."
+      },
+      "PluginBlockFieldOption": {
+        "required": [
+          "value",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PluginBlockProps": {
+        "required": [
+          "plugin",
+          "block",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "plugin": {
+            "type": "string"
+          },
+          "block": {
+            "type": "string"
+          },
+          "values": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PluginDto": {
+        "required": [
+          "id",
+          "name",
+          "version",
+          "description",
+          "events",
+          "loaded",
+          "enabled",
+          "error",
+          "moduleSha256",
+          "blocks"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The plugin's id, e.g. `secure-links`."
+          },
+          "name": {
+            "type": "string",
+            "description": "The plugin's name."
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The plugin's version; null when its manifest couldn't be read."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What it does."
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The events it runs for, e.g. `page.published` or the `page.check` hook."
+          },
+          "loaded": {
+            "type": "boolean",
+            "description": "False when it couldn't be loaded; it isn't run then."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "False when it was turned off in the app; it isn't run then and its blocks aren't offered."
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why it couldn't be loaded."
+          },
+          "moduleSha256": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "SHA-256 of its WebAssembly module, to tell builds apart."
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PluginBlockDto"
+            },
+            "description": "Blocks it adds to the studio's library; empty when it isn't loaded."
+          }
+        },
+        "additionalProperties": false,
+        "description": "An installed plugin."
+      },
+      "PluginLogLevel": {
+        "enum": [
+          "debug",
+          "info",
+          "warning",
+          "error"
+        ]
+      },
+      "PluginLogLineDto": {
+        "required": [
+          "level",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "level": {
+            "$ref": "#/components/schemas/PluginLogLevel"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A line a plugin logged."
+      },
+      "PluginRunDto": {
+        "required": [
+          "id",
+          "event",
+          "eventId",
+          "startedAt",
+          "succeeded",
+          "error",
+          "durationMs",
+          "fuelConsumed",
+          "logs",
+          "droppedLogLines"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The run's id.",
+            "format": "uuid"
+          },
+          "event": {
+            "type": "string",
+            "description": "The event it ran for."
+          },
+          "eventId": {
+            "type": "string",
+            "description": "The event's id; plugins that ran for the same event share it.",
+            "format": "uuid"
+          },
+          "startedAt": {
+            "type": "string",
+            "description": "When it started (UTC).",
+            "format": "date-time"
+          },
+          "succeeded": {
+            "type": "boolean",
+            "description": "False when it crashed, hit a sandbox limit or returned bad output."
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why it failed."
+          },
+          "durationMs": {
+            "type": "number",
+            "description": "How long it took, in milliseconds.",
+            "format": "double"
+          },
+          "fuelConsumed": {
+            "type": "integer",
+            "description": "Roughly how many WebAssembly instructions it ran.",
+            "format": "int64"
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PluginLogLineDto"
+            },
+            "description": "What it logged."
+          },
+          "droppedLogLines": {
+            "type": "integer",
+            "description": "Lines it logged past the limit.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One time a plugin ran."
       },
       "ProblemDetails": {
         "type": "object",
@@ -2229,6 +2750,20 @@
           "sidebar"
         ]
       },
+      "SetPluginEnabledRequest": {
+        "required": [
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "True to run it and offer its blocks; false to keep it installed but stop it."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Turns a plugin on or off."
+      },
       "SpacerProps": {
         "required": [
           "height"
@@ -2510,6 +3045,9 @@
     },
     {
       "name": "Pages"
+    },
+    {
+      "name": "Plugins"
     },
     {
       "name": "Websites"

@@ -7,10 +7,13 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="AngleSharp" Version="1.10.0" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.14" />
       <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.14" />
+      <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.14" />
       <PackageReference Include="NetVips" Version="3.2.0" />
       <PackageReference Include="NetVips.Native" Version="8.18.7" />
+      <PackageReference Include="Wasmtime" Version="50.0.1" />
     </ItemGroup>
 
 </Project>

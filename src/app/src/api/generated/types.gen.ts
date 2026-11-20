@@ -54,7 +54,9 @@ export type Block = ({
     type: 'features';
 } & BlockFeaturesBlock) | ({
     type: 'nav';
-} & BlockNavBlock);
+} & BlockNavBlock) | ({
+    type: 'plugin';
+} & BlockPluginBlock);
 
 export type BlockAlign = 'inherit' | 'left' | 'center' | 'right';
 
@@ -140,6 +142,13 @@ export type BlockMaxWidth = 'none' | 'sm' | 'md' | 'lg';
 export type BlockNavBlock = {
     type?: 'nav';
     props: NavProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockPluginBlock = {
+    type?: 'plugin';
+    props: PluginBlockProps;
     id: string;
     style: BlockStyle;
 };
@@ -347,6 +356,8 @@ export type ImageProps = {
 
 export type IssueSeverity = 'error' | 'warning';
 
+export type JsonElement = unknown;
+
 export type MapProps = {
     address: string;
     zoom: number;
@@ -469,6 +480,198 @@ export type PageDto = {
 
 export type PageStatus = 'draft' | 'published';
 
+/**
+ * A block a plugin adds to the studio. Stored in a page as `{ type: "plugin", props: { plugin, block, values } }`.
+ */
+export type PluginBlockDto = {
+    /**
+     * The block's id within the plugin.
+     */
+    id: string;
+    /**
+     * Its name in the library.
+     */
+    label: string;
+    /**
+     * One line about it.
+     */
+    description: null | string;
+    /**
+     * A Lucide icon name, e.g. `shopping-bag`.
+     */
+    icon: null | string;
+    /**
+     * Restricted HTML with `{{key}}` slots, checked when the plugin loaded.
+     */
+    template: string;
+    /**
+     * The inspector fields, in order.
+     */
+    fields: Array<PluginBlockFieldDto>;
+};
+
+/**
+ * An inspector field of a plugin block; its value is stored under `props.values[key]`.
+ */
+export type PluginBlockFieldDto = {
+    /**
+     * The value's name, also its `{{key}}` slot in the template.
+     */
+    key: string;
+    /**
+     * The field's label in the inspector.
+     */
+    label: string;
+    /**
+     * text, textarea, url, image, color, number, slider, toggle, select or segmented.
+     */
+    kind: string;
+    default: null | JsonElement;
+    /**
+     * The choices of a select or segmented field.
+     */
+    options: null | Array<PluginBlockFieldOption>;
+    /**
+     * Hint shown in an empty text field.
+     */
+    placeholder: null | string;
+    /**
+     * Lowest value of a number or slider.
+     */
+    min: null | number;
+    /**
+     * Highest value of a number or slider.
+     */
+    max: null | number;
+    /**
+     * Step of a number or slider.
+     */
+    step: null | number;
+    /**
+     * Unit shown next to a slider's value, e.g. `px`.
+     */
+    unit: null | string;
+    /**
+     * Hidden in the studio's Simple mode.
+     */
+    advanced: boolean;
+};
+
+export type PluginBlockFieldOption = {
+    value: string;
+    label: string;
+};
+
+export type PluginBlockProps = {
+    plugin: string;
+    block: string;
+    values: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * An installed plugin.
+ */
+export type PluginDto = {
+    /**
+     * The plugin's id, e.g. `secure-links`.
+     */
+    id: string;
+    /**
+     * The plugin's name.
+     */
+    name: string;
+    /**
+     * The plugin's version; null when its manifest couldn't be read.
+     */
+    version: null | string;
+    /**
+     * What it does.
+     */
+    description: null | string;
+    /**
+     * The events it runs for, e.g. `page.published` or the `page.check` hook.
+     */
+    events: Array<string>;
+    /**
+     * False when it couldn't be loaded; it isn't run then.
+     */
+    loaded: boolean;
+    /**
+     * False when it was turned off in the app; it isn't run then and its blocks aren't offered.
+     */
+    enabled: boolean;
+    /**
+     * Why it couldn't be loaded.
+     */
+    error: null | string;
+    /**
+     * SHA-256 of its WebAssembly module, to tell builds apart.
+     */
+    moduleSha256: null | string;
+    /**
+     * Blocks it adds to the studio's library; empty when it isn't loaded.
+     */
+    blocks: Array<PluginBlockDto>;
+};
+
+export type PluginLogLevel = 'debug' | 'info' | 'warning' | 'error';
+
+/**
+ * A line a plugin logged.
+ */
+export type PluginLogLineDto = {
+    level: PluginLogLevel;
+    message: string;
+};
+
+/**
+ * One time a plugin ran.
+ */
+export type PluginRunDto = {
+    /**
+     * The run's id.
+     */
+    id: string;
+    /**
+     * The event it ran for.
+     */
+    event: string;
+    /**
+     * The event's id; plugins that ran for the same event share it.
+     */
+    eventId: string;
+    /**
+     * When it started (UTC).
+     */
+    startedAt: string;
+    /**
+     * False when it crashed, hit a sandbox limit or returned bad output.
+     */
+    succeeded: boolean;
+    /**
+     * Why it failed.
+     */
+    error: null | string;
+    /**
+     * How long it took, in milliseconds.
+     */
+    durationMs: number;
+    /**
+     * Roughly how many WebAssembly instructions it ran.
+     */
+    fuelConsumed: number;
+    /**
+     * What it logged.
+     */
+    logs: Array<PluginLogLineDto>;
+    /**
+     * Lines it logged past the limit.
+     */
+    droppedLogLines: number;
+};
+
 export type ProblemDetails = {
     type?: null | string;
     title?: null | string;
@@ -574,6 +777,16 @@ export type SectionSettings = {
 export type SectionTheme = 'light' | 'dark';
 
 export type SectionType = 'hero' | 'content' | 'features' | 'split' | 'cta' | 'header' | 'footer' | 'sidebar';
+
+/**
+ * Turns a plugin on or off.
+ */
+export type SetPluginEnabledRequest = {
+    /**
+     * True to run it and offer its blocks; false to keep it installed but stop it.
+     */
+    enabled: boolean;
+};
 
 export type SpacerProps = {
     height: number;
@@ -983,6 +1196,109 @@ export type GetPagesResponses = {
 };
 
 export type GetPagesResponse = GetPagesResponses[keyof GetPagesResponses];
+
+export type GetPluginsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/plugins';
+};
+
+export type GetPluginsResponses = {
+    /**
+     * The installed plugins; empty when there are none.
+     */
+    200: Array<PluginDto>;
+};
+
+export type GetPluginsResponse = GetPluginsResponses[keyof GetPluginsResponses];
+
+export type GetPluginRunsData = {
+    body?: never;
+    path: {
+        /**
+         * The plugin's id.
+         */
+        pluginId: string;
+    };
+    query?: never;
+    url: '/plugins/{pluginId}/runs';
+};
+
+export type GetPluginRunsErrors = {
+    /**
+     * No plugin is installed with this id.
+     */
+    404: unknown;
+};
+
+export type GetPluginRunsResponses = {
+    /**
+     * The plugin's recent runs; empty when it hasn't run yet.
+     */
+    200: Array<PluginRunDto>;
+};
+
+export type GetPluginRunsResponse = GetPluginRunsResponses[keyof GetPluginRunsResponses];
+
+export type SetPluginEnabledData = {
+    /**
+     * Service that changes the plugin.
+     */
+    body: SetPluginEnabledRequest;
+    path: {
+        /**
+         * The plugin's id.
+         */
+        pluginId: string;
+    };
+    query?: never;
+    url: '/plugins/{pluginId}/enabled';
+};
+
+export type SetPluginEnabledErrors = {
+    /**
+     * No plugin is installed with this id.
+     */
+    404: unknown;
+};
+
+export type SetPluginEnabledResponses = {
+    /**
+     * The plugin, turned on or off.
+     */
+    200: PluginDto;
+};
+
+export type SetPluginEnabledResponse = SetPluginEnabledResponses[keyof SetPluginEnabledResponses];
+
+export type DeletePluginData = {
+    body?: never;
+    path: {
+        /**
+         * The plugin's id.
+         */
+        pluginId: string;
+    };
+    query?: never;
+    url: '/plugins/{pluginId}';
+};
+
+export type DeletePluginErrors = {
+    /**
+     * No plugin is installed with this id.
+     */
+    404: unknown;
+};
+
+export type DeletePluginResponses = {
+    /**
+     * The plugin was deleted.
+     */
+    204: void;
+};
+
+export type DeletePluginResponse = DeletePluginResponses[keyof DeletePluginResponses];
 
 export type GetWebsitesData = {
     body?: never;

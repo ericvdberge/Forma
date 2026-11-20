@@ -18,6 +18,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Development");
         builder.UseSetting("ConnectionStrings:Forma", $"Data Source={Path.Combine(_directory, "forma.db")}");
         builder.UseSetting("Assets:Path", Path.Combine(_directory, "assets"));
+        builder.UseSetting("Plugins:Path", Path.Combine(_directory, "plugins"));
     }
 
     protected override void Dispose(bool disposing)
