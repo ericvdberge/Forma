@@ -74,6 +74,7 @@ public static class CollectionSeeder
                 Name = "Blog posts",
                 SingularName = "Blog post",
                 Slug = "blog",
+                Icon = "newspaper",
                 Fields = BlogFields,
             }, cancellationToken);
 

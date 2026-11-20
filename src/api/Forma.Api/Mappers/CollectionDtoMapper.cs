@@ -14,6 +14,7 @@ public static partial class CollectionDtoMapper
         collection.Name,
         collection.SingularName,
         collection.Slug,
+        collection.Icon,
         collection.Fields.Select(ToDto).ToList(),
         detailPageId,
         collection.CreatedAt,

@@ -39,7 +39,7 @@ Don't edit `src/api/generated` by hand. Base URL setup lives in `src/api/client-
 ```
 src/
   api/                   generated API client + its runtime config
-  components/shell/      sidebar (grouped; lists the active website's collections), top bar, global search (Ctrl/⌘ K)
+  components/shell/      sidebar (grouped; the active website's collections are a group of their own, each with its icon), top bar, global search (Ctrl/⌘ K)
   components/collections/ item editor inputs (one per field type, rich text with Tiptap)
   components/dashboard/  dashboard sections
   components/studio/     Design Studio: library, canvas, inspector, block renderers

@@ -22,6 +22,7 @@ public class CollectionApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var items = await _client.GetAsync<List<CollectionItemDto>>($"/collections/{blog.Id}/items");
 
         Assert.Equal(["Title", "Cover image", "Summary", "Content", "Published on"], blog.Fields.Select(f => f.Label));
+        Assert.Equal("newspaper", blog.Icon);
         Assert.NotNull(blog.DetailPageId);
         Assert.Equal(3, items.Count(i => i.Status == CollectionItemStatus.Published));
     }
@@ -70,6 +71,18 @@ public class CollectionApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal(["The collection ‘Blog posts’ already uses /blog."], problem.Errors["slug"]);
+    }
+
+    [Fact]
+    public async Task The_icon_is_one_of_the_collection_icons()
+    {
+        var request = new CollectionRequestBuilder().WithIcon("rocket-ship").BuildCreate(await WebsiteIdAsync());
+
+        var response = await _client.PostAsJsonAsync("/collections", request, PageDocumentJson.Options);
+        var problem = await response.ReadAsync<HttpValidationProblemDetails>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(["Choose one of the collection icons."], problem.Errors["Icon"]);
     }
 
     [Fact]

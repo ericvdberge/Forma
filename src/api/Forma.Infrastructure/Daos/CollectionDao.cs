@@ -12,6 +12,9 @@ public class CollectionDao
     public required string SingularName { get; set; }
     public required string Slug { get; set; }
 
+    /// <summary>Name of the icon the sidebar shows, e.g. <c>newspaper</c>.</summary>
+    public required string Icon { get; set; }
+
     /// <summary>The field definitions as JSON, in display order.</summary>
     public required string Fields { get; set; }
 

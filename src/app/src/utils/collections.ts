@@ -1,5 +1,25 @@
 import type { Component } from 'vue'
-import { AlignLeft, Calendar, Hash, Image, Link, ToggleLeft, Type } from 'lucide-vue-next'
+import {
+  AlignLeft,
+  BookOpen,
+  Briefcase,
+  Calendar,
+  Database,
+  GraduationCap,
+  Hash,
+  Heart,
+  Image,
+  Link,
+  MapPin,
+  Music,
+  Newspaper,
+  ShoppingBag,
+  Star,
+  ToggleLeft,
+  Type,
+  Users,
+  Utensils,
+} from 'lucide-vue-next'
 import type { Collection, CollectionField, CollectionFieldType, CollectionItem, CollectionValue } from '@/data/types'
 
 /** How each field type is named and drawn in the collection editor and the studio. */
@@ -15,13 +35,38 @@ export const fieldTypes: Record<CollectionFieldType, { label: string; help: stri
 
 export const fieldTypeOrder: CollectionFieldType[] = ['text', 'richText', 'image', 'date', 'url', 'number', 'boolean']
 
+/**
+ * Icons a collection can be shown with, by the name the API stores. Mirrors `CollectionIcons` in
+ * `src/api/Forma.Application/Entities/Collection.cs`.
+ */
+export const collectionIcons: Record<string, { label: string; icon: Component }> = {
+  database: { label: 'Collection', icon: Database },
+  newspaper: { label: 'Articles', icon: Newspaper },
+  users: { label: 'People', icon: Users },
+  briefcase: { label: 'Work', icon: Briefcase },
+  calendar: { label: 'Events', icon: Calendar },
+  'shopping-bag': { label: 'Products', icon: ShoppingBag },
+  star: { label: 'Reviews', icon: Star },
+  'book-open': { label: 'Guides', icon: BookOpen },
+  image: { label: 'Gallery', icon: Image },
+  'map-pin': { label: 'Places', icon: MapPin },
+  utensils: { label: 'Menu', icon: Utensils },
+  music: { label: 'Music', icon: Music },
+  'graduation-cap': { label: 'Courses', icon: GraduationCap },
+  heart: { label: 'Favourites', icon: Heart },
+}
+
+/** The component for a collection's icon; unknown names fall back to the default. */
+export const collectionIcon = (name: string) => (collectionIcons[name] ?? collectionIcons.database!).icon
+
 /** Ready-made field sets to start a collection from. */
-export const collectionPresets: Array<{ id: string; name: string; singularName: string; slug: string; fields: Array<Omit<CollectionField, 'id'>> }> = [
+export const collectionPresets: Array<{ id: string; name: string; singularName: string; slug: string; icon: string; fields: Array<Omit<CollectionField, 'id'>> }> = [
   {
     id: 'blog',
     name: 'Blog posts',
     singularName: 'Blog post',
     slug: 'blog',
+    icon: 'newspaper',
     fields: [
       { label: 'Title', type: 'text', required: true },
       { label: 'Cover image', type: 'image', required: true },
@@ -35,6 +80,7 @@ export const collectionPresets: Array<{ id: string; name: string; singularName: 
     name: 'Team members',
     singularName: 'Team member',
     slug: 'team',
+    icon: 'users',
     fields: [
       { label: 'Name', type: 'text', required: true },
       { label: 'Photo', type: 'image', required: true },
@@ -47,6 +93,7 @@ export const collectionPresets: Array<{ id: string; name: string; singularName: 
     name: 'Projects',
     singularName: 'Project',
     slug: 'projects',
+    icon: 'briefcase',
     fields: [
       { label: 'Name', type: 'text', required: true },
       { label: 'Cover image', type: 'image', required: true },

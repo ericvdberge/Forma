@@ -20,6 +20,7 @@ public class PageContentValidationServiceTests
         Name = "Blog posts",
         SingularName = "Blog post",
         Slug = "blog",
+        Icon = "newspaper",
         Fields =
         [
             new CollectionField("fld_title", "Title", CollectionFieldType.Text, Required: true),

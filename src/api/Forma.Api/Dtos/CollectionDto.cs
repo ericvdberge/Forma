@@ -8,6 +8,7 @@ namespace Forma.Api.Dtos;
 /// <param name="Name">Plural name, e.g. <c>Blog posts</c>.</param>
 /// <param name="SingularName">What one item is called, e.g. <c>Blog post</c>.</param>
 /// <param name="Slug">The first part of an item's address: <c>/{slug}/{item}</c>.</param>
+/// <param name="Icon">The icon the app shows it with, e.g. <c>newspaper</c>.</param>
 /// <param name="Fields">The fields every item has, in display order.</param>
 /// <param name="DetailPageId">The page every item is shown with, designed in the studio.</param>
 /// <param name="CreatedAt">When the collection was created (UTC).</param>
@@ -18,6 +19,7 @@ public record CollectionDto(
     string Name,
     string SingularName,
     string Slug,
+    string Icon,
     IReadOnlyList<CollectionFieldDto> Fields,
     Guid? DetailPageId,
     DateTime CreatedAt,
@@ -35,23 +37,27 @@ public record CollectionFieldDto(string Id, string Label, CollectionFieldType Ty
 /// <param name="Name">Plural name, e.g. <c>Blog posts</c>.</param>
 /// <param name="SingularName">What one item is called, e.g. <c>Blog post</c>.</param>
 /// <param name="Slug">Lowercase words separated by dashes, e.g. <c>blog</c>; unique within the website.</param>
+/// <param name="Icon">The icon the app shows it with, e.g. <c>newspaper</c>.</param>
 /// <param name="Fields">The fields, in display order.</param>
 public record CreateCollectionRequest(
     Guid WebsiteId,
     string Name,
     string SingularName,
     string Slug,
+    string Icon,
     IReadOnlyList<CollectionFieldRequest> Fields);
 
 /// <summary>Changes a collection: its names, slug and fields. Items keep their values for fields that stay.</summary>
 /// <param name="Name">Plural name, e.g. <c>Blog posts</c>.</param>
 /// <param name="SingularName">What one item is called, e.g. <c>Blog post</c>.</param>
 /// <param name="Slug">Lowercase words separated by dashes, e.g. <c>blog</c>; unique within the website.</param>
+/// <param name="Icon">The icon the app shows it with, e.g. <c>newspaper</c>.</param>
 /// <param name="Fields">The complete list of fields, in display order.</param>
 public record UpdateCollectionRequest(
     string Name,
     string SingularName,
     string Slug,
+    string Icon,
     IReadOnlyList<CollectionFieldRequest> Fields);
 
 /// <summary>A field as the collection editor sends it.</summary>

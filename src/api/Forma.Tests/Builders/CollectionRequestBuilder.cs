@@ -11,6 +11,13 @@ public class CollectionRequestBuilder
     private string _name = "Recipes";
     private string _singularName = "Recipe";
     private string _slug = $"recipes-{Guid.NewGuid():N}"[..16];
+    private string _icon = "utensils";
+
+    public CollectionRequestBuilder WithIcon(string icon)
+    {
+        _icon = icon;
+        return this;
+    }
 
     public CollectionRequestBuilder Named(string name, string singularName, string slug)
     {
@@ -26,9 +33,9 @@ public class CollectionRequestBuilder
         return this;
     }
 
-    public CreateCollectionRequest BuildCreate(Guid websiteId) => new(websiteId, _name, _singularName, _slug, [.. _fields]);
+    public CreateCollectionRequest BuildCreate(Guid websiteId) => new(websiteId, _name, _singularName, _slug, _icon, [.. _fields]);
 
-    public UpdateCollectionRequest BuildUpdate() => new(_name, _singularName, _slug, [.. _fields]);
+    public UpdateCollectionRequest BuildUpdate() => new(_name, _singularName, _slug, _icon, [.. _fields]);
 }
 
 /// <summary>Builds item requests for tests: a draft with a slug and no values, until a test adds some.</summary>

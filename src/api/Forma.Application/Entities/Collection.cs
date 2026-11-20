@@ -16,6 +16,9 @@ public class Collection
     /// <summary>The first part of an item's address: <c>/{slug}/{item}</c>.</summary>
     public required string Slug { get; set; }
 
+    /// <summary>The icon the app shows it with, one of <see cref="CollectionIcons.All"/>.</summary>
+    public required string Icon { get; set; }
+
     /// <summary>The fields every item has, in display order.</summary>
     public required IReadOnlyList<CollectionField> Fields { get; set; }
 
@@ -29,6 +32,21 @@ public class Collection
 /// <param name="Type">What kind of value the field holds.</param>
 /// <param name="Required">Whether every item must fill it in.</param>
 public sealed record CollectionField(string Id, string Label, CollectionFieldType Type, bool Required);
+
+/// <summary>
+/// Icons a collection can be shown with in the app's sidebar. Mirrors <c>collectionIcons</c> in
+/// <c>src/app/src/utils/collections.ts</c>.
+/// </summary>
+public static class CollectionIcons
+{
+    public const string Default = "database";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(
+    [
+        "database", "newspaper", "users", "briefcase", "calendar", "shopping-bag", "star",
+        "book-open", "image", "map-pin", "utensils", "music", "graduation-cap", "heart",
+    ]);
+}
 
 public enum CollectionFieldType
 {

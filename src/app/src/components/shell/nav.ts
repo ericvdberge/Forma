@@ -1,6 +1,5 @@
 import type { Component } from 'vue'
 import {
-  Database,
   FileText,
   Globe,
   House,
@@ -17,8 +16,6 @@ export interface NavItem {
   to: string
   label: string
   icon: Component
-  /** Lists the active website's collections underneath. */
-  collections?: boolean
 }
 
 export interface NavGroup {
@@ -26,7 +23,10 @@ export interface NavGroup {
   items: NavItem[]
 }
 
-/** The sidebar, in groups: what you work on, how it looks, and how the workspace is set up. */
+/**
+ * The sidebar, in groups: what you work on, how it looks, and how the workspace is set up. The active website's
+ * collections get a group of their own after Content (SidebarCollections).
+ */
 export const navGroups: NavGroup[] = [
   {
     label: 'Overview',
@@ -39,7 +39,6 @@ export const navGroups: NavGroup[] = [
     label: 'Content',
     items: [
       { to: '/pages', label: 'Pages', icon: FileText },
-      { to: '/collections', label: 'Collections', icon: Database, collections: true },
       { to: '/media', label: 'Media', icon: Image },
     ],
   },

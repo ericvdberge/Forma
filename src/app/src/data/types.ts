@@ -45,6 +45,8 @@ export interface Collection {
   name: string
   singularName: string
   slug: string
+  /** Name of its icon, a key of `collectionIcons`. */
+  icon: string
   fields: CollectionField[]
   /** The page every item is shown with; designed in the studio. */
   detailPageId: string | null

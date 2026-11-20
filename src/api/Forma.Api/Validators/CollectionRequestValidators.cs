@@ -1,6 +1,7 @@
 using FluentValidation;
 using Forma.Api.Dtos;
 using Forma.Application.Documents.Validation;
+using Forma.Application.Entities;
 
 namespace Forma.Api.Validators;
 
@@ -18,6 +19,9 @@ public class CreateCollectionRequestValidator : AbstractValidator<CreateCollecti
         RuleFor(r => r.Slug)
             .MaximumLength(CollectionLimits.MaxSlugLength)
             .Must(DocumentRules.IsSlug).WithMessage("Use lowercase letters, digits and dashes, e.g. blog.");
+
+        RuleFor(r => r.Icon)
+            .Must(CollectionIcons.All.Contains).WithMessage("Choose one of the collection icons.");
 
         RuleFor(r => r.Fields.Count)
             .LessThanOrEqualTo(CollectionLimits.MaxFields).WithMessage($"A collection can have at most {CollectionLimits.MaxFields} fields.")
@@ -42,6 +46,9 @@ public class UpdateCollectionRequestValidator : AbstractValidator<UpdateCollecti
         RuleFor(r => r.Slug)
             .MaximumLength(CollectionLimits.MaxSlugLength)
             .Must(DocumentRules.IsSlug).WithMessage("Use lowercase letters, digits and dashes, e.g. blog.");
+
+        RuleFor(r => r.Icon)
+            .Must(CollectionIcons.All.Contains).WithMessage("Choose one of the collection icons.");
 
         RuleFor(r => r.Fields.Count)
             .LessThanOrEqualTo(CollectionLimits.MaxFields).WithMessage($"A collection can have at most {CollectionLimits.MaxFields} fields.")

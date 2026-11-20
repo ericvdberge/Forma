@@ -6,5 +6,6 @@ public class CollectionUpdate
     public string? Name { get; init; }
     public string? SingularName { get; init; }
     public string? Slug { get; init; }
+    public string? Icon { get; init; }
     public IReadOnlyList<CollectionField>? Fields { get; init; }
 }

@@ -8,7 +8,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import { useActiveWebsite } from '@/composables/useActiveWebsite'
 import { useCollections, type CollectionDraft } from '@/composables/useCollections'
 import type { CollectionField, CollectionFieldType } from '@/data/types'
-import { collectionPresets, fieldTypeOrder, fieldTypes } from '@/utils/collections'
+import { collectionIcons, collectionPresets, fieldTypeOrder, fieldTypes } from '@/utils/collections'
 import { slugify } from '@/utils/slugify'
 
 /**
@@ -31,6 +31,7 @@ type FieldRow = CollectionField & { key: string }
 const name = ref('')
 const singularName = ref('')
 const slug = ref('')
+const icon = ref('database')
 const fields = ref<FieldRow[]>([])
 const slugTouched = ref(false)
 const singularTouched = ref(false)
@@ -45,6 +46,7 @@ function startFrom(presetId: string) {
   name.value = preset.name
   singularName.value = preset.singularName
   slug.value = preset.slug
+  icon.value = preset.icon
   fields.value = preset.fields.map(row)
   slugTouched.value = singularTouched.value = false
   errors.value = {}
@@ -60,6 +62,7 @@ watch(
     name.value = c.name
     singularName.value = c.singularName
     slug.value = c.slug
+    icon.value = c.icon
     fields.value = c.fields.map(row)
     slugTouched.value = singularTouched.value = true
   },
@@ -114,6 +117,7 @@ function draft(): CollectionDraft {
     name: name.value.trim(),
     singularName: singularName.value.trim(),
     slug: slug.value.trim(),
+    icon: icon.value,
     fields: fields.value.map(({ key: _, ...f }) => ({ ...f, label: f.label.trim() })),
   }
 }
@@ -201,7 +205,7 @@ const iconButton = 'grid size-8 place-items-center rounded-lg text-muted transit
           <button
             type="button"
             class="h-9 rounded-full bg-canvas px-4 text-sm hover:bg-charcoal/[0.08]"
-            @click="name = ''; slugTouched = singularTouched = false; fields = [row({ label: 'Name', type: 'text', required: true })]"
+            @click="name = ''; icon = 'database'; slugTouched = singularTouched = false; fields = [row({ label: 'Name', type: 'text', required: true })]"
           >
             Blank
           </button>
@@ -217,6 +221,30 @@ const iconButton = 'grid size-8 place-items-center rounded-lg text-muted transit
         <div class="flex flex-col gap-1">
           <FInput :model-value="singularName" label="One item is called" placeholder="e.g. Blog post" @update:model-value="singularName = $event; singularTouched = true" />
           <p v-if="errorFor('singularName')" class="px-1 text-xs text-danger">{{ errorFor('singularName') }}</p>
+        </div>
+        <div class="flex flex-col gap-2 sm:col-span-2">
+          <p id="icon-label" class="text-sm font-medium text-charcoal">Icon in the sidebar</p>
+          <div role="radiogroup" aria-labelledby="icon-label" class="flex flex-wrap gap-1.5">
+            <button
+              v-for="(meta, key) in collectionIcons"
+              :key="key"
+              type="button"
+              role="radio"
+              :aria-checked="icon === key"
+              :aria-label="meta.label"
+              :title="meta.label"
+              :class="
+                cn(
+                  'grid size-10 place-items-center rounded-xl transition-colors',
+                  icon === key ? 'bg-charcoal text-warm-white' : 'bg-canvas text-charcoal/70 hover:bg-charcoal/[0.08] hover:text-charcoal',
+                )
+              "
+              @click="icon = String(key)"
+            >
+              <component :is="meta.icon" class="size-[18px]" :stroke-width="1.7" aria-hidden="true" />
+            </button>
+          </div>
+          <p v-if="errorFor('icon')" class="px-1 text-xs text-danger">{{ errorFor('icon') }}</p>
         </div>
         <div class="flex flex-col gap-1 sm:col-span-2">
           <FInput :model-value="slug" label="Address" placeholder="blog" @update:model-value="slug = slugify($event); slugTouched = true" />

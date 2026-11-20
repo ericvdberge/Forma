@@ -14,6 +14,7 @@ export function toCollection(dto: CollectionDto): Collection {
     name: dto.name,
     singularName: dto.singularName,
     slug: dto.slug,
+    icon: dto.icon,
     fields: dto.fields.map((f) => ({ ...f })),
     detailPageId: dto.detailPageId ?? null,
     updatedAt: Date.parse(dto.updatedAt),
@@ -25,6 +26,7 @@ export interface CollectionDraft {
   name: string
   singularName: string
   slug: string
+  icon: string
   fields: CollectionField[]
 }
 

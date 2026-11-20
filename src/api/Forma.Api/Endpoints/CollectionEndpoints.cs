@@ -116,6 +116,7 @@ public class CollectionEndpoints : IEndpoints
             Name = request.Name.Trim(),
             SingularName = request.SingularName.Trim(),
             Slug = request.Slug,
+            Icon = request.Icon,
             Fields = request.Fields.Select(f => f.ToField()).ToList(),
         }, cancellationToken);
 
@@ -167,6 +168,7 @@ public class CollectionEndpoints : IEndpoints
             Name = request.Name.Trim(),
             SingularName = request.SingularName.Trim(),
             Slug = request.Slug,
+            Icon = request.Icon,
             Fields = request.Fields.Select(f => f.ToField()).ToList(),
         }, cancellationToken);
 

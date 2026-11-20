@@ -7,7 +7,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import { useActiveWebsite } from '@/composables/useActiveWebsite'
 import { useCollections } from '@/composables/useCollections'
 import { useWebsites } from '@/composables/useWebsites'
-import { fieldTypes } from '@/utils/collections'
+import { collectionIcon, fieldTypes } from '@/utils/collections'
 import { timeAgo } from '@/utils/time'
 
 /** The active website's collections: open one to manage its items, or design the page its items are shown with. */
@@ -64,7 +64,7 @@ const websiteOptions = computed(() => websites.value.map((w) => ({ label: w.name
           <RouterLink :to="{ name: 'collection', params: { collectionId: c.id } }" class="group flex flex-1 flex-col gap-4 p-6">
             <div class="flex items-start justify-between gap-3">
               <span class="grid size-11 shrink-0 place-items-center rounded-2xl bg-canvas text-charcoal/80">
-                <Database class="size-5" :stroke-width="1.6" aria-hidden="true" />
+                <component :is="collectionIcon(c.icon)" class="size-5" :stroke-width="1.6" aria-hidden="true" />
               </span>
               <ArrowRight class="size-4 text-subtle transition-transform group-hover:translate-x-0.5 group-hover:text-charcoal" aria-hidden="true" />
             </div>

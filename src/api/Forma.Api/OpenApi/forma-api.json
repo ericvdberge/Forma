@@ -1822,6 +1822,7 @@
           "name",
           "singularName",
           "slug",
+          "icon",
           "fields",
           "detailPageId",
           "createdAt",
@@ -1850,6 +1851,10 @@
           "slug": {
             "type": "string",
             "description": "The first part of an item's address: `/{slug}/{item}`."
+          },
+          "icon": {
+            "type": "string",
+            "description": "The icon the app shows it with, e.g. `newspaper`."
           },
           "fields": {
             "type": "array",
@@ -2086,6 +2091,7 @@
           "name",
           "singularName",
           "slug",
+          "icon",
           "fields"
         ],
         "type": "object",
@@ -2106,6 +2112,10 @@
           "slug": {
             "type": "string",
             "description": "Lowercase words separated by dashes, e.g. `blog`; unique within the website."
+          },
+          "icon": {
+            "type": "string",
+            "description": "The icon the app shows it with, e.g. `newspaper`."
           },
           "fields": {
             "type": "array",
@@ -3183,6 +3193,7 @@
           "name",
           "singularName",
           "slug",
+          "icon",
           "fields"
         ],
         "type": "object",
@@ -3198,6 +3209,10 @@
           "slug": {
             "type": "string",
             "description": "Lowercase words separated by dashes, e.g. `blog`; unique within the website."
+          },
+          "icon": {
+            "type": "string",
+            "description": "The icon the app shows it with, e.g. `newspaper`."
           },
           "fields": {
             "type": "array",

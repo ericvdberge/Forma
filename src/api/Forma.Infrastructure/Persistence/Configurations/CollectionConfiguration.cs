@@ -15,6 +15,7 @@ public class CollectionConfiguration : IEntityTypeConfiguration<CollectionDao>
         builder.Property(c => c.Name).HasMaxLength(100).IsRequired();
         builder.Property(c => c.SingularName).HasMaxLength(100).IsRequired();
         builder.Property(c => c.Slug).HasMaxLength(100).IsRequired();
+        builder.Property(c => c.Icon).HasMaxLength(40).IsRequired();
         builder.Property(c => c.Fields).IsRequired();
 
         builder.HasOne(c => c.Website)

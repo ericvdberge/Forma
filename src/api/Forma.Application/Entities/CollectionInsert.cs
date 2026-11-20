@@ -7,5 +7,6 @@ public class CollectionInsert
     public required string Name { get; init; }
     public required string SingularName { get; init; }
     public required string Slug { get; init; }
+    public string Icon { get; init; } = CollectionIcons.Default;
     public required IReadOnlyList<CollectionField> Fields { get; init; }
 }

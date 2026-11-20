@@ -317,6 +317,10 @@ export type CollectionDto = {
      */
     slug: string;
     /**
+     * The icon the app shows it with, e.g. `newspaper`.
+     */
+    icon: string;
+    /**
      * The fields every item has, in display order.
      */
     fields: Array<CollectionFieldDto>;
@@ -478,6 +482,10 @@ export type CreateCollectionRequest = {
      * Lowercase words separated by dashes, e.g. `blog`; unique within the website.
      */
     slug: string;
+    /**
+     * The icon the app shows it with, e.g. `newspaper`.
+     */
+    icon: string;
     /**
      * The fields, in display order.
      */
@@ -881,6 +889,10 @@ export type UpdateCollectionRequest = {
      * Lowercase words separated by dashes, e.g. `blog`; unique within the website.
      */
     slug: string;
+    /**
+     * The icon the app shows it with, e.g. `newspaper`.
+     */
+    icon: string;
     /**
      * The complete list of fields, in display order.
      */

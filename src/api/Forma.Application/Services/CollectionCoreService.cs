@@ -45,6 +45,7 @@ public class CollectionCoreService(ICollectionRepository collectionRepository, T
             Name = insert.Name,
             SingularName = insert.SingularName,
             Slug = insert.Slug,
+            Icon = insert.Icon,
             Fields = insert.Fields,
             CreatedAt = now,
             UpdatedAt = now,
@@ -64,6 +65,7 @@ public class CollectionCoreService(ICollectionRepository collectionRepository, T
         collection.Name = update.Name ?? collection.Name;
         collection.SingularName = update.SingularName ?? collection.SingularName;
         collection.Slug = update.Slug ?? collection.Slug;
+        collection.Icon = update.Icon ?? collection.Icon;
         collection.Fields = update.Fields ?? collection.Fields;
         collection.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
 

@@ -4,7 +4,7 @@ Status: **first version built** (phase 5 in [page-content.md](page-content.md#8-
 
 ## 0. What is built
 
-- **Collections and fields** (`/collections` in the app): name, singular name, slug and an ordered list of fields of type `text`, `richText`, `image`, `url`, `number`, `date` or `boolean`, with presets (Blog posts, Team members, Projects). Field ids (`fld_…`) are given by the API and never change.
+- **Collections and fields** (`/collections` in the app): name, singular name, slug, an icon (each collection is its own item in the app's sidebar) and an ordered list of fields of type `text`, `richText`, `image`, `url`, `number`, `date` or `boolean`, with presets (Blog posts, Team members, Projects). Field ids (`fld_…`) are given by the API and never change.
 - **Items**: a form built from the fields; save as draft or publish. Values are checked against the fields by `CollectionItemValidationService` (types, required, unknown fields, the same text, link, image and rich-text rules as pages, images must be in the website's media library) and come back as a `400` keyed `values.{fieldId}`.
 - **Detail page**: creating a collection creates its page (`Kind = CollectionTemplate`, slug `{collection}/{item}`). The studio starts it from a design built from the fields and shows it with a preview item. Blocks connect props to fields through `bindings` (§ 3.1), with `scope: page` only.
 - **Collection cards** (`collectionCards` block): a grid of a collection's items with an image, title and text field picked by the person, a "Read more" link to `/{collection}/{item}`, columns, order and limit.
