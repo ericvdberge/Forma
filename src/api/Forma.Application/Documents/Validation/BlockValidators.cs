@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using FluentValidation;
 
 namespace Forma.Application.Documents.Validation;
@@ -185,4 +187,43 @@ public class NavBlockValidator : AbstractValidator<NavBlock>
         RuleFor(b => b.Props.CtaLabel).PlainText(100);
         RuleFor(b => b.Props.CtaHref).Link();
     }
+}
+
+public partial class PluginBlockValidator : AbstractValidator<PluginBlock>
+{
+    public const int MaxValues = 40;
+    public const int MaxValueLength = 2_000;
+
+    public PluginBlockValidator()
+    {
+        RuleFor(b => b.Props.Plugin).Matches(IdPattern()).WithMessage("Must be a plugin id.");
+        RuleFor(b => b.Props.Block).Matches(IdPattern()).WithMessage("Must be a block id.");
+        RuleFor(b => b.Props.Values)
+            .Must(v => v.Count <= MaxValues)
+            .WithMessage($"A plugin block can have at most {MaxValues} values.");
+        RuleForEach(b => b.Props.Values).Custom((pair, context) =>
+        {
+            if (!KeyPattern().IsMatch(pair.Key))
+            {
+                context.AddFailure($"'{pair.Key}' isn't a valid field key.");
+            }
+
+            var ok = pair.Value.ValueKind switch
+            {
+                JsonValueKind.String => pair.Value.GetString()!.Length <= MaxValueLength,
+                JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False => true,
+                _ => false,
+            };
+            if (!ok)
+            {
+                context.AddFailure($"The value of '{pair.Key}' must be a string of at most {MaxValueLength} characters, a number or a boolean.");
+            }
+        });
+    }
+
+    [GeneratedRegex("^[a-z][a-z0-9-]{0,39}$")]
+    private static partial Regex IdPattern();
+
+    [GeneratedRegex("^[a-zA-Z][a-zA-Z0-9_]{0,39}$")]
+    private static partial Regex KeyPattern();
 }

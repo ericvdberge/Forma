@@ -36,8 +36,9 @@ public sealed partial class PluginContentChecker(
     public async Task<IReadOnlyList<ContentIssue>> CheckAsync(PageDocument document, CheckContext context, CancellationToken cancellationToken = default)
     {
         var issues = (await builtIn.CheckAsync(document, context, cancellationToken)).ToList();
+        issues.AddRange(MissingPluginBlocks(document));
 
-        if (!catalog.Plugins.Any(p => p.IsLoaded && p.Manifest!.Events.Contains(PluginEvents.PageCheck))
+        if (!catalog.Plugins.Any(p => p.IsActive && p.Manifest!.Events.Contains(PluginEvents.PageCheck))
             || await pageRepository.GetByIdAsync(context.PageId, cancellationToken) is not { } page)
         {
             return issues;
@@ -62,6 +63,31 @@ public sealed partial class PluginContentChecker(
 
         // Errors first; within a severity built-in issues come before plugin issues (OrderBy is stable).
         return issues.OrderBy(i => i.Severity).ToList();
+    }
+
+    /// <summary>Plugin blocks whose plugin isn't installed, is turned off or no longer has the block: visitors wouldn't see them.</summary>
+    private IEnumerable<ContentIssue> MissingPluginBlocks(PageDocument document)
+    {
+        var available = catalog.Plugins
+            .Where(p => p.IsActive)
+            .SelectMany(p => (p.Manifest!.Blocks ?? []).Select(b => (p.Manifest.Id, b.Id)))
+            .ToHashSet();
+
+        foreach (var section in document.Sections)
+        {
+            foreach (var block in section.Blocks.OfType<PluginBlock>())
+            {
+                if (!available.Contains((block.Props.Plugin, block.Props.Block)))
+                {
+                    yield return new ContentIssue(
+                        IssueSeverity.Warning,
+                        "plugin.block_missing",
+                        $"This block comes from the plugin “{block.Props.Plugin}”, which is turned off or isn't installed, so it won't show.",
+                        section.Id,
+                        block.Id);
+                }
+            }
+        }
     }
 
     private static IEnumerable<ContentIssue> ReadIssues(

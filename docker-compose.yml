@@ -10,8 +10,8 @@ services:
       - forma-assets:/app/assets
       # The SQLite database.
       - forma-data:/app/data
-      # Plugins (docs/design/plugins.md): one folder per plugin, read-only.
-      - ./plugins:/app/plugins:ro
+      # Plugins (docs/design/plugins.md): one folder per plugin. Writable, so they can be turned off or deleted in the app.
+      - ./plugins:/app/plugins
 
 volumes:
   forma-assets:

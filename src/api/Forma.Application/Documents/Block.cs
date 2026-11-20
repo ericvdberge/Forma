@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Forma.Application.Documents;
@@ -28,6 +29,7 @@ namespace Forma.Application.Documents;
 [JsonDerivedType(typeof(TestimonialsBlock), "testimonials")]
 [JsonDerivedType(typeof(FeaturesBlock), "features")]
 [JsonDerivedType(typeof(NavBlock), "nav")]
+[JsonDerivedType(typeof(PluginBlock), "plugin")]
 public abstract record Block
 {
     /// <summary>Id the studio created, e.g. <c>b_ab12cd34</c>; unique within the document.</summary>
@@ -69,6 +71,9 @@ public sealed record FaqBlock : Block { public required FaqProps Props { get; in
 public sealed record TestimonialsBlock : Block { public required TestimonialsProps Props { get; init; } }
 public sealed record FeaturesBlock : Block { public required FeaturesProps Props { get; init; } }
 public sealed record NavBlock : Block { public required NavProps Props { get; init; } }
+
+/// <summary>A block a plugin declared in its manifest (<c>blocks</c>); the studio draws it from the plugin's template.</summary>
+public sealed record PluginBlock : Block { public required PluginBlockProps Props { get; init; } }
 
 // ── Props ──────────────────────────────────────────────────────────────────
 
@@ -126,6 +131,15 @@ public sealed record NavProps(
     string CtaHref,
     NavOrientation Orientation,
     bool Card);
+
+/// <param name="Plugin">The id of the plugin that declared the block, e.g. <c>product-card</c>.</param>
+/// <param name="Block">The block's id within that plugin.</param>
+/// <param name="Values">What people filled in, by field key: strings, numbers and booleans only.</param>
+/// <remarks>
+/// The values aren't checked against the plugin's fields here: a page must stay saveable when the plugin is updated or
+/// removed. The publish check warns about blocks whose plugin isn't installed.
+/// </remarks>
+public sealed record PluginBlockProps(string Plugin, string Block, IReadOnlyDictionary<string, JsonElement> Values);
 
 /// <param name="Menu">Shows a dropdown chevron.</param>
 public sealed record NavLink(string Label, string Href, bool? Menu = null);

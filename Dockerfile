@@ -54,9 +54,9 @@ COPY --from=app-build /src/src/app/dist /app/wwwroot
 COPY --from=api-build /app/api /app/api
 
 # Owned by the non-root `app` user, so fresh named volumes inherit that ownership.
-# /app/assets holds uploaded images, /app/data the SQLite database. /app/plugins is read-only for the API:
-# mount plugin folders there (docs/design/plugins.md).
-RUN mkdir -p /app/assets /app/data /app/plugins && chown app:app /app/assets /app/data
+# /app/assets holds uploaded images, /app/data the SQLite database, /app/plugins the installed plugins
+# (docs/design/plugins.md). The API writes there when a plugin is turned off or deleted from the app.
+RUN mkdir -p /app/assets /app/data /app/plugins && chown app:app /app/assets /app/data /app/plugins
 VOLUME ["/app/assets", "/app/data"]
 
 USER app
