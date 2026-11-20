@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { imageUrl } from '@/studio/media'
 import { columnsFor, type RenderContext } from '@/studio/render'
 import type { Block } from '@/studio/types'
 
@@ -13,7 +14,7 @@ defineProps<{ block: Block<'gallery'>; ctx: RenderContext }>()
     <img
       v-for="(img, i) in block.props.images"
       :key="i"
-      :src="img.src"
+      :src="imageUrl(img.src)"
       :alt="img.alt"
       class="aspect-square w-full object-cover"
       :style="{ borderRadius: `${block.props.radius}px` }"

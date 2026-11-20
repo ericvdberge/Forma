@@ -68,6 +68,34 @@ namespace Forma.Infrastructure.Persistence.Migrations
                     b.ToTable("Media", (string)null);
                 });
 
+            modelBuilder.Entity("Forma.Infrastructure.Daos.PageContentDao", b =>
+                {
+                    b.Property<Guid>("PageId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("PageId");
+
+                    b.ToTable("PageContents", (string)null);
+                });
+
             modelBuilder.Entity("Forma.Infrastructure.Daos.PageDao", b =>
                 {
                     b.Property<Guid>("Id")
@@ -155,6 +183,17 @@ namespace Forma.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Forma.Infrastructure.Daos.PageContentDao", b =>
+                {
+                    b.HasOne("Forma.Infrastructure.Daos.PageDao", "Page")
+                        .WithOne()
+                        .HasForeignKey("Forma.Infrastructure.Daos.PageContentDao", "PageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Page");
                 });
 
             modelBuilder.Entity("Forma.Infrastructure.Daos.PageDao", b =>

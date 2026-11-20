@@ -242,6 +242,111 @@
         }
       }
     },
+    "/pages/{pageId}/content": {
+      "get": {
+        "tags": [
+          "Page content"
+        ],
+        "summary": "Gets a page's content.",
+        "operationId": "GetPageContent",
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "description": "The page's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The page's content.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageContentDto"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "The page exists but has no content yet."
+          },
+          "404": {
+            "description": "No page exists with this id."
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Page content"
+        ],
+        "summary": "Publishes a page: stores the document and marks the content published. The studio calls this on Publish.",
+        "description": "The document must pass the structural rules (block types, ranges, safe links, allowed rich text) and the content\r\nrules (no missing images, links that go somewhere). Errors are answered with a validation problem whose\r\n`issues` point at the sections and blocks to fix; warnings don't block and come back with the result.",
+        "operationId": "PublishPageContent",
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "description": "The page's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Cancels the request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishPageContentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Published; the body is the content and any warnings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedPageContentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The document is malformed or has errors to fix first.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No page exists with this id."
+          },
+          "413": {
+            "description": "The request body is larger than 1 MB.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/pages": {
       "get": {
         "tags": [
@@ -305,6 +410,993 @@
   },
   "components": {
     "schemas": {
+      "Background": {
+        "required": [
+          "kind",
+          "color",
+          "image",
+          "position",
+          "gradientFrom",
+          "gradientTo",
+          "gradientAngle",
+          "overlayColor",
+          "overlayOpacity"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/BackgroundKind"
+          },
+          "color": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "position": {
+            "type": "string"
+          },
+          "gradientFrom": {
+            "type": "string"
+          },
+          "gradientTo": {
+            "type": "string"
+          },
+          "gradientAngle": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "overlayColor": {
+            "type": "string"
+          },
+          "overlayOpacity": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackgroundKind": {
+        "enum": [
+          "none",
+          "color",
+          "image",
+          "gradient"
+        ]
+      },
+      "BadgeProps": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Block": {
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/BlockHeadingBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockTextBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockButtonBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockBadgeBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockImageBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockGalleryBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockVideoBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockDividerBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockSpacerBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockFormBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockMapBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockCarouselBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockFaqBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockTestimonialsBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockFeaturesBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockNavBlock"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "heading": "#/components/schemas/BlockHeadingBlock",
+            "text": "#/components/schemas/BlockTextBlock",
+            "button": "#/components/schemas/BlockButtonBlock",
+            "badge": "#/components/schemas/BlockBadgeBlock",
+            "image": "#/components/schemas/BlockImageBlock",
+            "gallery": "#/components/schemas/BlockGalleryBlock",
+            "video": "#/components/schemas/BlockVideoBlock",
+            "divider": "#/components/schemas/BlockDividerBlock",
+            "spacer": "#/components/schemas/BlockSpacerBlock",
+            "form": "#/components/schemas/BlockFormBlock",
+            "map": "#/components/schemas/BlockMapBlock",
+            "carousel": "#/components/schemas/BlockCarouselBlock",
+            "faq": "#/components/schemas/BlockFaqBlock",
+            "testimonials": "#/components/schemas/BlockTestimonialsBlock",
+            "features": "#/components/schemas/BlockFeaturesBlock",
+            "nav": "#/components/schemas/BlockNavBlock"
+          }
+        }
+      },
+      "BlockAlign": {
+        "enum": [
+          "inherit",
+          "left",
+          "center",
+          "right"
+        ]
+      },
+      "BlockBadgeBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "badge"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/BadgeProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockButtonBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "button"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/ButtonProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockCarouselBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "carousel"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/CarouselProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockDividerBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "divider"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/DividerProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockFaqBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "faq"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/FaqProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockFeaturesBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "features"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/FeaturesProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockFormBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "form"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/FormProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockGalleryBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "gallery"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/GalleryProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockHeadingBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "heading"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/HeadingProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockImageBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "image"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/ImageProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockMapBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "map"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/MapProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockMaxWidth": {
+        "enum": [
+          "none",
+          "sm",
+          "md",
+          "lg"
+        ]
+      },
+      "BlockNavBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "nav"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/NavProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockSpacerBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "spacer"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/SpacerProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockStyle": {
+        "required": [
+          "align",
+          "marginTop",
+          "marginBottom",
+          "maxWidth",
+          "anchor",
+          "className",
+          "visibility"
+        ],
+        "type": "object",
+        "properties": {
+          "align": {
+            "$ref": "#/components/schemas/BlockAlign"
+          },
+          "marginTop": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "marginBottom": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxWidth": {
+            "$ref": "#/components/schemas/BlockMaxWidth"
+          },
+          "anchor": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockTestimonialsBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "testimonials"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/TestimonialsProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockTextBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "text"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/TextProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockVideoBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "video"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/VideoProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ButtonProps": {
+        "required": [
+          "label",
+          "href",
+          "variant",
+          "arrow",
+          "size"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string"
+          },
+          "variant": {
+            "$ref": "#/components/schemas/ButtonVariant"
+          },
+          "arrow": {
+            "type": "boolean"
+          },
+          "size": {
+            "$ref": "#/components/schemas/ButtonSize"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ButtonSize": {
+        "enum": [
+          "sm",
+          "md",
+          "lg"
+        ]
+      },
+      "ButtonVariant": {
+        "enum": [
+          "primary",
+          "secondary",
+          "accent"
+        ]
+      },
+      "CarouselAspect": {
+        "enum": [
+          "16/9",
+          "4/3",
+          "21/9"
+        ]
+      },
+      "CarouselProps": {
+        "required": [
+          "slides",
+          "autoplay",
+          "aspect",
+          "radius"
+        ],
+        "type": "object",
+        "properties": {
+          "slides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CarouselSlide"
+            }
+          },
+          "autoplay": {
+            "type": "boolean"
+          },
+          "aspect": {
+            "$ref": "#/components/schemas/CarouselAspect"
+          },
+          "radius": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CarouselSlide": {
+        "required": [
+          "src",
+          "caption"
+        ],
+        "type": "object",
+        "properties": {
+          "src": {
+            "type": "string"
+          },
+          "caption": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ContentIssueDto": {
+        "required": [
+          "severity",
+          "code",
+          "message",
+          "sectionId",
+          "blockId",
+          "field",
+          "itemIndex"
+        ],
+        "type": "object",
+        "properties": {
+          "severity": {
+            "description": "`error` blocks publishing; `warning` doesn't.",
+            "$ref": "#/components/schemas/IssueSeverity"
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable code, e.g. `image.missing` or `link.placeholder`."
+          },
+          "message": {
+            "type": "string",
+            "description": "What is wrong, in plain language."
+          },
+          "sectionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The section it is in; null when it is about the whole page."
+          },
+          "blockId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The block it is about; null when it is about a section or the page."
+          },
+          "field": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The block prop or section setting, e.g. `href` or `background.image`."
+          },
+          "itemIndex": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "The item of a list prop (a gallery image, a menu link), when it is about one.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A problem in a page's content that a person can fix."
+      },
+      "ContentWidth": {
+        "enum": [
+          "narrow",
+          "normal",
+          "wide",
+          "full"
+        ]
+      },
+      "DividerProps": {
+        "required": [
+          "style",
+          "thickness"
+        ],
+        "type": "object",
+        "properties": {
+          "style": {
+            "$ref": "#/components/schemas/DividerStyle"
+          },
+          "thickness": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DividerStyle": {
+        "enum": [
+          "solid",
+          "dashed"
+        ]
+      },
+      "EntranceAnimation": {
+        "enum": [
+          "none",
+          "fade",
+          "fade-up",
+          "zoom",
+          "slide-left"
+        ]
+      },
+      "FaqItem": {
+        "required": [
+          "question",
+          "answer"
+        ],
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FaqProps": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FaqItem"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "FeatureItem": {
+        "required": [
+          "icon",
+          "title",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "icon": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FeaturesProps": {
+        "required": [
+          "items",
+          "columns",
+          "card"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeatureItem"
+            }
+          },
+          "columns": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "card": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FormField": {
+        "required": [
+          "label",
+          "type",
+          "required"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/FormFieldType"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FormFieldType": {
+        "enum": [
+          "text",
+          "email",
+          "textarea"
+        ]
+      },
+      "FormProps": {
+        "required": [
+          "fields",
+          "submitLabel",
+          "successMessage"
+        ],
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FormField"
+            }
+          },
+          "submitLabel": {
+            "type": "string"
+          },
+          "successMessage": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GalleryImage": {
+        "required": [
+          "src",
+          "alt"
+        ],
+        "type": "object",
+        "properties": {
+          "src": {
+            "type": "string"
+          },
+          "alt": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GalleryProps": {
+        "required": [
+          "images",
+          "columns",
+          "gap",
+          "radius"
+        ],
+        "type": "object",
+        "properties": {
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GalleryImage"
+            }
+          },
+          "columns": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gap": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "radius": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HeadingProps": {
+        "required": [
+          "html",
+          "level",
+          "size"
+        ],
+        "type": "object",
+        "properties": {
+          "html": {
+            "type": "string"
+          },
+          "level": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "$ref": "#/components/schemas/HeadingSize"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HeadingSize": {
+        "enum": [
+          "xl",
+          "lg",
+          "md",
+          "sm"
+        ]
+      },
       "HttpValidationProblemDetails": {
         "type": "object",
         "properties": {
@@ -321,11 +1413,9 @@
             ]
           },
           "status": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "format": "int32"
           },
@@ -350,11 +1440,83 @@
               }
             }
           }
-        }
+        },
+        "additionalProperties": false
       },
       "IFormFile": {
         "type": "string",
         "format": "binary"
+      },
+      "ImageAspect": {
+        "enum": [
+          "auto",
+          "16/9",
+          "4/3",
+          "1/1",
+          "3/4"
+        ]
+      },
+      "ImageProps": {
+        "required": [
+          "src",
+          "alt",
+          "aspect",
+          "radius",
+          "caption"
+        ],
+        "type": "object",
+        "properties": {
+          "src": {
+            "type": "string"
+          },
+          "alt": {
+            "type": "string"
+          },
+          "aspect": {
+            "$ref": "#/components/schemas/ImageAspect"
+          },
+          "radius": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "caption": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "IssueSeverity": {
+        "enum": [
+          "error",
+          "warning"
+        ]
+      },
+      "MapProps": {
+        "required": [
+          "address",
+          "zoom",
+          "height",
+          "radius"
+        ],
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "zoom": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "radius": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
       },
       "MediaItemDto": {
         "required": [
@@ -391,29 +1553,17 @@
             "description": "The original image's MIME type, for example `image/png`."
           },
           "sizeInBytes": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "description": "The original image's size in bytes.",
             "format": "int64"
           },
           "width": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "description": "The original image's width in pixels.",
             "format": "int32"
           },
           "height": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "description": "The original image's height in pixels.",
             "format": "int32"
           },
@@ -436,7 +1586,134 @@
             "format": "date-time"
           }
         },
+        "additionalProperties": false,
         "description": "An image in a website's media library."
+      },
+      "NavLink": {
+        "required": [
+          "label",
+          "href"
+        ],
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string"
+          },
+          "menu": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "NavOrientation": {
+        "enum": [
+          "horizontal",
+          "vertical"
+        ]
+      },
+      "NavProps": {
+        "required": [
+          "logo",
+          "links",
+          "ctaLabel",
+          "ctaHref",
+          "orientation",
+          "card"
+        ],
+        "type": "object",
+        "properties": {
+          "logo": {
+            "type": "string"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavLink"
+            }
+          },
+          "ctaLabel": {
+            "type": "string"
+          },
+          "ctaHref": {
+            "type": "string"
+          },
+          "orientation": {
+            "$ref": "#/components/schemas/NavOrientation"
+          },
+          "card": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PageContentDto": {
+        "required": [
+          "pageId",
+          "document",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "pageId": {
+            "type": "string",
+            "description": "The page the content belongs to.",
+            "format": "uuid"
+          },
+          "document": {
+            "description": "The page's sections and blocks.",
+            "$ref": "#/components/schemas/PageDocument"
+          },
+          "status": {
+            "description": "`published` once visitors see it; `draft` for sample content that was never published.",
+            "$ref": "#/components/schemas/PageContentStatus"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the content was first stored (UTC).",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "When the content last changed (UTC).",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A page's Design Studio document."
+      },
+      "PageContentStatus": {
+        "enum": [
+          "draft",
+          "published"
+        ]
+      },
+      "PageDocument": {
+        "required": [
+          "version",
+          "sections"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Section"
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "PageDto": {
         "required": [
@@ -475,7 +1752,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "PageStatus": {
         "enum": [
@@ -483,9 +1761,417 @@
           "published"
         ]
       },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishedPageContentDto": {
+        "required": [
+          "content",
+          "warnings"
+        ],
+        "type": "object",
+        "properties": {
+          "content": {
+            "description": "The page's content now.",
+            "$ref": "#/components/schemas/PageContentDto"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentIssueDto"
+            },
+            "description": "Things worth a look that didn't block publishing, in page order. Empty when there are none."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The result of publishing a page."
+      },
+      "PublishPageContentRequest": {
+        "required": [
+          "document"
+        ],
+        "type": "object",
+        "properties": {
+          "document": {
+            "description": "The complete document, as the studio normalised it.",
+            "$ref": "#/components/schemas/PageDocument"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Publishes a page: the document replaces what visitors see."
+      },
+      "ResponsiveSpacing": {
+        "required": [
+          "desktop"
+        ],
+        "type": "object",
+        "properties": {
+          "desktop": {
+            "$ref": "#/components/schemas/Spacing"
+          },
+          "tablet": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SpacingOverride"
+              }
+            ]
+          },
+          "mobile": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SpacingOverride"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "Section": {
+        "required": [
+          "id",
+          "settings",
+          "blocks"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/SectionSettings"
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Block"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "SectionAlign": {
+        "enum": [
+          "left",
+          "center"
+        ]
+      },
+      "SectionAnimation": {
+        "required": [
+          "entrance",
+          "delay"
+        ],
+        "type": "object",
+        "properties": {
+          "entrance": {
+            "$ref": "#/components/schemas/EntranceAnimation"
+          },
+          "delay": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SectionLayout": {
+        "enum": [
+          "stack",
+          "split"
+        ]
+      },
+      "SectionSettings": {
+        "required": [
+          "type",
+          "name",
+          "layout",
+          "splitRatio",
+          "splitAt",
+          "verticalAlign",
+          "padding",
+          "background",
+          "contentWidth",
+          "align",
+          "theme",
+          "minHeight",
+          "gap",
+          "radius",
+          "animation",
+          "anchor",
+          "className",
+          "visibility"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/SectionType"
+          },
+          "name": {
+            "type": "string"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/SectionLayout"
+          },
+          "splitRatio": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "splitAt": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "verticalAlign": {
+            "$ref": "#/components/schemas/VerticalAlign"
+          },
+          "padding": {
+            "$ref": "#/components/schemas/ResponsiveSpacing"
+          },
+          "background": {
+            "$ref": "#/components/schemas/Background"
+          },
+          "contentWidth": {
+            "$ref": "#/components/schemas/ContentWidth"
+          },
+          "align": {
+            "$ref": "#/components/schemas/SectionAlign"
+          },
+          "theme": {
+            "$ref": "#/components/schemas/SectionTheme"
+          },
+          "minHeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gap": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "radius": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "animation": {
+            "$ref": "#/components/schemas/SectionAnimation"
+          },
+          "anchor": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/Visibility"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SectionTheme": {
+        "enum": [
+          "light",
+          "dark"
+        ]
+      },
+      "SectionType": {
+        "enum": [
+          "hero",
+          "content",
+          "features",
+          "split",
+          "cta",
+          "header",
+          "footer",
+          "sidebar"
+        ]
+      },
+      "SpacerProps": {
+        "required": [
+          "height"
+        ],
+        "type": "object",
+        "properties": {
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Spacing": {
+        "required": [
+          "top",
+          "bottom",
+          "left",
+          "right"
+        ],
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "bottom": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "left": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "right": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SpacingOverride": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "bottom": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "left": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "right": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "Stream": {
         "type": "string",
         "format": "binary"
+      },
+      "Testimonial": {
+        "required": [
+          "quote",
+          "name",
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "quote": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TestimonialsProps": {
+        "required": [
+          "items",
+          "columns"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Testimonial"
+            }
+          },
+          "columns": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TextProps": {
+        "required": [
+          "html",
+          "size",
+          "tone"
+        ],
+        "type": "object",
+        "properties": {
+          "html": {
+            "type": "string"
+          },
+          "size": {
+            "$ref": "#/components/schemas/TextSize"
+          },
+          "tone": {
+            "$ref": "#/components/schemas/TextTone"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TextSize": {
+        "enum": [
+          "lg",
+          "md",
+          "sm"
+        ]
+      },
+      "TextTone": {
+        "enum": [
+          "default",
+          "muted"
+        ]
       },
       "UploadMediaRequest": {
         "required": [
@@ -502,7 +2188,63 @@
             "$ref": "#/components/schemas/IFormFile"
           }
         },
+        "additionalProperties": false,
         "description": "Multipart form for `POST /media`."
+      },
+      "VerticalAlign": {
+        "enum": [
+          "start",
+          "center",
+          "end"
+        ]
+      },
+      "VideoAspect": {
+        "enum": [
+          "16/9",
+          "4/3",
+          "1/1"
+        ]
+      },
+      "VideoProps": {
+        "required": [
+          "url",
+          "aspect",
+          "radius"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "aspect": {
+            "$ref": "#/components/schemas/VideoAspect"
+          },
+          "radius": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Visibility": {
+        "required": [
+          "desktop",
+          "tablet",
+          "mobile"
+        ],
+        "type": "object",
+        "properties": {
+          "desktop": {
+            "type": "boolean"
+          },
+          "tablet": {
+            "type": "boolean"
+          },
+          "mobile": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
       },
       "WebsiteDto": {
         "required": [
@@ -540,7 +2282,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "additionalProperties": false
       },
       "WebsiteStatus": {
         "enum": [
@@ -553,6 +2296,9 @@
   "tags": [
     {
       "name": "Media"
+    },
+    {
+      "name": "Page content"
     },
     {
       "name": "Pages"

@@ -105,8 +105,9 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 | Project                | Responsibility                                                       |
 | ---------------------- | -------------------------------------------------------------------- |
 | `Forma.Api`            | Minimal API endpoints, DTOs and Mapperly mappers, OpenAPI + Scalar   |
-| `Forma.Application`    | Domain entities and core services                                    |
+| `Forma.Application`    | Domain entities, core services, the page document model and its validation |
 | `Forma.Infrastructure` | EF Core `DbContext`, SQLite, migrations, seeding, repositories, media file storage and image processing |
+| `Forma.Tests`          | xUnit: studio contract tests, validation and API tests (`dotnet test src/api/Forma.Api.slnx`) |
 
 | Endpoint                    | Returns                                                         |
 | --------------------------- | --------------------------------------------------------------- |
@@ -118,6 +119,12 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 | `GET /media/{id}/thumbnail` | The WebP thumbnail's bytes                                      |
 | `POST /media`               | Uploads an image (multipart: `websiteId`, `file`), `201` or `400` |
 | `DELETE /media/{id}`        | Deletes a media item and its files, `204`                       |
+| `GET /pages/{id}/content`   | A page's Design Studio content (`204` when it has none yet)      |
+| `PUT /pages/{id}/content`   | Publishes a page (`{ document }`): `200` with warnings, or `400` with the issues to fix |
+
+#### Page content
+
+A page's Design Studio content is one JSON document per page in the `PageContents` table. The studio keeps edits in the browser and sends the page on Publish; the API checks it against the document model and its rules (block types, ranges, safe links, allowed rich text) and the content rules (missing images, links that go nowhere, deleted media…). Errors are a `400` problem that lists them; warnings don't block. Design and full spec: [`docs/design/page-content.md`](docs/design/page-content.md) and [`docs/design/page-content-api.md`](docs/design/page-content-api.md); future collection pages: [`docs/design/collections.md`](docs/design/collections.md).
 
 #### Media
 

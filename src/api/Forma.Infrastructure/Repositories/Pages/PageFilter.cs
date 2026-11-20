@@ -6,6 +6,9 @@ namespace Forma.Infrastructure.Repositories.Pages;
 /// </summary>
 public class PageFilter
 {
+    /// <summary>Only the page with this id.</summary>
+    public Guid? Id { get; init; }
+
     /// <summary>Only pages that belong to this website.</summary>
     public Guid? WebsiteId { get; init; }
 

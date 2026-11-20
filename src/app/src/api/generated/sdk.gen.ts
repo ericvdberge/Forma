@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, GetMediaImageData, GetMediaImageErrors, GetMediaImageResponses, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaItemsData, GetMediaItemsResponses, GetMediaThumbnailData, GetMediaThumbnailErrors, GetMediaThumbnailResponses, GetPagesData, GetPagesResponses, GetWebsitesData, GetWebsitesResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
+import type { DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, GetMediaImageData, GetMediaImageErrors, GetMediaImageResponses, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaItemsData, GetMediaItemsResponses, GetMediaThumbnailData, GetMediaThumbnailErrors, GetMediaThumbnailResponses, GetPageContentData, GetPageContentErrors, GetPageContentResponses, GetPagesData, GetPagesResponses, GetWebsitesData, GetWebsitesResponses, PublishPageContentData, PublishPageContentErrors, PublishPageContentResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -62,6 +62,27 @@ export const getMediaImage = <ThrowOnError extends boolean = false>(options: Opt
  * The response may be cached indefinitely, because a media item's files never change.
  */
 export const getMediaThumbnail = <ThrowOnError extends boolean = false>(options: Options<GetMediaThumbnailData, ThrowOnError>): RequestResult<GetMediaThumbnailResponses, GetMediaThumbnailErrors, ThrowOnError> => (options.client ?? client).get<GetMediaThumbnailResponses, GetMediaThumbnailErrors, ThrowOnError>({ url: '/media/{id}/thumbnail', ...options });
+
+/**
+ * Gets a page's content.
+ */
+export const getPageContent = <ThrowOnError extends boolean = false>(options: Options<GetPageContentData, ThrowOnError>): RequestResult<GetPageContentResponses, GetPageContentErrors, ThrowOnError> => (options.client ?? client).get<GetPageContentResponses, GetPageContentErrors, ThrowOnError>({ url: '/pages/{pageId}/content', ...options });
+
+/**
+ * Publishes a page: stores the document and marks the content published. The studio calls this on Publish.
+ *
+ * The document must pass the structural rules (block types, ranges, safe links, allowed rich text) and the content
+ * rules (no missing images, links that go somewhere). Errors are answered with a validation problem whose
+ * `issues` point at the sections and blocks to fix; warnings don't block and come back with the result.
+ */
+export const publishPageContent = <ThrowOnError extends boolean = false>(options: Options<PublishPageContentData, ThrowOnError>): RequestResult<PublishPageContentResponses, PublishPageContentErrors, ThrowOnError> => (options.client ?? client).put<PublishPageContentResponses, PublishPageContentErrors, ThrowOnError>({
+    url: '/pages/{pageId}/content',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Lists the pages of a website, most recently updated first.

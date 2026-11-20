@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/vue-query';
 
 import { client } from '../client.gen';
-import { deleteMedia, getMediaImage, getMediaItem, getMediaItems, getMediaThumbnail, getPages, getWebsites, type Options, uploadMedia } from '../sdk.gen';
-import type { DeleteMediaData, DeleteMediaResponse, GetMediaImageData, GetMediaImageResponse, GetMediaItemData, GetMediaItemResponse, GetMediaItemsData, GetMediaItemsResponse, GetMediaThumbnailData, GetMediaThumbnailResponse, GetPagesData, GetPagesResponse, GetWebsitesData, GetWebsitesResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
+import { deleteMedia, getMediaImage, getMediaItem, getMediaItems, getMediaThumbnail, getPageContent, getPages, getWebsites, type Options, publishPageContent, uploadMedia } from '../sdk.gen';
+import type { DeleteMediaData, DeleteMediaResponse, GetMediaImageData, GetMediaImageResponse, GetMediaItemData, GetMediaItemResponse, GetMediaItemsData, GetMediaItemsResponse, GetMediaThumbnailData, GetMediaThumbnailResponse, GetPageContentData, GetPageContentResponse, GetPagesData, GetPagesResponse, GetWebsitesData, GetWebsitesResponse, PublishPageContentData, PublishPageContentError, PublishPageContentResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -151,6 +151,45 @@ export const getMediaThumbnailOptions = (options: Options<GetMediaThumbnailData>
     },
     queryKey: getMediaThumbnailQueryKey(options)
 });
+
+export const getPageContentQueryKey = (options: Options<GetPageContentData>) => createQueryKey('getPageContent', options);
+
+/**
+ * Gets a page's content.
+ */
+export const getPageContentOptions = (options: Options<GetPageContentData>) => queryOptions<GetPageContentResponse, DefaultError, GetPageContentResponse, ReturnType<typeof getPageContentQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPageContent({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPageContentQueryKey(options)
+});
+
+/**
+ * Publishes a page: stores the document and marks the content published. The studio calls this on Publish.
+ *
+ * The document must pass the structural rules (block types, ranges, safe links, allowed rich text) and the content
+ * rules (no missing images, links that go somewhere). Errors are answered with a validation problem whose
+ * `issues` point at the sections and blocks to fix; warnings don't block and come back with the result.
+ */
+export const publishPageContentMutation = (options?: Partial<Options<PublishPageContentData>>): UseMutationOptions<PublishPageContentResponse, PublishPageContentError, Options<PublishPageContentData>> => {
+    const mutationOptions: UseMutationOptions<PublishPageContentResponse, PublishPageContentError, Options<PublishPageContentData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await publishPageContent({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const getPagesQueryKey = (options: Options<GetPagesData>) => createQueryKey('getPages', options);
 

@@ -4,10 +4,314 @@ export type ClientOptions = {
     baseUrl: `${string}://${string}` | (string & {});
 };
 
+export type Background = {
+    kind: BackgroundKind;
+    color: string;
+    image: string;
+    position: string;
+    gradientFrom: string;
+    gradientTo: string;
+    gradientAngle: number;
+    overlayColor: string;
+    overlayOpacity: number;
+};
+
+export type BackgroundKind = 'none' | 'color' | 'image' | 'gradient';
+
+export type BadgeProps = {
+    text: string;
+};
+
+export type Block = ({
+    type: 'heading';
+} & BlockHeadingBlock) | ({
+    type: 'text';
+} & BlockTextBlock) | ({
+    type: 'button';
+} & BlockButtonBlock) | ({
+    type: 'badge';
+} & BlockBadgeBlock) | ({
+    type: 'image';
+} & BlockImageBlock) | ({
+    type: 'gallery';
+} & BlockGalleryBlock) | ({
+    type: 'video';
+} & BlockVideoBlock) | ({
+    type: 'divider';
+} & BlockDividerBlock) | ({
+    type: 'spacer';
+} & BlockSpacerBlock) | ({
+    type: 'form';
+} & BlockFormBlock) | ({
+    type: 'map';
+} & BlockMapBlock) | ({
+    type: 'carousel';
+} & BlockCarouselBlock) | ({
+    type: 'faq';
+} & BlockFaqBlock) | ({
+    type: 'testimonials';
+} & BlockTestimonialsBlock) | ({
+    type: 'features';
+} & BlockFeaturesBlock) | ({
+    type: 'nav';
+} & BlockNavBlock);
+
+export type BlockAlign = 'inherit' | 'left' | 'center' | 'right';
+
+export type BlockBadgeBlock = {
+    type?: 'badge';
+    props: BadgeProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockButtonBlock = {
+    type?: 'button';
+    props: ButtonProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockCarouselBlock = {
+    type?: 'carousel';
+    props: CarouselProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockDividerBlock = {
+    type?: 'divider';
+    props: DividerProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockFaqBlock = {
+    type?: 'faq';
+    props: FaqProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockFeaturesBlock = {
+    type?: 'features';
+    props: FeaturesProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockFormBlock = {
+    type?: 'form';
+    props: FormProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockGalleryBlock = {
+    type?: 'gallery';
+    props: GalleryProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockHeadingBlock = {
+    type?: 'heading';
+    props: HeadingProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockImageBlock = {
+    type?: 'image';
+    props: ImageProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockMapBlock = {
+    type?: 'map';
+    props: MapProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockMaxWidth = 'none' | 'sm' | 'md' | 'lg';
+
+export type BlockNavBlock = {
+    type?: 'nav';
+    props: NavProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockSpacerBlock = {
+    type?: 'spacer';
+    props: SpacerProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockStyle = {
+    align: BlockAlign;
+    marginTop: number;
+    marginBottom: number;
+    maxWidth: BlockMaxWidth;
+    anchor: string;
+    className: string;
+    visibility: Visibility;
+};
+
+export type BlockTestimonialsBlock = {
+    type?: 'testimonials';
+    props: TestimonialsProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockTextBlock = {
+    type?: 'text';
+    props: TextProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type BlockVideoBlock = {
+    type?: 'video';
+    props: VideoProps;
+    id: string;
+    style: BlockStyle;
+};
+
+export type ButtonProps = {
+    label: string;
+    href: string;
+    variant: ButtonVariant;
+    arrow: boolean;
+    size: ButtonSize;
+};
+
+export type ButtonSize = 'sm' | 'md' | 'lg';
+
+export type ButtonVariant = 'primary' | 'secondary' | 'accent';
+
+export type CarouselAspect = '16/9' | '4/3' | '21/9';
+
+export type CarouselProps = {
+    slides: Array<CarouselSlide>;
+    autoplay: boolean;
+    aspect: CarouselAspect;
+    radius: number;
+};
+
+export type CarouselSlide = {
+    src: string;
+    caption: string;
+};
+
+/**
+ * A problem in a page's content that a person can fix.
+ */
+export type ContentIssueDto = {
+    /**
+     * `error` blocks publishing; `warning` doesn't.
+     */
+    severity: IssueSeverity;
+    /**
+     * Stable code, e.g. `image.missing` or `link.placeholder`.
+     */
+    code: string;
+    /**
+     * What is wrong, in plain language.
+     */
+    message: string;
+    /**
+     * The section it is in; null when it is about the whole page.
+     */
+    sectionId: null | string;
+    /**
+     * The block it is about; null when it is about a section or the page.
+     */
+    blockId: null | string;
+    /**
+     * The block prop or section setting, e.g. `href` or `background.image`.
+     */
+    field: null | string;
+    /**
+     * The item of a list prop (a gallery image, a menu link), when it is about one.
+     */
+    itemIndex: null | number;
+};
+
+export type ContentWidth = 'narrow' | 'normal' | 'wide' | 'full';
+
+export type DividerProps = {
+    style: DividerStyle;
+    thickness: number;
+};
+
+export type DividerStyle = 'solid' | 'dashed';
+
+export type EntranceAnimation = 'none' | 'fade' | 'fade-up' | 'zoom' | 'slide-left';
+
+export type FaqItem = {
+    question: string;
+    answer: string;
+};
+
+export type FaqProps = {
+    items: Array<FaqItem>;
+};
+
+export type FeatureItem = {
+    icon: string;
+    title: string;
+    text: string;
+};
+
+export type FeaturesProps = {
+    items: Array<FeatureItem>;
+    columns: number;
+    card: boolean;
+};
+
+export type FormField = {
+    label: string;
+    type: FormFieldType;
+    required: boolean;
+};
+
+export type FormFieldType = 'text' | 'email' | 'textarea';
+
+export type FormProps = {
+    fields: Array<FormField>;
+    submitLabel: string;
+    successMessage: string;
+};
+
+export type GalleryImage = {
+    src: string;
+    alt: string;
+};
+
+export type GalleryProps = {
+    images: Array<GalleryImage>;
+    columns: number;
+    gap: number;
+    radius: number;
+};
+
+export type HeadingProps = {
+    html: string;
+    level: number;
+    size: HeadingSize;
+};
+
+export type HeadingSize = 'xl' | 'lg' | 'md' | 'sm';
+
 export type HttpValidationProblemDetails = {
     type?: null | string;
     title?: null | string;
-    status?: null | number | string;
+    status?: null | number;
     detail?: null | string;
     instance?: null | string;
     errors?: {
@@ -16,6 +320,25 @@ export type HttpValidationProblemDetails = {
 };
 
 export type IFormFile = Blob | File;
+
+export type ImageAspect = 'auto' | '16/9' | '4/3' | '1/1' | '3/4';
+
+export type ImageProps = {
+    src: string;
+    alt: string;
+    aspect: ImageAspect;
+    radius: number;
+    caption: string;
+};
+
+export type IssueSeverity = 'error' | 'warning';
+
+export type MapProps = {
+    address: string;
+    zoom: number;
+    height: number;
+    radius: number;
+};
 
 /**
  * An image in a website's media library.
@@ -40,15 +363,15 @@ export type MediaItemDto = {
     /**
      * The original image's size in bytes.
      */
-    sizeInBytes: number | string;
+    sizeInBytes: number;
     /**
      * The original image's width in pixels.
      */
-    width: number | string;
+    width: number;
     /**
      * The original image's height in pixels.
      */
-    height: number | string;
+    height: number;
     /**
      * Download route of the original image, relative to the API's base URL.
      */
@@ -67,6 +390,56 @@ export type MediaItemDto = {
     updatedAt: string;
 };
 
+export type NavLink = {
+    label: string;
+    href: string;
+    menu?: null | boolean;
+};
+
+export type NavOrientation = 'horizontal' | 'vertical';
+
+export type NavProps = {
+    logo: string;
+    links: Array<NavLink>;
+    ctaLabel: string;
+    ctaHref: string;
+    orientation: NavOrientation;
+    card: boolean;
+};
+
+/**
+ * A page's Design Studio document.
+ */
+export type PageContentDto = {
+    /**
+     * The page the content belongs to.
+     */
+    pageId: string;
+    /**
+     * The page's sections and blocks.
+     */
+    document: PageDocument;
+    /**
+     * `published` once visitors see it; `draft` for sample content that was never published.
+     */
+    status: PageContentStatus;
+    /**
+     * When the content was first stored (UTC).
+     */
+    createdAt: string;
+    /**
+     * When the content last changed (UTC).
+     */
+    updatedAt: string;
+};
+
+export type PageContentStatus = 'draft' | 'published';
+
+export type PageDocument = {
+    version: number;
+    sections: Array<Section>;
+};
+
 export type PageDto = {
     id: string;
     websiteId: string;
@@ -79,7 +452,124 @@ export type PageDto = {
 
 export type PageStatus = 'draft' | 'published';
 
+export type ProblemDetails = {
+    type?: null | string;
+    title?: null | string;
+    status?: null | number;
+    detail?: null | string;
+    instance?: null | string;
+};
+
+/**
+ * The result of publishing a page.
+ */
+export type PublishedPageContentDto = {
+    /**
+     * The page's content now.
+     */
+    content: PageContentDto;
+    /**
+     * Things worth a look that didn't block publishing, in page order. Empty when there are none.
+     */
+    warnings: Array<ContentIssueDto>;
+};
+
+/**
+ * Publishes a page: the document replaces what visitors see.
+ */
+export type PublishPageContentRequest = {
+    /**
+     * The complete document, as the studio normalised it.
+     */
+    document: PageDocument;
+};
+
+export type ResponsiveSpacing = {
+    desktop: Spacing;
+    tablet?: null | SpacingOverride;
+    mobile?: null | SpacingOverride;
+};
+
+export type Section = {
+    id: string;
+    settings: SectionSettings;
+    blocks: Array<Block>;
+};
+
+export type SectionAlign = 'left' | 'center';
+
+export type SectionAnimation = {
+    entrance: EntranceAnimation;
+    delay: number;
+};
+
+export type SectionLayout = 'stack' | 'split';
+
+export type SectionSettings = {
+    type: SectionType;
+    name: string;
+    layout: SectionLayout;
+    splitRatio: number;
+    splitAt: number;
+    verticalAlign: VerticalAlign;
+    padding: ResponsiveSpacing;
+    background: Background;
+    contentWidth: ContentWidth;
+    align: SectionAlign;
+    theme: SectionTheme;
+    minHeight: number;
+    gap: number;
+    radius: number;
+    animation: SectionAnimation;
+    anchor: string;
+    className: string;
+    visibility: Visibility;
+};
+
+export type SectionTheme = 'light' | 'dark';
+
+export type SectionType = 'hero' | 'content' | 'features' | 'split' | 'cta' | 'header' | 'footer' | 'sidebar';
+
+export type SpacerProps = {
+    height: number;
+};
+
+export type Spacing = {
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+};
+
+export type SpacingOverride = {
+    top?: null | number;
+    bottom?: null | number;
+    left?: null | number;
+    right?: null | number;
+};
+
 export type Stream = Blob | File;
+
+export type Testimonial = {
+    quote: string;
+    name: string;
+    role: string;
+};
+
+export type TestimonialsProps = {
+    items: Array<Testimonial>;
+    columns: number;
+};
+
+export type TextProps = {
+    html: string;
+    size: TextSize;
+    tone: TextTone;
+};
+
+export type TextSize = 'lg' | 'md' | 'sm';
+
+export type TextTone = 'default' | 'muted';
 
 /**
  * Multipart form for `POST /media`.
@@ -87,6 +577,22 @@ export type Stream = Blob | File;
 export type UploadMediaRequest = {
     websiteId: string;
     file: IFormFile;
+};
+
+export type VerticalAlign = 'start' | 'center' | 'end';
+
+export type VideoAspect = '16/9' | '4/3' | '1/1';
+
+export type VideoProps = {
+    url: string;
+    aspect: VideoAspect;
+    radius: number;
+};
+
+export type Visibility = {
+    desktop: boolean;
+    tablet: boolean;
+    mobile: boolean;
 };
 
 export type WebsiteDto = {
@@ -265,6 +771,79 @@ export type GetMediaThumbnailResponses = {
 };
 
 export type GetMediaThumbnailResponse = GetMediaThumbnailResponses[keyof GetMediaThumbnailResponses];
+
+export type GetPageContentData = {
+    body?: never;
+    path: {
+        /**
+         * The page's id.
+         */
+        pageId: string;
+    };
+    query?: never;
+    url: '/pages/{pageId}/content';
+};
+
+export type GetPageContentErrors = {
+    /**
+     * No page exists with this id.
+     */
+    404: unknown;
+};
+
+export type GetPageContentResponses = {
+    /**
+     * The page's content.
+     */
+    200: PageContentDto;
+    /**
+     * The page exists but has no content yet.
+     */
+    204: void;
+};
+
+export type GetPageContentResponse = GetPageContentResponses[keyof GetPageContentResponses];
+
+export type PublishPageContentData = {
+    /**
+     * Cancels the request.
+     */
+    body: PublishPageContentRequest;
+    path: {
+        /**
+         * The page's id.
+         */
+        pageId: string;
+    };
+    query?: never;
+    url: '/pages/{pageId}/content';
+};
+
+export type PublishPageContentErrors = {
+    /**
+     * The document is malformed or has errors to fix first.
+     */
+    400: HttpValidationProblemDetails;
+    /**
+     * No page exists with this id.
+     */
+    404: unknown;
+    /**
+     * The request body is larger than 1 MB.
+     */
+    413: ProblemDetails;
+};
+
+export type PublishPageContentError = PublishPageContentErrors[keyof PublishPageContentErrors];
+
+export type PublishPageContentResponses = {
+    /**
+     * Published; the body is the content and any warnings.
+     */
+    200: PublishedPageContentDto;
+};
+
+export type PublishPageContentResponse = PublishPageContentResponses[keyof PublishPageContentResponses];
 
 export type GetPagesData = {
     body?: never;

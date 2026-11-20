@@ -7,8 +7,9 @@ import { useActiveWebsite } from '@/composables/useActiveWebsite'
 import { usePages } from '@/composables/usePages'
 import { useToast } from '@/composables/useToast'
 import { createStudio, provideStudio } from '@/composables/useStudio'
-import type { StudioPageSeed } from '@/queriers/useStudioQuerier'
+import { StudioPageNotFoundError, type StudioPageSeed } from '@/queriers/usePageContentQuerier'
 import AddDialog from './AddDialog.vue'
+import PublishDialog from './PublishDialog.vue'
 import StudioCanvas from './StudioCanvas.vue'
 import StudioInspector from './StudioInspector.vue'
 import StudioLibrary from './StudioLibrary.vue'
@@ -46,7 +47,7 @@ watch(page, (p) => {
 
 const seed = computed<StudioPageSeed | undefined>(() =>
   page.value
-    ? { title: page.value.title, slug: page.value.slug, websiteName: activeWebsite.value.name, published: page.value.status === 'live' }
+    ? { title: page.value.title, websiteName: activeWebsite.value.name }
     : undefined,
 )
 const studio = createStudio(() => (page.value ? pageId.value : ''), seed, () => activeWebsite.value.id)
@@ -129,7 +130,7 @@ function onKey(e: KeyboardEvent) {
   }
 }
 
-/* Drafts live in the query cache, so they survive navigating around the app but not a reload. */
+/* Edits stay in the browser until they are published, so closing the tab with unpublished changes asks first. */
 function onBeforeUnload(e: BeforeUnloadEvent) {
   if (studio.hasChanges.value) e.preventDefault()
 }
@@ -143,6 +144,7 @@ onBeforeUnmount(() => {
 })
 
 const loading = computed(() => pagesQuery.isPending.value || !page.value || studio.query.isPending.value)
+const notOnServer = computed(() => studio.query.error.value instanceof StudioPageNotFoundError)
 </script>
 
 <template>
@@ -190,8 +192,11 @@ const loading = computed(() => pagesQuery.isPending.value || !page.value || stud
         </div>
         <div v-else-if="studio.query.isError.value" class="flex flex-1 flex-col items-center justify-center gap-3 text-center">
           <TriangleAlert class="size-5" aria-hidden="true" />
-          <p class="font-medium">Couldn’t open this page</p>
-          <FButton size="sm" variant="secondary" @click="studio.query.refetch()">Try again</FButton>
+          <p class="font-medium">{{ notOnServer ? 'This page isn’t saved yet' : 'Couldn’t open this page' }}</p>
+          <p v-if="notOnServer" class="max-w-sm text-sm text-muted">
+            It was created in this browser and the server doesn’t have it, so it can’t be published.
+          </p>
+          <FButton v-else size="sm" variant="secondary" @click="studio.query.refetch()">Try again</FButton>
         </div>
         <StudioCanvas v-else />
       </div>
@@ -224,6 +229,7 @@ const loading = computed(() => pagesQuery.isPending.value || !page.value || stud
       @close="studio.adding.value = null"
       @pick="studio.addPicked($event); drawer = null"
     />
+    <PublishDialog />
     <AppToast />
   </div>
 </template>

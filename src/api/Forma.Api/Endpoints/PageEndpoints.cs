@@ -2,6 +2,7 @@ using Forma.Api.Abstractions;
 using Forma.Api.Dtos;
 using Forma.Api.Mappers;
 using Forma.Application.Services;
+using Forma.Infrastructure.Repositories.Pages;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Forma.Api.Endpoints;
@@ -27,7 +28,7 @@ public class PageEndpoints : IEndpoints
         IPageCoreService pageCoreService,
         CancellationToken cancellationToken)
     {
-        var pages = await pageCoreService.GetPagesAsync(websiteId, cancellationToken);
+        var pages = await pageCoreService.GetPagesAsync(new PageFilter { WebsiteId = websiteId }, cancellationToken);
         return TypedResults.Ok(pages.ToDtos());
     }
 }

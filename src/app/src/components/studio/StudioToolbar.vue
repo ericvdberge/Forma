@@ -122,8 +122,8 @@ const textBtn =
         <span class="sr-only sm:hidden">{{ studio.preview.value ? 'Back to editing' : 'Preview' }}</span>
       </button>
       <FButton size="sm" variant="secondary" :disabled="!studio.hasChanges.value" @click="discard">Discard</FButton>
-      <FButton size="sm" :disabled="!canPublish" @click="studio.publish()">
-        Publish <ArrowRight class="size-4" aria-hidden="true" />
+      <FButton size="sm" :disabled="!canPublish || studio.publishing.value" @click="studio.publish()">
+        {{ studio.publishing.value ? 'Publishing…' : 'Publish' }} <ArrowRight class="size-4" aria-hidden="true" />
       </FButton>
       <button type="button" :class="cn(textBtn, 'xl:hidden')" aria-label="Show settings" title="Settings for the selection" @click="emit('inspector')">
         <PanelRight class="size-5" :stroke-width="1.6" aria-hidden="true" />
