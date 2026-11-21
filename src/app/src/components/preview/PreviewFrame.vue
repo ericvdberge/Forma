@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, provide, ref, toRef, watch } from 'vue'
 import { cn } from '@forma/design-system'
 import CanvasSection from '@/components/studio/CanvasSection.vue'
+import { useStudioCollections } from '@/composables/useStudioCollections'
 import { provideCanvas, readOnlyCanvas } from '@/studio/canvas'
+import { collectionDataKey } from '@/studio/inject'
 import { frameWidth } from '@/studio/responsive'
 import type { Breakpoint, PageDocument } from '@/studio/types'
 
@@ -10,11 +12,15 @@ import type { Breakpoint, PageDocument } from '@/studio/types'
  * One page as visitors see it, drawn by the studio's own section renderers in a device-sized frame.
  * Links to the website's own pages (`/about`) are handed to the parent instead of leaving the preview.
  */
-const props = defineProps<{ document: PageDocument; device: Breakpoint }>()
+const props = defineProps<{ websiteId: string; document: PageDocument; device: Breakpoint }>()
 const emit = defineEmits<{ navigate: [path: string] }>()
 
 const zoom = ref(1)
 provideCanvas(readOnlyCanvas(zoom))
+
+/* Collection cards list the website's published items, the same data the studio draws them with. */
+const { collectionData } = useStudioCollections(() => props.websiteId, null, toRef(props, 'document'))
+provide(collectionDataKey, collectionData)
 
 /* Fit the device frame into the available width. */
 const viewport = ref<HTMLElement | null>(null)

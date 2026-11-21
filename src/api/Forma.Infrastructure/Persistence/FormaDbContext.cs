@@ -10,6 +10,8 @@ public class FormaDbContext(DbContextOptions<FormaDbContext> options) : DbContex
     public DbSet<PageDao> Pages => Set<PageDao>();
     public DbSet<MediaItemDao> Media => Set<MediaItemDao>();
     public DbSet<PageContentDao> PageContents => Set<PageContentDao>();
+    public DbSet<CollectionDao> Collections => Set<CollectionDao>();
+    public DbSet<CollectionItemDao> CollectionItems => Set<CollectionItemDao>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

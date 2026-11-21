@@ -1,5 +1,5 @@
 import type { Component } from 'vue'
-import { Columns2, LayoutGrid, Megaphone, PanelBottom, PanelLeft, PanelTop, RectangleHorizontal, Sparkles } from 'lucide-vue-next'
+import { Columns2, Database, LayoutGrid, Megaphone, PanelBottom, PanelLeft, PanelTop, RectangleHorizontal, Sparkles } from 'lucide-vue-next'
 import { createBlock } from './blocks'
 import { clone, defaultBlockStyle, merge, newId, responsivePadding, sectionSettings, type SectionPatch } from './defaults'
 import type { Block, BlockType, PageDocument, Section, SectionType } from './types'
@@ -106,6 +106,17 @@ export const sectionTemplates: SectionTemplate[] = [
           createBlock('button', { label: 'Get started', variant: 'accent' }, { marginTop: 8 }),
         ],
       ),
+  },
+  {
+    id: 'collection',
+    label: 'Collection cards',
+    description: 'Cards for a collection, like your latest blog posts.',
+    icon: Database,
+    create: () =>
+      createSection({ type: 'content', padding: responsivePadding(80, 80) }, [
+        createBlock('heading', { html: '<p>Latest posts</p>', size: 'md' }),
+        createBlock('collectionCards', {}, { marginTop: 12 }),
+      ]),
   },
   {
     id: 'content',

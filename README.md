@@ -89,6 +89,7 @@ The Forma CMS, where you manage your websites, their pages and their media.
 | ---------------- | --------------------------------------------------------------- |
 | `/`              | Dashboard: websites, stats, recent activity                     |
 | `/pages`         | Pages of the active website: filter, create, publish, archive   |
+| `/collections`   | Collections of the active website (blog posts, team members, projects…): create one with its fields, add and publish items, design its detail page |
 | `/media`         | Media library of the active website: stats, upload (button, drag & drop or paste), grid or list, preview, delete |
 | `/websites/:id?` | Switch the active website and edit its details                  |
 | `/pages/:id/edit` | Design Studio: drag & drop editor for one page (mock content for now) |
@@ -122,10 +123,15 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 | `DELETE /media/{id}`        | Deletes a media item and its files, `204`                       |
 | `GET /pages/{id}/content`   | A page's Design Studio content (`204` when it has none yet)      |
 | `PUT /pages/{id}/content`   | Publishes a page (`{ document }`): `200` with warnings, or `400` with the issues to fix |
+| `GET /collections?websiteId={id}` | The collections of one website, with their fields and detail page |
+| `POST /collections`         | Creates a collection and its detail page, `201` or `400`        |
+| `GET` / `PUT` / `DELETE /collections/{id}` | One collection: read, change names, slug and fields, or delete it with its items and detail page |
+| `GET` / `POST /collections/{id}/items` | A collection's items / adds one (values checked against the fields), `201` or `400` |
+| `GET` / `PUT` / `DELETE /collections/{id}/items/{itemId}` | One item: read, save (publishing is saving with `status: published`) or delete |
 
 #### Page content
 
-A page's Design Studio content is one JSON document per page in the `PageContents` table. The studio keeps edits in the browser and sends the page on Publish; the API checks it against the document model and its rules (block types, ranges, safe links, allowed rich text) and the content rules (missing images, links that go nowhere, deleted media…). Errors are a `400` problem that lists them; warnings don't block. Design and full spec: [`docs/design/page-content.md`](docs/design/page-content.md) and [`docs/design/page-content-api.md`](docs/design/page-content-api.md); future collection pages: [`docs/design/collections.md`](docs/design/collections.md).
+A page's Design Studio content is one JSON document per page in the `PageContents` table. The studio keeps edits in the browser and sends the page on Publish; the API checks it against the document model and its rules (block types, ranges, safe links, allowed rich text) and the content rules (missing images, links that go nowhere, deleted media…). Errors are a `400` problem that lists them; warnings don't block. Design and full spec: [`docs/design/page-content.md`](docs/design/page-content.md) and [`docs/design/page-content-api.md`](docs/design/page-content-api.md); collections and their pages: [`docs/design/collections.md`](docs/design/collections.md).
 
 #### Media
 

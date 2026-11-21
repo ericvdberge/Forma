@@ -30,6 +30,42 @@ export const router = createRouter({
       children: [
         { path: '', name: 'dashboard', component: () => import('@/views/DashboardView.vue'), meta: { title: 'Dashboard' } },
         { path: 'pages', name: 'pages', component: () => import('@/views/PagesView.vue'), meta: { title: 'Pages' } },
+        {
+          path: 'collections',
+          name: 'collections',
+          component: () => import('@/views/CollectionsView.vue'),
+          meta: { title: 'Collections' },
+        },
+        {
+          path: 'collections/new',
+          name: 'collection-new',
+          component: () => import('@/views/CollectionFormView.vue'),
+          meta: { title: 'New collection' },
+        },
+        {
+          path: 'collections/:collectionId',
+          name: 'collection',
+          component: () => import('@/views/CollectionView.vue'),
+          meta: { title: 'Collection' },
+        },
+        {
+          path: 'collections/:collectionId/settings',
+          name: 'collection-settings',
+          component: () => import('@/views/CollectionFormView.vue'),
+          meta: { title: 'Collection settings' },
+        },
+        {
+          path: 'collections/:collectionId/items/new',
+          name: 'collection-item-new',
+          component: () => import('@/views/CollectionItemView.vue'),
+          meta: { title: 'New item' },
+        },
+        {
+          path: 'collections/:collectionId/items/:itemId',
+          name: 'collection-item',
+          component: () => import('@/views/CollectionItemView.vue'),
+          meta: { title: 'Edit item' },
+        },
         { path: 'media', name: 'media', component: () => import('@/views/MediaView.vue'), meta: { title: 'Media' } },
         { path: 'websites', name: 'websites', component: () => import('@/views/WebsitesView.vue'), meta: { title: 'Websites' } },
         {

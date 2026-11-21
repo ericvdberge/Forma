@@ -26,6 +26,10 @@ Don't edit `src/api/generated` by hand. Base URL setup lives in `src/api/client-
 | ---------------- | ----------------------------------------------------------- |
 | `/`              | Dashboard                                                   |
 | `/pages`         | Pages of the active website: filter, create, publish, archive |
+| `/collections`   | Collections of the active website                           |
+| `/collections/new`, `/collections/:id/settings` | Create a collection / change its names, address and fields |
+| `/collections/:id` | A collection's items, with links to its fields and its detail page |
+| `/collections/:id/items/new`, `/collections/:id/items/:itemId` | Write an item: a form built from the collection's fields; save as draft or publish |
 | `/websites/:id?` | Switch the active website and edit its details              |
 | `/pages/:id/edit` | Design Studio: the visual editor for one page, opened with Edit on the Pages list |
 | everything else  | Designed sections that aren't built yet show "coming soon"  |
@@ -35,7 +39,8 @@ Don't edit `src/api/generated` by hand. Base URL setup lives in `src/api/client-
 ```
 src/
   api/                   generated API client + its runtime config
-  components/shell/      sidebar, top bar, global search (Ctrl/⌘ K)
+  components/shell/      sidebar (grouped; the active website's collections are a group of their own, each with its icon), top bar, global search (Ctrl/⌘ K)
+  components/collections/ item editor inputs (one per field type, rich text with Tiptap)
   components/dashboard/  dashboard sections
   components/studio/     Design Studio: library, canvas, inspector, block renderers
   components/skeletons/  loading placeholders per view
@@ -58,4 +63,5 @@ Websites and pages are loaded from the API. Activity is seed data served through
 - **Layout**: the editor is full-screen (outside the app shell) so the page gets the room. "Pages" in the top bar goes back.
 - **Simple and Advanced mode** (remembered per browser, Simple by default): Simple hides the block library and technical settings (padding, animation, corner radius…), adds labelled actions (Move up, Duplicate, Remove…) and a plain-language **Add** dialog, opened from the top bar, the "Add a section" button under the page, between sections, or inside the selected section. Block fields marked `advanced` in `src/studio/blocks.ts` only show in Advanced mode.
 - **Editing**: one click on text puts the cursor there; drag blocks and templates from the library (or click to add after the selection), drag the grip to move things, edit text in place with Tiptap, and set padding per device: tablet and mobile inherit from desktop until overridden. Undo/redo covers every change, text included.
+- **Collections**: the **Collection cards** block (`collectionCards`) shows a grid of a collection's items, each linking to `/{collection}/{item}`; `useStudioCollections` loads the items of every collection a page lists. A collection's **detail page** (a page of kind `collectionTemplate`, opened with "Design detail page") starts from a design built from the collection's fields (`src/studio/detailPage.ts`). Its blocks can be **connected to a field** in the inspector: the connection is stored in the block's `bindings` (`src/studio/bindings.ts` lists which props can show which field types), the canvas shows the item picked in the top bar's "Previewing" menu, and the prop's own value stays the placeholder.
 - **Publishing**: "Publish" stores the page and marks it live; "Discard" goes back to the last published version (and can be undone).

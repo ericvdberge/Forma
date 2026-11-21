@@ -52,7 +52,10 @@ if (Assembly.GetEntryAssembly()?.GetName().Name != "GetDocument.Insider")
     var seedSampleData = app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Database:SeedSampleData");
     await app.Services.InitializeDatabaseAsync(seedSampleData);
     if (seedSampleData)
+    {
         await app.Services.SeedPageContentAsync();
+        await app.Services.SeedCollectionsAsync();
+    }
 }
 
 app.UseHttpsRedirection();

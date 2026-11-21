@@ -4,11 +4,12 @@ import { usePageContent } from '@/composables/usePageContent'
 import { useSavedItems } from '@/composables/useSavedItems'
 import { useStudioEditing, type Adding, type DragPayload, type DropTarget } from '@/composables/useStudioEditing'
 import { useStudioHistory } from '@/composables/useStudioHistory'
+import { useStudioCollections } from '@/composables/useStudioCollections'
 import { useStudioMedia } from '@/composables/useStudioMedia'
 import { useStudioPublishing } from '@/composables/useStudioPublishing'
 import type { StudioPageSeed } from '@/queriers/usePageContentQuerier'
 import { provideCanvas } from '@/studio/canvas'
-import { textEditorKey, textPointerKey } from '@/studio/inject'
+import { collectionDataKey, textEditorKey, textPointerKey } from '@/studio/inject'
 import type { Breakpoint, Selection } from '@/studio/types'
 
 export { isSectionPayload, type DragPayload, type DropTarget } from '@/composables/useStudioEditing'
@@ -37,20 +38,24 @@ watch(mode, (m) => {
 
 /**
  * The Design Studio editor for one page, put together from one composable per concern: the page's content
- * (usePageContent), the saved library (useSavedItems), media (useStudioMedia), undo (useStudioHistory), editing
- * (useStudioEditing) and publishing (useStudioPublishing). Selection, device, zoom and drag state live here.
+ * (usePageContent), the saved library (useSavedItems), media (useStudioMedia), collections (useStudioCollections), undo
+ * (useStudioHistory), editing (useStudioEditing) and publishing (useStudioPublishing). Selection, device, zoom and drag
+ * state live here.
  * Edits stay in the browser until the page is published.
  */
 export function createStudio(
   pageId: MaybeRefOrGetter<string>,
   seed: MaybeRefOrGetter<StudioPageSeed | undefined>,
   websiteId: MaybeRefOrGetter<string>,
+  /** On a collection's detail page: the collection whose items it shows. */
+  pageCollectionId: MaybeRefOrGetter<string | null> = null,
 ) {
   const content = usePageContent(pageId, seed)
   const library = useSavedItems()
   const studioMedia = useStudioMedia(websiteId)
 
   const doc = computed(() => content.page.value?.draft)
+  const studioCollections = useStudioCollections(websiteId, pageCollectionId, doc)
 
   /* ---------- Editor state ---------- */
   const selection = ref<Selection>(null)
@@ -116,6 +121,12 @@ export function createStudio(
     media: studioMedia.media,
     mediaQuery: studioMedia.mediaQuery,
     uploadMedia: studioMedia.uploadMedia,
+    collectionData: studioCollections.collectionData,
+    collections: studioCollections.collections,
+    pageCollection: studioCollections.pageCollection,
+    previewItems: studioCollections.previewItems,
+    previewItemId: studioCollections.previewItemId,
+    previewItem: studioCollections.previewItem,
     saved: library.saved,
     saveToLibrary: (sel: Selection = selection.value, name?: string) => library.saveToLibrary(doc.value, sel, name),
     removeSaved: library.removeSaved,
@@ -151,6 +162,7 @@ export function provideStudio(studio: Studio) {
   provideCanvas(studio)
   provide(textEditorKey, studio.textEditor)
   provide(textPointerKey, studio.textPointer)
+  provide(collectionDataKey, studio.collectionData)
 }
 
 /** The studio of the page being edited, for components inside the Design Studio view. */

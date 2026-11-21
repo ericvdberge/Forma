@@ -92,23 +92,31 @@ public class SectionBuilder(string id)
         return this;
     }
 
-    public SectionBuilder WithHeading(string blockId, string html = "<p>Heading</p>", int level = 2) =>
-        WithBlock(new HeadingBlock { Id = blockId, Style = DefaultStyle, Props = new HeadingProps(html, level, HeadingSize.Lg) });
+    public SectionBuilder WithHeading(string blockId, string html = "<p>Heading</p>", int level = 2, IReadOnlyDictionary<string, Binding>? bindings = null) =>
+        WithBlock(new HeadingBlock { Id = blockId, Style = DefaultStyle, Props = new HeadingProps(html, level, HeadingSize.Lg), Bindings = bindings });
 
-    public SectionBuilder WithText(string blockId, string html = "<p>Text</p>") =>
-        WithBlock(new TextBlock { Id = blockId, Style = DefaultStyle, Props = new TextProps(html, TextSize.Md, TextTone.Default) });
+    public SectionBuilder WithText(string blockId, string html = "<p>Text</p>", IReadOnlyDictionary<string, Binding>? bindings = null) =>
+        WithBlock(new TextBlock { Id = blockId, Style = DefaultStyle, Props = new TextProps(html, TextSize.Md, TextTone.Default), Bindings = bindings });
 
     public SectionBuilder WithButton(string blockId, string label = "Button", string href = "/") =>
         WithBlock(new ButtonBlock { Id = blockId, Style = DefaultStyle, Props = new ButtonProps(label, href, ButtonVariant.Primary, true, ButtonSize.Md) });
 
-    public SectionBuilder WithImage(string blockId, string src = "/media/hero.svg", string alt = "An image") =>
-        WithBlock(new ImageBlock { Id = blockId, Style = DefaultStyle, Props = new ImageProps(src, alt, ImageAspect.Auto, 0, "") });
+    public SectionBuilder WithImage(string blockId, string src = "/media/hero.svg", string alt = "An image", IReadOnlyDictionary<string, Binding>? bindings = null) =>
+        WithBlock(new ImageBlock { Id = blockId, Style = DefaultStyle, Props = new ImageProps(src, alt, ImageAspect.Auto, 0, ""), Bindings = bindings });
+
+    public SectionBuilder WithCollectionCards(string blockId, Guid? collectionId, string imageField = "", string titleField = "", string textField = "") =>
+        WithBlock(new CollectionCardsBlock
+        {
+            Id = blockId,
+            Style = DefaultStyle,
+            Props = new CollectionCardsProps(collectionId, imageField, titleField, textField, CollectionCardsSort.Newest, 6, 3, 24, 16, true, "Read more", "Nothing here yet."),
+        });
 
     public SectionBuilder WithGallery(string blockId, params GalleryImage[] images) =>
         WithBlock(new GalleryBlock { Id = blockId, Style = DefaultStyle, Props = new GalleryProps(images, 3, 12, 8) });
 
-    public SectionBuilder WithVideo(string blockId, string url = "https://youtu.be/dQw4w9WgXcQ") =>
-        WithBlock(new VideoBlock { Id = blockId, Style = DefaultStyle, Props = new VideoProps(url, VideoAspect.Wide16x9, 0) });
+    public SectionBuilder WithVideo(string blockId, string url = "https://youtu.be/dQw4w9WgXcQ", IReadOnlyDictionary<string, Binding>? bindings = null) =>
+        WithBlock(new VideoBlock { Id = blockId, Style = DefaultStyle, Props = new VideoProps(url, VideoAspect.Wide16x9, 0), Bindings = bindings });
 
     public Section Build() => new() { Id = id, Settings = _settings, Blocks = [.. _blocks] };
 }

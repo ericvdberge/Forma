@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, GetMediaImageData, GetMediaImageErrors, GetMediaImageResponses, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaItemsData, GetMediaItemsResponses, GetMediaThumbnailData, GetMediaThumbnailErrors, GetMediaThumbnailResponses, GetPageContentData, GetPageContentErrors, GetPageContentResponses, GetPagesData, GetPagesResponses, GetWebsitesData, GetWebsitesResponses, PublishPageContentData, PublishPageContentErrors, PublishPageContentResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
+import type { CreateCollectionData, CreateCollectionErrors, CreateCollectionItemData, CreateCollectionItemErrors, CreateCollectionItemResponses, CreateCollectionResponses, DeleteCollectionData, DeleteCollectionErrors, DeleteCollectionItemData, DeleteCollectionItemErrors, DeleteCollectionItemResponses, DeleteCollectionResponses, DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, GetCollectionData, GetCollectionErrors, GetCollectionItemData, GetCollectionItemErrors, GetCollectionItemResponses, GetCollectionItemsData, GetCollectionItemsErrors, GetCollectionItemsResponses, GetCollectionResponses, GetCollectionsData, GetCollectionsResponses, GetMediaImageData, GetMediaImageErrors, GetMediaImageResponses, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaItemsData, GetMediaItemsResponses, GetMediaThumbnailData, GetMediaThumbnailErrors, GetMediaThumbnailResponses, GetPageContentData, GetPageContentErrors, GetPageContentResponses, GetPagesData, GetPagesResponses, GetWebsitesData, GetWebsitesResponses, PublishPageContentData, PublishPageContentErrors, PublishPageContentResponses, SaveCollectionItemData, SaveCollectionItemErrors, SaveCollectionItemResponses, UpdateCollectionData, UpdateCollectionErrors, UpdateCollectionResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -17,6 +17,91 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
      */
     meta?: keyof ClientMeta extends never ? Record<string, unknown> : ClientMeta;
 };
+
+/**
+ * Lists the collections of a website, by name.
+ */
+export const getCollections = <ThrowOnError extends boolean = false>(options: Options<GetCollectionsData, ThrowOnError>): RequestResult<GetCollectionsResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCollectionsResponses, unknown, ThrowOnError>({ url: '/collections', ...options });
+
+/**
+ * Creates a collection and the detail page its items are shown with.
+ *
+ * The detail page starts empty; design it in the studio like any page.
+ */
+export const createCollection = <ThrowOnError extends boolean = false>(options: Options<CreateCollectionData, ThrowOnError>): RequestResult<CreateCollectionResponses, CreateCollectionErrors, ThrowOnError> => (options.client ?? client).post<CreateCollectionResponses, CreateCollectionErrors, ThrowOnError>({
+    url: '/collections',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Deletes a collection, its items and its detail page.
+ */
+export const deleteCollection = <ThrowOnError extends boolean = false>(options: Options<DeleteCollectionData, ThrowOnError>): RequestResult<DeleteCollectionResponses, DeleteCollectionErrors, ThrowOnError> => (options.client ?? client).delete<DeleteCollectionResponses, DeleteCollectionErrors, ThrowOnError>({ url: '/collections/{collectionId}', ...options });
+
+/**
+ * Gets a collection with its fields.
+ */
+export const getCollection = <ThrowOnError extends boolean = false>(options: Options<GetCollectionData, ThrowOnError>): RequestResult<GetCollectionResponses, GetCollectionErrors, ThrowOnError> => (options.client ?? client).get<GetCollectionResponses, GetCollectionErrors, ThrowOnError>({ url: '/collections/{collectionId}', ...options });
+
+/**
+ * Changes a collection's names, slug and fields.
+ *
+ * Items keep their values for fields that stay. Values of removed fields are dropped the next time an item is saved.
+ * Pages that show a removed field report it when they are next published.
+ */
+export const updateCollection = <ThrowOnError extends boolean = false>(options: Options<UpdateCollectionData, ThrowOnError>): RequestResult<UpdateCollectionResponses, UpdateCollectionErrors, ThrowOnError> => (options.client ?? client).put<UpdateCollectionResponses, UpdateCollectionErrors, ThrowOnError>({
+    url: '/collections/{collectionId}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Lists a collection's items, newest first.
+ */
+export const getCollectionItems = <ThrowOnError extends boolean = false>(options: Options<GetCollectionItemsData, ThrowOnError>): RequestResult<GetCollectionItemsResponses, GetCollectionItemsErrors, ThrowOnError> => (options.client ?? client).get<GetCollectionItemsResponses, GetCollectionItemsErrors, ThrowOnError>({ url: '/collections/{collectionId}/items', ...options });
+
+/**
+ * Adds an item to a collection.
+ *
+ * Values are checked against the collection's fields: types, required fields, links, images and rich text.
+ */
+export const createCollectionItem = <ThrowOnError extends boolean = false>(options: Options<CreateCollectionItemData, ThrowOnError>): RequestResult<CreateCollectionItemResponses, CreateCollectionItemErrors, ThrowOnError> => (options.client ?? client).post<CreateCollectionItemResponses, CreateCollectionItemErrors, ThrowOnError>({
+    url: '/collections/{collectionId}/items',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Deletes an item.
+ */
+export const deleteCollectionItem = <ThrowOnError extends boolean = false>(options: Options<DeleteCollectionItemData, ThrowOnError>): RequestResult<DeleteCollectionItemResponses, DeleteCollectionItemErrors, ThrowOnError> => (options.client ?? client).delete<DeleteCollectionItemResponses, DeleteCollectionItemErrors, ThrowOnError>({ url: '/collections/{collectionId}/items/{itemId}', ...options });
+
+/**
+ * Gets one item of a collection.
+ */
+export const getCollectionItem = <ThrowOnError extends boolean = false>(options: Options<GetCollectionItemData, ThrowOnError>): RequestResult<GetCollectionItemResponses, GetCollectionItemErrors, ThrowOnError> => (options.client ?? client).get<GetCollectionItemResponses, GetCollectionItemErrors, ThrowOnError>({ url: '/collections/{collectionId}/items/{itemId}', ...options });
+
+/**
+ * Saves an item: its slug, values and status. Publishing is saving with status `published`.
+ */
+export const saveCollectionItem = <ThrowOnError extends boolean = false>(options: Options<SaveCollectionItemData, ThrowOnError>): RequestResult<SaveCollectionItemResponses, SaveCollectionItemErrors, ThrowOnError> => (options.client ?? client).put<SaveCollectionItemResponses, SaveCollectionItemErrors, ThrowOnError>({
+    url: '/collections/{collectionId}/items/{itemId}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Lists the media items of a website, newest first.

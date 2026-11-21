@@ -16,7 +16,10 @@ const { websites } = getWebsites()
 const { getActiveWebsite, setActiveWebsite } = useActiveWebsite()
 const activeWebsite = getActiveWebsite()
 const { getPages, createPage, setPageStatus, deletePage } = usePages()
-const { pages, isPending, isError, isFetching, refetch } = getPages(() => activeWebsite.value.id)
+const pagesQuery = getPages(() => activeWebsite.value.id)
+const { isPending, isError, isFetching, refetch } = pagesQuery
+/** Detail pages belong to their collection and are opened from there. */
+const pages = computed(() => pagesQuery.pages.value.filter((p) => p.kind === 'static'))
 const route = useRoute()
 const router = useRouter()
 

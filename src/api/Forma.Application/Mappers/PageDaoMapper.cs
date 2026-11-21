@@ -8,10 +8,12 @@ namespace Forma.Application.Mappers;
 public static partial class PageDaoMapper
 {
     [MapperIgnoreSource(nameof(PageDao.Website))]
+    [MapperIgnoreSource(nameof(PageDao.Collection))]
     public static partial Page ToEntity(this PageDao dao);
 
     public static partial IReadOnlyList<Page> ToEntities(this IReadOnlyList<PageDao> daos);
 
     [MapperIgnoreTarget(nameof(PageDao.Website))]
+    [MapperIgnoreTarget(nameof(PageDao.Collection))]
     public static partial PageDao ToDao(this Page page);
 }

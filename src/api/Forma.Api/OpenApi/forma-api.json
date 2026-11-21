@@ -5,6 +5,448 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/collections": {
+      "get": {
+        "tags": [
+          "Collections"
+        ],
+        "summary": "Lists the collections of a website, by name.",
+        "operationId": "GetCollections",
+        "parameters": [
+          {
+            "name": "websiteId",
+            "in": "query",
+            "description": "The website whose collections are listed.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The website's collections with their fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CollectionDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Collections"
+        ],
+        "summary": "Creates a collection and the detail page its items are shown with.",
+        "description": "The detail page starts empty; design it in the studio like any page.",
+        "operationId": "CreateCollection",
+        "requestBody": {
+          "description": "Cancels the request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCollectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created; the body is the collection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid, or another collection uses the slug.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No website exists with this id."
+          }
+        }
+      }
+    },
+    "/collections/{collectionId}": {
+      "get": {
+        "tags": [
+          "Collections"
+        ],
+        "summary": "Gets a collection with its fields.",
+        "operationId": "GetCollection",
+        "parameters": [
+          {
+            "name": "collectionId",
+            "in": "path",
+            "description": "The collection's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The collection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No collection exists with this id."
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Collections"
+        ],
+        "summary": "Changes a collection's names, slug and fields.",
+        "description": "Items keep their values for fields that stay. Values of removed fields are dropped the next time an item is saved.\nPages that show a removed field report it when they are next published.",
+        "operationId": "UpdateCollection",
+        "parameters": [
+          {
+            "name": "collectionId",
+            "in": "path",
+            "description": "The collection's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Cancels the request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCollectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Saved; the body is the collection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid, or another collection uses the slug.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No collection exists with this id."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Collections"
+        ],
+        "summary": "Deletes a collection, its items and its detail page.",
+        "operationId": "DeleteCollection",
+        "parameters": [
+          {
+            "name": "collectionId",
+            "in": "path",
+            "description": "The collection's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          },
+          "404": {
+            "description": "No collection exists with this id."
+          }
+        }
+      }
+    },
+    "/collections/{collectionId}/items": {
+      "get": {
+        "tags": [
+          "Collection items"
+        ],
+        "summary": "Lists a collection's items, newest first.",
+        "operationId": "GetCollectionItems",
+        "parameters": [
+          {
+            "name": "collectionId",
+            "in": "path",
+            "description": "The collection's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The collection's items, newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CollectionItemDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No collection exists with this id."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Collection items"
+        ],
+        "summary": "Adds an item to a collection.",
+        "description": "Values are checked against the collection's fields: types, required fields, links, images and rich text.",
+        "operationId": "CreateCollectionItem",
+        "parameters": [
+          {
+            "name": "collectionId",
+            "in": "path",
+            "description": "The collection's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Cancels the request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCollectionItemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created; the body is the item.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionItemDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid; errors are keyed `slug` or `values.{fieldId}`.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No collection exists with this id."
+          }
+        }
+      }
+    },
+    "/collections/{collectionId}/items/{itemId}": {
+      "get": {
+        "tags": [
+          "Collection items"
+        ],
+        "summary": "Gets one item of a collection.",
+        "operationId": "GetCollectionItem",
+        "parameters": [
+          {
+            "name": "collectionId",
+            "in": "path",
+            "description": "The collection's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "description": "The item's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The item.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionItemDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The collection has no item with this id."
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Collection items"
+        ],
+        "summary": "Saves an item: its slug, values and status. Publishing is saving with status `published`.",
+        "operationId": "SaveCollectionItem",
+        "parameters": [
+          {
+            "name": "collectionId",
+            "in": "path",
+            "description": "The collection's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "description": "The item's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Cancels the request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCollectionItemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Saved; the body is the item.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionItemDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid; errors are keyed `slug` or `values.{fieldId}`.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The collection has no item with this id."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Collection items"
+        ],
+        "summary": "Deletes an item.",
+        "operationId": "DeleteCollectionItem",
+        "parameters": [
+          {
+            "name": "collectionId",
+            "in": "path",
+            "description": "The collection's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "description": "The item's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          },
+          "404": {
+            "description": "The collection has no item with this id."
+          }
+        }
+      }
+    },
     "/media": {
       "get": {
         "tags": [
@@ -476,6 +918,27 @@
         },
         "additionalProperties": false
       },
+      "Binding": {
+        "required": [
+          "scope",
+          "field"
+        ],
+        "type": "object",
+        "properties": {
+          "scope": {
+            "$ref": "#/components/schemas/BindingScope"
+          },
+          "field": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BindingScope": {
+        "enum": [
+          "page"
+        ]
+      },
       "Block": {
         "required": [
           "type"
@@ -529,6 +992,9 @@
           },
           {
             "$ref": "#/components/schemas/BlockNavBlock"
+          },
+          {
+            "$ref": "#/components/schemas/BlockCollectionCardsBlock"
           }
         ],
         "discriminator": {
@@ -549,7 +1015,8 @@
             "faq": "#/components/schemas/BlockFaqBlock",
             "testimonials": "#/components/schemas/BlockTestimonialsBlock",
             "features": "#/components/schemas/BlockFeaturesBlock",
-            "nav": "#/components/schemas/BlockNavBlock"
+            "nav": "#/components/schemas/BlockNavBlock",
+            "collectionCards": "#/components/schemas/BlockCollectionCardsBlock"
           }
         }
       },
@@ -582,6 +1049,15 @@
           },
           "style": {
             "$ref": "#/components/schemas/BlockStyle"
+          },
+          "bindings": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Binding"
+            }
           }
         },
         "additionalProperties": false
@@ -607,6 +1083,15 @@
           },
           "style": {
             "$ref": "#/components/schemas/BlockStyle"
+          },
+          "bindings": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Binding"
+            }
           }
         },
         "additionalProperties": false
@@ -632,6 +1117,49 @@
           },
           "style": {
             "$ref": "#/components/schemas/BlockStyle"
+          },
+          "bindings": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Binding"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "BlockCollectionCardsBlock": {
+        "required": [
+          "props",
+          "id",
+          "style"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "collectionCards"
+            ],
+            "type": "string"
+          },
+          "props": {
+            "$ref": "#/components/schemas/CollectionCardsProps"
+          },
+          "id": {
+            "type": "string"
+          },
+          "style": {
+            "$ref": "#/components/schemas/BlockStyle"
+          },
+          "bindings": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Binding"
+            }
           }
         },
         "additionalProperties": false
@@ -657,6 +1185,15 @@
           },
           "style": {
             "$ref": "#/components/schemas/BlockStyle"
+          },
+          "bindings": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Binding"
+            }
           }
         },
         "additionalProperties": false
@@ -682,6 +1219,15 @@
           },
           "style": {
             "$ref": "#/components/schemas/BlockStyle"
+          },
+          "bindings": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Binding"
+            }
           }
         },
         "additionalProperties": false
@@ -707,6 +1253,15 @@
           },
           "style": {
             "$ref": "#/components/schemas/BlockStyle"
+          },
+          "bindings": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Binding"
+            }
           }
         },
         "additionalProperties": false
@@ -732,6 +1287,15 @@
           },
           "style": {
             "$ref": "#/components/schemas/BlockStyle"
+          },
+          "bindings": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Binding"
+            }
           }
         },
         "additionalProperties": false
@@ -757,6 +1321,15 @@
           },
           "style": {
             "$ref": "#/components/schemas/BlockStyle"
+          },
+          "bindings": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Binding"
+            }
           }
         },
         "additionalProperties": false
@@ -782,6 +1355,15 @@
           },
           "style": {
             "$ref": "#/components/schemas/BlockStyle"
+          },
+          "bindings": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Binding"
+            }
           }
         },
         "additionalProperties": false
@@ -807,6 +1389,15 @@
           },
           "style": {
             "$ref": "#/components/schemas/BlockStyle"
+          },
+          "bindings": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Binding"
+            }
           }
         },
         "additionalProperties": false
@@ -832,6 +1423,15 @@
           },
           "style": {
             "$ref": "#/components/schemas/BlockStyle"
+          },
+          "bindings": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Binding"
+            }
           }
         },
         "additionalProperties": false
@@ -865,6 +1465,15 @@
           },
           "style": {
             "$ref": "#/components/schemas/BlockStyle"
+          },
+          "bindings": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Binding"
+            }
           }
         },
         "additionalProperties": false
@@ -890,6 +1499,15 @@
           },
           "style": {
             "$ref": "#/components/schemas/BlockStyle"
+          },
+          "bindings": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Binding"
+            }
           }
         },
         "additionalProperties": false
@@ -953,6 +1571,15 @@
           },
           "style": {
             "$ref": "#/components/schemas/BlockStyle"
+          },
+          "bindings": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Binding"
+            }
           }
         },
         "additionalProperties": false
@@ -978,6 +1605,15 @@
           },
           "style": {
             "$ref": "#/components/schemas/BlockStyle"
+          },
+          "bindings": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Binding"
+            }
           }
         },
         "additionalProperties": false
@@ -1003,6 +1639,15 @@
           },
           "style": {
             "$ref": "#/components/schemas/BlockStyle"
+          },
+          "bindings": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Binding"
+            }
           }
         },
         "additionalProperties": false
@@ -1100,6 +1745,281 @@
         },
         "additionalProperties": false
       },
+      "CollectionCardsProps": {
+        "required": [
+          "collectionId",
+          "imageField",
+          "titleField",
+          "textField",
+          "sort",
+          "limit",
+          "columns",
+          "gap",
+          "radius",
+          "card",
+          "buttonLabel",
+          "emptyText"
+        ],
+        "type": "object",
+        "properties": {
+          "collectionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "imageField": {
+            "type": "string"
+          },
+          "titleField": {
+            "type": "string"
+          },
+          "textField": {
+            "type": "string"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/CollectionCardsSort"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "columns": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gap": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "radius": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "card": {
+            "type": "boolean"
+          },
+          "buttonLabel": {
+            "type": "string"
+          },
+          "emptyText": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CollectionCardsSort": {
+        "enum": [
+          "newest",
+          "oldest"
+        ]
+      },
+      "CollectionDto": {
+        "required": [
+          "id",
+          "websiteId",
+          "name",
+          "singularName",
+          "slug",
+          "icon",
+          "fields",
+          "detailPageId",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The collection's id.",
+            "format": "uuid"
+          },
+          "websiteId": {
+            "type": "string",
+            "description": "The website the collection belongs to.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Plural name, e.g. `Blog posts`."
+          },
+          "singularName": {
+            "type": "string",
+            "description": "What one item is called, e.g. `Blog post`."
+          },
+          "slug": {
+            "type": "string",
+            "description": "The first part of an item's address: `/{slug}/{item}`."
+          },
+          "icon": {
+            "type": "string",
+            "description": "The icon the app shows it with, e.g. `newspaper`."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CollectionFieldDto"
+            },
+            "description": "The fields every item has, in display order."
+          },
+          "detailPageId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The page every item is shown with, designed in the studio.",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the collection was created (UTC).",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "When the collection last changed (UTC).",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A website's collection, such as <i>Blog posts</i>, with its fields."
+      },
+      "CollectionFieldDto": {
+        "required": [
+          "id",
+          "label",
+          "type",
+          "required"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable id, e.g. `fld_ab12cd34`; item values and page bindings refer to it."
+          },
+          "label": {
+            "type": "string",
+            "description": "Shown in the item editor and the studio, e.g. `Cover image`."
+          },
+          "type": {
+            "description": "What kind of value the field holds.",
+            "$ref": "#/components/schemas/CollectionFieldType"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Whether every item must fill it in."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One field of a collection."
+      },
+      "CollectionFieldRequest": {
+        "required": [
+          "id",
+          "label",
+          "type",
+          "required"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The field's id; `null` for a new field, which is given one."
+          },
+          "label": {
+            "type": "string",
+            "description": "Shown in the item editor and the studio, e.g. `Cover image`."
+          },
+          "type": {
+            "description": "What kind of value the field holds.",
+            "$ref": "#/components/schemas/CollectionFieldType"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Whether every item must fill it in."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A field as the collection editor sends it."
+      },
+      "CollectionFieldType": {
+        "enum": [
+          "text",
+          "richText",
+          "image",
+          "url",
+          "number",
+          "date",
+          "boolean"
+        ]
+      },
+      "CollectionItemDto": {
+        "required": [
+          "id",
+          "collectionId",
+          "slug",
+          "status",
+          "values",
+          "createdAt",
+          "updatedAt",
+          "publishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The item's id.",
+            "format": "uuid"
+          },
+          "collectionId": {
+            "type": "string",
+            "description": "The collection the item belongs to.",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string",
+            "description": "The last part of the item's address: `/{collection}/{slug}`."
+          },
+          "status": {
+            "description": "`published` once visitors see it.",
+            "$ref": "#/components/schemas/CollectionItemStatus"
+          },
+          "values": {
+            "type": "object",
+            "description": "The item's values keyed by field id: a string, number or boolean depending on the field's type."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the item was created (UTC).",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "When the item last changed (UTC).",
+            "format": "date-time"
+          },
+          "publishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the item was last published (UTC), or `null` when it never was.",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One item of a collection, e.g. one blog post."
+      },
+      "CollectionItemStatus": {
+        "enum": [
+          "draft",
+          "published"
+        ]
+      },
       "ContentIssueDto": {
         "required": [
           "severity",
@@ -1164,6 +2084,49 @@
           "wide",
           "full"
         ]
+      },
+      "CreateCollectionRequest": {
+        "required": [
+          "websiteId",
+          "name",
+          "singularName",
+          "slug",
+          "icon",
+          "fields"
+        ],
+        "type": "object",
+        "properties": {
+          "websiteId": {
+            "type": "string",
+            "description": "The website the collection belongs to.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Plural name, e.g. `Blog posts`."
+          },
+          "singularName": {
+            "type": "string",
+            "description": "What one item is called, e.g. `Blog post`."
+          },
+          "slug": {
+            "type": "string",
+            "description": "Lowercase words separated by dashes, e.g. `blog`; unique within the website."
+          },
+          "icon": {
+            "type": "string",
+            "description": "The icon the app shows it with, e.g. `newspaper`."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CollectionFieldRequest"
+            },
+            "description": "The fields, in display order."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Creates a collection, and the detail page its items are shown with."
       },
       "DividerProps": {
         "required": [
@@ -1722,6 +2685,8 @@
           "title",
           "slug",
           "status",
+          "kind",
+          "collectionId",
           "createdAt",
           "updatedAt"
         ],
@@ -1729,31 +2694,57 @@
         "properties": {
           "id": {
             "type": "string",
+            "description": "The page's id.",
             "format": "uuid"
           },
           "websiteId": {
             "type": "string",
+            "description": "The website the page belongs to.",
             "format": "uuid"
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "The page's title."
           },
           "slug": {
-            "type": "string"
+            "type": "string",
+            "description": "The page's address without the leading slash; `{collection}/{item}` for a detail page."
           },
           "status": {
+            "description": "Whether the page is published.",
             "$ref": "#/components/schemas/PageStatus"
+          },
+          "kind": {
+            "description": "`static` for a page of its own; `collectionTemplate` for a collection's detail page.",
+            "$ref": "#/components/schemas/PageKind"
+          },
+          "collectionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The collection a detail page shows the items of; `null` for other pages.",
+            "format": "uuid"
           },
           "createdAt": {
             "type": "string",
+            "description": "When the page was created (UTC).",
             "format": "date-time"
           },
           "updatedAt": {
             "type": "string",
+            "description": "When the page last changed (UTC).",
             "format": "date-time"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "A page of a website."
+      },
+      "PageKind": {
+        "enum": [
+          "static",
+          "collectionTemplate"
+        ]
       },
       "PageStatus": {
         "enum": [
@@ -1865,6 +2856,30 @@
           }
         },
         "additionalProperties": false
+      },
+      "SaveCollectionItemRequest": {
+        "required": [
+          "slug",
+          "values",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "Lowercase words separated by dashes, e.g. `opening-our-studio`; unique within the collection."
+          },
+          "values": {
+            "type": "object",
+            "description": "The item's values keyed by field id. Leave a field out (or empty) when it has no value."
+          },
+          "status": {
+            "description": "`published` to show the item to visitors, `draft` to keep it hidden.",
+            "$ref": "#/components/schemas/CollectionItemStatus"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Creates or saves an item."
       },
       "Section": {
         "required": [
@@ -2173,6 +3188,43 @@
           "muted"
         ]
       },
+      "UpdateCollectionRequest": {
+        "required": [
+          "name",
+          "singularName",
+          "slug",
+          "icon",
+          "fields"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Plural name, e.g. `Blog posts`."
+          },
+          "singularName": {
+            "type": "string",
+            "description": "What one item is called, e.g. `Blog post`."
+          },
+          "slug": {
+            "type": "string",
+            "description": "Lowercase words separated by dashes, e.g. `blog`; unique within the website."
+          },
+          "icon": {
+            "type": "string",
+            "description": "The icon the app shows it with, e.g. `newspaper`."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CollectionFieldRequest"
+            },
+            "description": "The complete list of fields, in display order."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Changes a collection: its names, slug and fields. Items keep their values for fields that stay."
+      },
       "UploadMediaRequest": {
         "required": [
           "websiteId",
@@ -2294,6 +3346,12 @@
     }
   },
   "tags": [
+    {
+      "name": "Collections"
+    },
+    {
+      "name": "Collection items"
+    },
     {
       "name": "Media"
     },

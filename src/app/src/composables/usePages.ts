@@ -16,6 +16,8 @@ function toPage(dto: PageDto): Page {
     slug: dto.slug,
     path: `/${dto.slug}`,
     status: dto.status === 'published' ? 'live' : 'draft',
+    kind: dto.kind,
+    collectionId: dto.collectionId,
     updatedAt: Date.parse(dto.updatedAt),
   }
 }
@@ -80,7 +82,17 @@ export function usePages() {
   /** Adds a draft page without logging or notifying, e.g. the Home page of a new website. */
   function addPage(websiteId: string, title: string, slug: string) {
     const now = new Date().toISOString()
-    const dto: PageDto = { id: crypto.randomUUID(), websiteId, title, slug, status: 'draft', createdAt: now, updatedAt: now }
+    const dto: PageDto = {
+      id: crypto.randomUUID(),
+      websiteId,
+      title,
+      slug,
+      status: 'draft',
+      kind: 'static',
+      collectionId: null,
+      createdAt: now,
+      updatedAt: now,
+    }
     updateCachedPages(websiteId, (dtos) => [dto, ...dtos])
     return toPage(dto)
   }

@@ -83,7 +83,7 @@ function setTitle(title: string) {
   <div v-else class="flex h-dvh flex-col">
     <PreviewToolbar v-model:device="device" :website="website" :pages="pages" :page="page" :path="path" @go="go" />
 
-    <PreviewFrame v-if="document?.sections.length" ref="frame" :document="document" :device="device" @navigate="navigate" />
+    <PreviewFrame v-if="document?.sections.length" ref="frame" :website-id="websiteId" :document="document" :device="device" @navigate="navigate" />
 
     <div v-else class="flex flex-1 flex-col items-center justify-center gap-4 bg-[#ecebe8] p-6 text-center">
       <span class="grid size-14 place-items-center rounded-2xl bg-white shadow-soft">
