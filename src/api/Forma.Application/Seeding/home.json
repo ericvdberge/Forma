@@ -66,22 +66,20 @@
             "logo": "forma.",
             "links": [
               {
-                "label": "Solutions",
-                "href": "#",
-                "menu": true
+                "label": "Home",
+                "href": "/"
               },
               {
-                "label": "Resources",
-                "href": "#",
-                "menu": true
+                "label": "About",
+                "href": "/about"
               },
               {
-                "label": "Pricing",
-                "href": "#"
+                "label": "Contact",
+                "href": "/contact"
               }
             ],
             "ctaLabel": "Get started",
-            "ctaHref": "#",
+            "ctaHref": "/contact",
             "orientation": "horizontal",
             "card": true
           },
@@ -168,7 +166,7 @@
           "type": "button",
           "props": {
             "label": "Start creating",
-            "href": "/signup",
+            "href": "/contact",
             "variant": "primary",
             "arrow": true,
             "size": "md"
@@ -192,7 +190,7 @@
           "type": "button",
           "props": {
             "label": "Explore templates",
-            "href": "/templates",
+            "href": "/about",
             "variant": "secondary",
             "arrow": false,
             "size": "md"
@@ -454,7 +452,7 @@
           "type": "button",
           "props": {
             "label": "See how it works",
-            "href": "#",
+            "href": "/about",
             "variant": "secondary",
             "arrow": true,
             "size": "sm"
@@ -948,7 +946,7 @@
           "type": "button",
           "props": {
             "label": "Get started",
-            "href": "#",
+            "href": "/contact",
             "variant": "accent",
             "arrow": true,
             "size": "md"
@@ -1032,24 +1030,20 @@
             "logo": "forma.",
             "links": [
               {
-                "label": "Product",
-                "href": "#"
+                "label": "Home",
+                "href": "/"
               },
               {
-                "label": "Templates",
-                "href": "#"
-              },
-              {
-                "label": "Docs",
-                "href": "#"
+                "label": "About",
+                "href": "/about"
               },
               {
                 "label": "Contact",
-                "href": "#"
+                "href": "/contact"
               }
             ],
             "ctaLabel": "",
-            "ctaHref": "#",
+            "ctaHref": "/contact",
             "orientation": "horizontal",
             "card": false
           },

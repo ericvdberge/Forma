@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Ellipsis, FileText, Pencil, Plus, Search, Trash2, TriangleAlert, Upload, Undo2, X } from 'lucide-vue-next'
+import { Ellipsis, Eye, FileText, Pencil, Plus, Search, Trash2, TriangleAlert, Upload, Undo2, X } from 'lucide-vue-next'
 import { FButton, FCard, FIconButton, FInput, FSelect, FSkeleton, FStatus, cn } from '@forma/design-system'
 import LinkButton from '@/components/LinkButton.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -126,6 +126,9 @@ function act(id: string, action: 'publish' | 'unpublish' | 'delete') {
         </p>
       </template>
       <FSelect v-model="websiteId" label="Website" hide-label size="sm" :options="websiteOptions" class="w-48" />
+      <LinkButton :to="{ name: 'preview', params: { websiteId: activeWebsite.id } }" variant="secondary">
+        <Eye class="size-4" aria-hidden="true" /> Preview website
+      </LinkButton>
       <FButton :disabled="isPending || isError" @click="openCreate"><Plus class="size-4" aria-hidden="true" /> New page</FButton>
     </PageHeader>
 
@@ -278,6 +281,13 @@ function act(id: string, action: 'publish' | 'unpublish' | 'delete') {
                       >
                         <Undo2 class="size-4" aria-hidden="true" /> Revert to draft
                       </button>
+                      <RouterLink
+                        role="menuitem"
+                        :to="{ name: 'preview', params: { websiteId: p.websiteId, slug: p.slug } }"
+                        class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm hover:bg-canvas"
+                      >
+                        <Eye class="size-4" aria-hidden="true" /> Preview
+                      </RouterLink>
                       <div class="my-1 h-px bg-charcoal/[0.06]" />
                       <button
                         role="menuitem"

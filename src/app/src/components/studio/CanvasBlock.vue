@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { EyeOff } from 'lucide-vue-next'
 import { cn } from '@forma/design-system'
-import { useStudio } from '@/composables/useStudio'
+import { useCanvas } from '@/studio/canvas'
 import { blockDefinition } from '@/studio/blocks'
 import type { RenderContext } from '@/studio/render'
 import type { Block, Section } from '@/studio/types'
@@ -17,7 +17,7 @@ const props = defineProps<{
   indicator: 'before' | 'after' | null
 }>()
 
-const studio = useStudio()
+const studio = useCanvas()
 const def = computed(() => blockDefinition(props.block.type))
 const selected = computed(() => studio.selection.value?.kind === 'block' && studio.selection.value.blockId === props.block.id)
 const hidden = computed(() => !props.block.style.visibility[props.ctx.bp])
