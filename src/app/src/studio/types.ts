@@ -159,8 +159,15 @@ export interface PageDocument {
 /** What the studio keeps per page: the working draft and the last published version, as loaded from GET /pages/{id}/content. Edits stay in the browser until Publish. */
 export interface StudioPage {
   pageId: string
+  /** The editor's working copy. */
   draft: PageDocument
-  /** Null when the page was never published. */
+  /** What the server has: the saved draft, or the live version without one. Differs from `draft` while there are unsaved changes. */
+  saved: PageDocument | null
+  /** Whether the server has a draft: changes that are saved but not live. */
+  hasDraft: boolean
+  /** When the draft was last saved. */
+  draftSavedAt: number | null
+  /** What visitors see; null when the page was never published. */
   published: PageDocument | null
   updatedAt: number
   publishedAt: number | null

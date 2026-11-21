@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/vue-query';
 
 import { client } from '../client.gen';
-import { createCollection, createCollectionItem, deleteCollection, deleteCollectionItem, deleteMedia, getCollection, getCollectionItem, getCollectionItems, getCollections, getMediaImage, getMediaItem, getMediaItems, getMediaThumbnail, getPageContent, getPages, getWebsites, type Options, publishPageContent, saveCollectionItem, updateCollection, uploadMedia } from '../sdk.gen';
-import type { CreateCollectionData, CreateCollectionError, CreateCollectionItemData, CreateCollectionItemError, CreateCollectionItemResponse, CreateCollectionResponse, DeleteCollectionData, DeleteCollectionItemData, DeleteCollectionItemResponse, DeleteCollectionResponse, DeleteMediaData, DeleteMediaResponse, GetCollectionData, GetCollectionItemData, GetCollectionItemResponse, GetCollectionItemsData, GetCollectionItemsResponse, GetCollectionResponse, GetCollectionsData, GetCollectionsResponse, GetMediaImageData, GetMediaImageResponse, GetMediaItemData, GetMediaItemResponse, GetMediaItemsData, GetMediaItemsResponse, GetMediaThumbnailData, GetMediaThumbnailResponse, GetPageContentData, GetPageContentResponse, GetPagesData, GetPagesResponse, GetWebsitesData, GetWebsitesResponse, PublishPageContentData, PublishPageContentError, PublishPageContentResponse, SaveCollectionItemData, SaveCollectionItemError, SaveCollectionItemResponse, UpdateCollectionData, UpdateCollectionError, UpdateCollectionResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
+import { cancelScheduledPublish, checkPublish, createCollection, createCollectionItem, deleteCollection, deleteCollectionItem, deleteMedia, discardCollectionDraft, discardCollectionItemDraft, discardPageDraft, getCollection, getCollectionFieldUsages, getCollectionItem, getCollectionItems, getCollections, getDrafts, getMediaImage, getMediaItem, getMediaItems, getMediaThumbnail, getPageContent, getPages, getScheduledPublishes, getWebsites, type Options, publish, saveCollectionDraft, saveCollectionItemDraft, savePageDraft, schedulePublish, updateCollection, updateScheduledPublish, uploadMedia } from '../sdk.gen';
+import type { CancelScheduledPublishData, CancelScheduledPublishResponse, CheckPublishData, CheckPublishError, CheckPublishResponse, CreateCollectionData, CreateCollectionError, CreateCollectionItemData, CreateCollectionItemError, CreateCollectionItemResponse, CreateCollectionResponse, DeleteCollectionData, DeleteCollectionItemData, DeleteCollectionItemResponse, DeleteCollectionResponse, DeleteMediaData, DeleteMediaResponse, DiscardCollectionDraftData, DiscardCollectionDraftError, DiscardCollectionDraftResponse, DiscardCollectionItemDraftData, DiscardCollectionItemDraftError, DiscardCollectionItemDraftResponse, DiscardPageDraftData, DiscardPageDraftResponse, GetCollectionData, GetCollectionFieldUsagesData, GetCollectionFieldUsagesResponse, GetCollectionItemData, GetCollectionItemResponse, GetCollectionItemsData, GetCollectionItemsResponse, GetCollectionResponse, GetCollectionsData, GetCollectionsResponse, GetDraftsData, GetDraftsResponse, GetMediaImageData, GetMediaImageResponse, GetMediaItemData, GetMediaItemResponse, GetMediaItemsData, GetMediaItemsResponse, GetMediaThumbnailData, GetMediaThumbnailResponse, GetPageContentData, GetPageContentResponse, GetPagesData, GetPagesResponse, GetScheduledPublishesData, GetScheduledPublishesResponse, GetWebsitesData, GetWebsitesResponse, PublishData, PublishError, PublishResponse, SaveCollectionDraftData, SaveCollectionDraftError, SaveCollectionDraftResponse, SaveCollectionItemDraftData, SaveCollectionItemDraftError, SaveCollectionItemDraftResponse, SavePageDraftData, SavePageDraftError, SavePageDraftResponse, SchedulePublishData, SchedulePublishError, SchedulePublishResponse, UpdateCollectionData, UpdateCollectionError, UpdateCollectionResponse, UpdateScheduledPublishData, UpdateScheduledPublishError, UpdateScheduledPublishResponse, UploadMediaData, UploadMediaError, UploadMediaResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -58,9 +58,9 @@ export const getCollectionsOptions = (options: Options<GetCollectionsData>) => q
 });
 
 /**
- * Creates a collection and the detail page its items are shown with.
+ * Creates a collection, as a draft, and the detail page its items are shown with.
  *
- * The detail page starts empty; design it in the studio like any page.
+ * Visitors don't see the collection until it is published. The detail page starts empty; design it in the studio like any page.
  */
 export const createCollectionMutation = (options?: Partial<Options<CreateCollectionData>>): UseMutationOptions<CreateCollectionResponse, CreateCollectionError, Options<CreateCollectionData>> => {
     const mutationOptions: UseMutationOptions<CreateCollectionResponse, CreateCollectionError, Options<CreateCollectionData>> = {
@@ -96,7 +96,7 @@ export const deleteCollectionMutation = (options?: Partial<Options<DeleteCollect
 export const getCollectionQueryKey = (options: Options<GetCollectionData>) => createQueryKey('getCollection', options);
 
 /**
- * Gets a collection with its fields.
+ * Gets a collection with its fields and draft.
  */
 export const getCollectionOptions = (options: Options<GetCollectionData>) => queryOptions<GetCollectionResponse, DefaultError, GetCollectionResponse, ReturnType<typeof getCollectionQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -112,10 +112,7 @@ export const getCollectionOptions = (options: Options<GetCollectionData>) => que
 });
 
 /**
- * Changes a collection's names, slug and fields.
- *
- * Items keep their values for fields that stay. Values of removed fields are dropped the next time an item is saved.
- * Pages that show a removed field report it when they are next published.
+ * Changes a collection's names and icon. These can't break anything, so they are saved directly.
  */
 export const updateCollectionMutation = (options?: Partial<Options<UpdateCollectionData>>): UseMutationOptions<UpdateCollectionResponse, UpdateCollectionError, Options<UpdateCollectionData>> => {
     const mutationOptions: UseMutationOptions<UpdateCollectionResponse, UpdateCollectionError, Options<UpdateCollectionData>> = {
@@ -131,10 +128,65 @@ export const updateCollectionMutation = (options?: Partial<Options<UpdateCollect
     return mutationOptions;
 };
 
+export const getCollectionFieldUsagesQueryKey = (options: Options<GetCollectionFieldUsagesData>) => createQueryKey('getCollectionFieldUsages', options);
+
+/**
+ * Lists which live pages show which of the collection's fields: "Used by…" in the field editor.
+ */
+export const getCollectionFieldUsagesOptions = (options: Options<GetCollectionFieldUsagesData>) => queryOptions<GetCollectionFieldUsagesResponse, DefaultError, GetCollectionFieldUsagesResponse, ReturnType<typeof getCollectionFieldUsagesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getCollectionFieldUsages({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getCollectionFieldUsagesQueryKey(options)
+});
+
+/**
+ * Discards a collection's draft: its slug and fields go back to the live version, and it leaves any scheduled publish.
+ */
+export const discardCollectionDraftMutation = (options?: Partial<Options<DiscardCollectionDraftData>>): UseMutationOptions<DiscardCollectionDraftResponse, DiscardCollectionDraftError, Options<DiscardCollectionDraftData>> => {
+    const mutationOptions: UseMutationOptions<DiscardCollectionDraftResponse, DiscardCollectionDraftError, Options<DiscardCollectionDraftData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await discardCollectionDraft({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Saves a collection's draft: its slug and fields, and where the values of removed fields go.
+ *
+ * Nothing changes on the site until the draft is published. Then the values of each removed field move to the field
+ * `valueMoves` names, or are removed; pages that show a removed field must be published with it.
+ */
+export const saveCollectionDraftMutation = (options?: Partial<Options<SaveCollectionDraftData>>): UseMutationOptions<SaveCollectionDraftResponse, SaveCollectionDraftError, Options<SaveCollectionDraftData>> => {
+    const mutationOptions: UseMutationOptions<SaveCollectionDraftResponse, SaveCollectionDraftError, Options<SaveCollectionDraftData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await saveCollectionDraft({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
 export const getCollectionItemsQueryKey = (options: Options<GetCollectionItemsData>) => createQueryKey('getCollectionItems', options);
 
 /**
- * Lists a collection's items, newest first.
+ * Lists a collection's items, newest first, with their drafts.
  */
 export const getCollectionItemsOptions = (options: Options<GetCollectionItemsData>) => queryOptions<GetCollectionItemsResponse, DefaultError, GetCollectionItemsResponse, ReturnType<typeof getCollectionItemsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -150,9 +202,9 @@ export const getCollectionItemsOptions = (options: Options<GetCollectionItemsDat
 });
 
 /**
- * Adds an item to a collection.
+ * Adds an item to a collection, as a draft. Visitors don't see it until it is published.
  *
- * Values are checked against the collection's fields: types, required fields, links, images and rich text.
+ * Values are checked against the collection's fields (its draft's, when it has one). Required fields are checked when it is published.
  */
 export const createCollectionItemMutation = (options?: Partial<Options<CreateCollectionItemData>>): UseMutationOptions<CreateCollectionItemResponse, CreateCollectionItemError, Options<CreateCollectionItemData>> => {
     const mutationOptions: UseMutationOptions<CreateCollectionItemResponse, CreateCollectionItemError, Options<CreateCollectionItemData>> = {
@@ -204,12 +256,29 @@ export const getCollectionItemOptions = (options: Options<GetCollectionItemData>
 });
 
 /**
- * Saves an item: its slug, values and status. Publishing is saving with status `published`.
+ * Discards an item's draft: it goes back to its live version, and leaves any scheduled publish.
  */
-export const saveCollectionItemMutation = (options?: Partial<Options<SaveCollectionItemData>>): UseMutationOptions<SaveCollectionItemResponse, SaveCollectionItemError, Options<SaveCollectionItemData>> => {
-    const mutationOptions: UseMutationOptions<SaveCollectionItemResponse, SaveCollectionItemError, Options<SaveCollectionItemData>> = {
+export const discardCollectionItemDraftMutation = (options?: Partial<Options<DiscardCollectionItemDraftData>>): UseMutationOptions<DiscardCollectionItemDraftResponse, DiscardCollectionItemDraftError, Options<DiscardCollectionItemDraftData>> => {
+    const mutationOptions: UseMutationOptions<DiscardCollectionItemDraftResponse, DiscardCollectionItemDraftError, Options<DiscardCollectionItemDraftData>> = {
         mutationFn: async (fnOptions) => {
-            const { data } = await saveCollectionItem({
+            const { data } = await discardCollectionItemDraft({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Saves an item's draft: its slug and values. Nothing changes on the site until it is published.
+ */
+export const saveCollectionItemDraftMutation = (options?: Partial<Options<SaveCollectionItemDraftData>>): UseMutationOptions<SaveCollectionItemDraftResponse, SaveCollectionItemDraftError, Options<SaveCollectionItemDraftData>> => {
+    const mutationOptions: UseMutationOptions<SaveCollectionItemDraftResponse, SaveCollectionItemDraftError, Options<SaveCollectionItemDraftData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await saveCollectionItemDraft({
                 ...options,
                 ...fnOptions,
                 throwOnError: true
@@ -336,7 +405,7 @@ export const getMediaThumbnailOptions = (options: Options<GetMediaThumbnailData>
 export const getPageContentQueryKey = (options: Options<GetPageContentData>) => createQueryKey('getPageContent', options);
 
 /**
- * Gets a page's content.
+ * Gets a page's content: what visitors see, or the draft.
  */
 export const getPageContentOptions = (options: Options<GetPageContentData>) => queryOptions<GetPageContentResponse, DefaultError, GetPageContentResponse, ReturnType<typeof getPageContentQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -352,16 +421,32 @@ export const getPageContentOptions = (options: Options<GetPageContentData>) => q
 });
 
 /**
- * Publishes a page: stores the document and marks the content published. The studio calls this on Publish.
- *
- * The document must pass the structural rules (block types, ranges, safe links, allowed rich text) and the content
- * rules (no missing images, links that go somewhere). Errors are answered with a validation problem whose
- * `issues` point at the sections and blocks to fix; warnings don't block and come back with the result.
+ * Discards a page's draft: the page goes back to its live version, and leaves any scheduled publish.
  */
-export const publishPageContentMutation = (options?: Partial<Options<PublishPageContentData>>): UseMutationOptions<PublishPageContentResponse, PublishPageContentError, Options<PublishPageContentData>> => {
-    const mutationOptions: UseMutationOptions<PublishPageContentResponse, PublishPageContentError, Options<PublishPageContentData>> = {
+export const discardPageDraftMutation = (options?: Partial<Options<DiscardPageDraftData>>): UseMutationOptions<DiscardPageDraftResponse, DefaultError, Options<DiscardPageDraftData>> => {
+    const mutationOptions: UseMutationOptions<DiscardPageDraftResponse, DefaultError, Options<DiscardPageDraftData>> = {
         mutationFn: async (fnOptions) => {
-            const { data } = await publishPageContent({
+            const { data } = await discardPageDraft({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Saves a page's draft. Nothing changes on the site until the draft is published.
+ *
+ * Only the document's structure is checked here (block types, ranges, safe links, allowed rich text). Content rules
+ * such as missing images or fields that don't exist are checked when it is published (`POST /publish/check`).
+ */
+export const savePageDraftMutation = (options?: Partial<Options<SavePageDraftData>>): UseMutationOptions<SavePageDraftResponse, SavePageDraftError, Options<SavePageDraftData>> => {
+    const mutationOptions: UseMutationOptions<SavePageDraftResponse, SavePageDraftError, Options<SavePageDraftData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await savePageDraft({
                 ...options,
                 ...fnOptions,
                 throwOnError: true
@@ -389,6 +474,132 @@ export const getPagesOptions = (options: Options<GetPagesData>) => queryOptions<
     },
     queryKey: getPagesQueryKey(options)
 });
+
+export const getDraftsQueryKey = (options: Options<GetDraftsData>) => createQueryKey('getDrafts', options);
+
+/**
+ * Lists every draft of a website, with what changed and when it is scheduled.
+ */
+export const getDraftsOptions = (options: Options<GetDraftsData>) => queryOptions<GetDraftsResponse, DefaultError, GetDraftsResponse, ReturnType<typeof getDraftsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getDrafts({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getDraftsQueryKey(options)
+});
+
+/**
+ * Checks a publish against the site as it would be, without publishing anything.
+ *
+ * The answer lists what changes, the issues (errors block publishing), and `needs`: drafts not in the publish
+ * that would fix a blocking issue.
+ */
+export const checkPublishMutation = (options?: Partial<Options<CheckPublishData>>): UseMutationOptions<CheckPublishResponse, CheckPublishError, Options<CheckPublishData>> => {
+    const mutationOptions: UseMutationOptions<CheckPublishResponse, CheckPublishError, Options<CheckPublishData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await checkPublish({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Puts drafts live now, all at once: everything goes live, or nothing does.
+ */
+export const publishMutation = (options?: Partial<Options<PublishData>>): UseMutationOptions<PublishResponse, PublishError, Options<PublishData>> => {
+    const mutationOptions: UseMutationOptions<PublishResponse, PublishError, Options<PublishData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await publish({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getScheduledPublishesQueryKey = (options: Options<GetScheduledPublishesData>) => createQueryKey('getScheduledPublishes', options);
+
+/**
+ * Lists a website's upcoming and failed scheduled publishes, soonest first.
+ */
+export const getScheduledPublishesOptions = (options: Options<GetScheduledPublishesData>) => queryOptions<GetScheduledPublishesResponse, DefaultError, GetScheduledPublishesResponse, ReturnType<typeof getScheduledPublishesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getScheduledPublishes({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getScheduledPublishesQueryKey(options)
+});
+
+/**
+ * Schedules drafts to go live at a time. The publish is checked now, and again when it runs.
+ *
+ * A draft can be in one scheduled publish at a time. The drafts go live as they are when it runs.
+ */
+export const schedulePublishMutation = (options?: Partial<Options<SchedulePublishData>>): UseMutationOptions<SchedulePublishResponse, SchedulePublishError, Options<SchedulePublishData>> => {
+    const mutationOptions: UseMutationOptions<SchedulePublishResponse, SchedulePublishError, Options<SchedulePublishData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await schedulePublish({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Cancels a scheduled publish. Its drafts stay drafts.
+ */
+export const cancelScheduledPublishMutation = (options?: Partial<Options<CancelScheduledPublishData>>): UseMutationOptions<CancelScheduledPublishResponse, DefaultError, Options<CancelScheduledPublishData>> => {
+    const mutationOptions: UseMutationOptions<CancelScheduledPublishResponse, DefaultError, Options<CancelScheduledPublishData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await cancelScheduledPublish({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Changes a scheduled publish's time, or what is in it. A failed publish that is changed is scheduled again.
+ */
+export const updateScheduledPublishMutation = (options?: Partial<Options<UpdateScheduledPublishData>>): UseMutationOptions<UpdateScheduledPublishResponse, UpdateScheduledPublishError, Options<UpdateScheduledPublishData>> => {
+    const mutationOptions: UseMutationOptions<UpdateScheduledPublishResponse, UpdateScheduledPublishError, Options<UpdateScheduledPublishData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await updateScheduledPublish({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const getWebsitesQueryKey = (options?: Options<GetWebsitesData>) => createQueryKey('getWebsites', options);
 

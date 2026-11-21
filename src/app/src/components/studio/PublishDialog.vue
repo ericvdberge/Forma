@@ -2,14 +2,14 @@
 import { computed } from 'vue'
 import { ChevronRight, CircleAlert, TriangleAlert } from 'lucide-vue-next'
 import { FButton, FModal } from '@forma/design-system'
-import type { ContentIssueDto } from '@/api/generated'
+import type { PublishIssueDto } from '@/api/generated'
 import { useStudio } from '@/composables/useStudio'
 import { blockDefinition } from '@/studio/blocks'
 import { sectionTypeLabels } from '@/studio/sections'
 
 /**
- * What PUT /pages/{id}/content said about the page: errors that stopped it from being published, or warnings worth a
- * look after it was published. Choosing an issue selects the block or section it is about.
+ * What the publish check said about this page: errors that stopped it from being published, or warnings worth a look
+ * after it was published. Choosing an issue selects the block or section it is about.
  */
 const studio = useStudio()
 
@@ -23,7 +23,7 @@ const errors = computed(() => studio.issues.value?.filter((i) => i.severity === 
 const warnings = computed(() => studio.issues.value?.filter((i) => i.severity === 'warning') ?? [])
 
 /** Where on the page an issue is, e.g. "Image in Hero" or "Gallery, image 2". */
-function where(issue: ContentIssueDto) {
+function where(issue: PublishIssueDto) {
   const section = studio.doc.value?.sections.find((s) => s.id === issue.sectionId)
   if (!section) return 'Page'
   const sectionLabel = section.settings.name || sectionTypeLabels[section.settings.type]

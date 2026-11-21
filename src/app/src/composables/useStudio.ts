@@ -41,7 +41,7 @@ watch(mode, (m) => {
  * (usePageContent), the saved library (useSavedItems), media (useStudioMedia), collections (useStudioCollections), undo
  * (useStudioHistory), editing (useStudioEditing) and publishing (useStudioPublishing). Selection, device, zoom and drag
  * state live here.
- * Edits stay in the browser until the page is published.
+ * Edits stay in the browser until Save stores them as the page's draft; Publish puts the draft live.
  */
 export function createStudio(
   pageId: MaybeRefOrGetter<string>,
@@ -49,6 +49,8 @@ export function createStudio(
   websiteId: MaybeRefOrGetter<string>,
   /** On a collection's detail page: the collection whose items it shows. */
   pageCollectionId: MaybeRefOrGetter<string | null> = null,
+  /** The page's title, for the toasts that say what was published. */
+  pageTitle: MaybeRefOrGetter<string> = '',
 ) {
   const content = usePageContent(pageId, seed)
   const library = useSavedItems()
@@ -88,8 +90,12 @@ export function createStudio(
 
   const publishing = useStudioPublishing({
     page: content.page,
+    pageTitle: computed(() => toValue(pageTitle)),
+    websiteId: computed(() => toValue(websiteId)),
     writePage: content.writePage,
-    publishContent: content.publish,
+    saveDraft: content.saveDraft,
+    discardDraft: content.discardDraft,
+    refetch: () => content.query.refetch(),
     change: history.change,
     keepSelectionValid: editing.keepSelectionValid,
     select,

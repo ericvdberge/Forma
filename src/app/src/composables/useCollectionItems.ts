@@ -2,7 +2,7 @@ import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { getCollectionItemsQueryKey } from '@/api/generated/@tanstack/vue-query.gen'
 import type { CollectionItemDto } from '@/api/generated'
-import type { Collection, CollectionItem, CollectionValue, PageStatus } from '@/data/types'
+import type { Collection, CollectionItem, CollectionValue } from '@/data/types'
 import { useCollectionItemsQuerier, type ItemWriteOutcome } from '@/queriers/useCollectionItemsQuerier'
 import { useToast } from '@/composables/useToast'
 
@@ -11,8 +11,15 @@ export function toCollectionItem(dto: CollectionItemDto): CollectionItem {
     id: dto.id,
     collectionId: dto.collectionId,
     slug: dto.slug,
-    status: dto.status === 'published' ? 'live' : 'draft',
+    status: dto.publishedAt ? 'live' : 'draft',
     values: dto.values as Record<string, CollectionValue>,
+    draft: dto.draft
+      ? {
+          slug: dto.draft.slug,
+          values: dto.draft.values as Record<string, CollectionValue>,
+          updatedAt: dto.draft.updatedAt ? Date.parse(dto.draft.updatedAt) : null,
+        }
+      : null,
     updatedAt: Date.parse(dto.updatedAt),
     publishedAt: dto.publishedAt ? Date.parse(dto.publishedAt) : null,
   }
@@ -22,15 +29,19 @@ export function toCollectionItem(dto: CollectionItemDto): CollectionItem {
 export interface ItemDraft {
   slug: string
   values: Record<string, CollectionValue | null>
-  status: PageStatus
+}
+
+/** The fields the item editor shows: the collection's draft fields while it has a draft, else its live ones. */
+export function editorFields(collection: Collection) {
+  return collection.draft?.fields ?? collection.fields
 }
 
 function toRequest(collection: Collection, draft: ItemDraft) {
-  const known = new Set(collection.fields.map((f) => f.id))
+  const known = new Set([...editorFields(collection), ...collection.fields].map((f) => f.id))
   const values = Object.fromEntries(
     Object.entries(draft.values).filter(([id, v]) => known.has(id) && v !== null && v !== ''),
   )
-  return { slug: draft.slug, values, status: draft.status === 'live' ? ('published' as const) : ('draft' as const) }
+  return { slug: draft.slug, values }
 }
 
 /** The items of a collection (the posts of a blog…), read from and written to the collection items API. */
@@ -50,25 +61,34 @@ export function useCollectionItems() {
     queryClient.setQueryData<CollectionItemDto[]>(getCollectionItemsQueryKey({ path: { collectionId } }), (old) => update(old ?? []))
   }
 
-  function afterSave(collection: Collection, outcome: ItemWriteOutcome, published: boolean) {
+  function afterSave(collection: Collection, outcome: ItemWriteOutcome, message: string | null) {
     if (outcome.kind === 'saved') {
       const dto = outcome.item
       writeCached(collection.id, (dtos) => [dto, ...dtos.filter((d) => d.id !== dto.id)].sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
-      notify(published ? `${collection.singularName} published` : `${collection.singularName} saved`)
+      void queryClient.invalidateQueries({ queryKey: ['drafts'] })
+      if (message) notify(message)
     } else if (outcome.kind !== 'invalid') {
       notify(`Saving the ${collection.singularName.toLowerCase()} failed. Try again.`, 'error')
     }
     return outcome
   }
 
-  async function createItem(collection: Collection, draft: ItemDraft) {
+  /** Creates the item as a draft: visitors don't see it until it is published. */
+  async function createItem(collection: Collection, draft: ItemDraft, { quiet = false } = {}) {
     const outcome = await querier.create(collection.id, toRequest(collection, draft))
-    return afterSave(collection, outcome, draft.status === 'live')
+    return afterSave(collection, outcome, quiet ? null : 'Saved as draft')
   }
 
-  async function saveItem(collection: Collection, itemId: string, draft: ItemDraft) {
-    const outcome = await querier.save(collection.id, itemId, toRequest(collection, draft))
-    return afterSave(collection, outcome, draft.status === 'live')
+  /** Saves the item's draft. Nothing changes on the site. */
+  async function saveItem(collection: Collection, itemId: string, draft: ItemDraft, { quiet = false } = {}) {
+    const outcome = await querier.saveDraft(collection.id, itemId, toRequest(collection, draft))
+    return afterSave(collection, outcome, quiet ? null : 'Saved as draft')
+  }
+
+  /** Throws the draft away: the item goes back to its live version. */
+  async function discardItem(collection: Collection, itemId: string, title: string) {
+    const outcome = await querier.discardDraft(collection.id, itemId)
+    return afterSave(collection, outcome, `Changes to ${title} discarded`)
   }
 
   async function deleteItem(collection: Collection, item: CollectionItem, title: string) {
@@ -86,6 +106,7 @@ export function useCollectionItems() {
     getItems,
     createItem,
     saveItem,
+    discardItem,
     deleteItem,
   }
 }
