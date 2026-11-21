@@ -6,9 +6,10 @@ import { FButton, FSkeleton } from '@forma/design-system'
 import LinkButton from '@/components/LinkButton.vue'
 import PreviewFrame from '@/components/preview/PreviewFrame.vue'
 import PreviewToolbar from '@/components/preview/PreviewToolbar.vue'
-import { pageForPath, useWebsitePreview } from '@/composables/useWebsitePreview'
+import { pageForPath, pathSegments, useWebsitePreview } from '@/composables/useWebsitePreview'
 import type { Page } from '@/data/types'
 import type { Breakpoint } from '@/studio/types'
+import { itemTitle } from '@/utils/collections'
 
 /**
  * Full-screen preview of a website as visitors will see it: each page's published content, with links between the
@@ -18,23 +19,23 @@ const route = useRoute()
 const router = useRouter()
 
 const websiteId = computed(() => String(route.params.websiteId))
-const path = computed(() => `/${route.params.slug ?? ''}`)
+const path = computed(() => `/${[route.params.slug, route.params.item].filter(Boolean).join('/')}`)
 
-const { website, pages, page, document, isPending, isError, refetch } = useWebsitePreview(websiteId, path)
+const { website, pages, page, item, document, collectionData, isPending, isError, refetch } = useWebsitePreview(websiteId, path)
 
 // On a phone, show the phone layout rather than a tiny desktop.
 const device = ref<Breakpoint>(window.innerWidth < 640 ? 'mobile' : 'desktop')
 
 const frame = ref<InstanceType<typeof PreviewFrame> | null>(null)
 
-/** Moves the preview to a site path such as `/about#team`. */
+/** Moves the preview to a site path such as `/about#team`, or an item's page such as `/blog/first-post`. */
 function navigate(href: string) {
   const [pathPart = '', hash = ''] = href.split('#')
-  const target = pageForPath(pages.value, pathPart)
+  const [slug, itemSlug] = pathSegments(pathPart)
 
   router.push({
     name: 'preview',
-    params: { websiteId: websiteId.value, slug: target?.slug ?? pathPart.replace(/^\/+|\/+$/g, '') },
+    params: { websiteId: websiteId.value, slug: itemSlug ? slug : pageForPath(pages.value, pathPart)?.slug ?? slug, item: itemSlug },
     hash: hash ? `#${hash}` : '',
   })
 }
@@ -56,10 +57,17 @@ watch(
   [website, page, () => route.fullPath],
   ([w, p]) => {
     if (w)
-      setTitle(p ? `${p.title} · ${w.name}` : w.name)
+      setTitle(p ? `${shownTitle(p)} · ${w.name}` : w.name)
   },
   { immediate: true, flush: 'post' },
 )
+
+/** A detail page is named after the item it shows. */
+function shownTitle(p: Page) {
+  const collection = collectionData.pageCollection.value
+
+  return item.value && collection ? itemTitle(collection, item.value) : p.title
+}
 
 function setTitle(title: string) {
   window.document.title = `${title} · Preview · Forma`
@@ -83,7 +91,14 @@ function setTitle(title: string) {
   <div v-else class="flex h-dvh flex-col">
     <PreviewToolbar v-model:device="device" :website="website" :pages="pages" :page="page" :path="path" @go="go" />
 
-    <PreviewFrame v-if="document?.sections.length" ref="frame" :website-id="websiteId" :document="document" :device="device" @navigate="navigate" />
+    <PreviewFrame
+      v-if="document?.sections.length"
+      ref="frame"
+      :document="document"
+      :device="device"
+      :collections="collectionData"
+      @navigate="navigate"
+    />
 
     <div v-else class="flex flex-1 flex-col items-center justify-center gap-4 bg-[#ecebe8] p-6 text-center">
       <span class="grid size-14 place-items-center rounded-2xl bg-white shadow-soft">
