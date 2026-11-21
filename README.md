@@ -129,6 +129,8 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 | `GET` / `POST /collections/{id}/items` | A collection's items / adds one (values checked against the fields), `201` or `400` |
 | `GET` / `PUT` / `DELETE /collections/{id}/items/{itemId}` | One item: read, save (publishing is saving with `status: published`) or delete |
 
+More in [`src/api/README.md`](src/api/README.md), including the data model.
+
 #### Page content
 
 A page's Design Studio content is one JSON document per page in the `PageContents` table. The studio keeps edits in the browser and sends the page on Publish; the API checks it against the document model and its rules (block types, ranges, safe links, allowed rich text) and the content rules (missing images, links that go nowhere, deleted media…). Errors are a `400` problem that lists them; warnings don't block. Design and full spec: [`docs/design/page-content.md`](docs/design/page-content.md) and [`docs/design/page-content-api.md`](docs/design/page-content-api.md); collections and their pages: [`docs/design/collections.md`](docs/design/collections.md).
