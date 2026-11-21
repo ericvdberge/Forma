@@ -18,7 +18,7 @@ Where it differs from the direction below, and why:
 | `PublishedValues` beside the draft (§ 4) | One set of values and a `Status` | Enough until there is a public site to render; adding it later doesn't change the API shape |
 | `collectionList` with nested `itemBlocks` (§ 3.2) | `collectionCards` with a fixed card design | Covers the common case without nested editing in the studio; `collectionList` can come next |
 | A static page's slug may not equal a collection slug (§ 4) | Allowed | `/blog` (a page with the cards) and `/blog/{item}` don't clash: they have a different number of segments |
-| `PageBindingUsages`, `409` on breaking a bound field (§ 4, § 5) | Not yet | Publishing reports `binding.field_missing` and `binding.type_mismatch`, so nothing broken goes live. Proposed instead: change sets, [change-sets.md](change-sets.md) |
+| `PageBindingUsages`, `409` on breaking a bound field (§ 4, § 5) | Not yet | Publishing reports `binding.field_missing` and `binding.type_mismatch`, so nothing broken goes live. Proposed instead: drafts published together, [drafts-and-publish.md](drafts-and-publish.md) |
 | `GET /collections/{id}/items?status=…` (§ 7) | No query filters yet | Lists are small; the studio filters published items itself |
 | `/collection-items/{id}` (§ 7) | `/collections/{collectionId}/items/{itemId}` | Every item read is narrowed by its collection (IDOR) |
 
@@ -187,7 +187,7 @@ The same two levels as pages ([page-content.md § 6](page-content.md#6-validatio
 | `video.binding_not_video` | warning | A video's `url` is bound to a link field whose value isn't a YouTube or Vimeo link for some published items |
 | `link.page_missing` | warning | Also for `/{collection}/{item}` links whose item doesn't exist or isn't published |
 
-**Changing collections that pages depend on.** Fields change through change sets, a general system for staging changes to several entities and applying them in one transaction. See [change-sets.md](change-sets.md).
+**Changing collections that pages depend on.** Fields get a draft, like pages and items, and drafts that depend on each other are published together in one transaction. See [drafts-and-publish.md](drafts-and-publish.md).
 
 ## 6. Rendering and the studio
 
