@@ -45,7 +45,7 @@
           "Media"
         ],
         "summary": "Uploads an image to a website's media library and creates its thumbnail.",
-        "description": "Accepts JPEG, PNG, GIF and WebP files up to 10 MB and 100 megapixels. The file's contents are checked\r\nas well as its extension, so a file that is not really a supported image, or is damaged, is rejected.",
+        "description": "Accepts JPEG, PNG, GIF and WebP files up to 10 MB and 100 megapixels. The file's contents are checked\nas well as its extension, so a file that is not really a supported image, or is damaged, is rejected.",
         "operationId": "UploadMedia",
         "requestBody": {
           "description": "Cancels the request.",
@@ -285,7 +285,7 @@
           "Page content"
         ],
         "summary": "Publishes a page: stores the document and marks the content published. The studio calls this on Publish.",
-        "description": "The document must pass the structural rules (block types, ranges, safe links, allowed rich text) and the content\r\nrules (no missing images, links that go somewhere). Errors are answered with a validation problem whose\r\n`issues` point at the sections and blocks to fix; warnings don't block and come back with the result.",
+        "description": "The document must pass the structural rules (block types, ranges, safe links, allowed rich text) and the content\nrules (no missing images, links that go somewhere). Errors are answered with a validation problem whose\n`issues` point at the sections and blocks to fix; warnings don't block and come back with the result.",
         "operationId": "PublishPageContent",
         "parameters": [
           {

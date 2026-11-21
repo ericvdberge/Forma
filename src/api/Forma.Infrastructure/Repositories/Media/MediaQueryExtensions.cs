@@ -9,8 +9,12 @@ internal static class MediaQueryExtensions
 {
     public static IQueryable<MediaItemDao> ApplyFilter(this IQueryable<MediaItemDao> query, MediaFilter filter) =>
         query
+            .WithId(filter.Id)
             .WithWebsiteId(filter.WebsiteId)
             .WithFileNameContaining(filter.FileName);
+
+    private static IQueryable<MediaItemDao> WithId(this IQueryable<MediaItemDao> query, Guid? id) =>
+        query.WhereIf(id.HasValue, m => m.Id == id);
 
     private static IQueryable<MediaItemDao> WithWebsiteId(this IQueryable<MediaItemDao> query, Guid? websiteId) =>
         query.WhereIf(websiteId.HasValue, m => m.WebsiteId == websiteId);

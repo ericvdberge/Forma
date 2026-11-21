@@ -14,7 +14,7 @@ public class WebsiteCoreService(IWebsiteRepository websiteRepository) : IWebsite
 {
     public async Task<IReadOnlyList<Website>> GetWebsitesAsync(CancellationToken cancellationToken = default)
     {
-        var websites = await websiteRepository.GetAllAsync(cancellationToken);
+        var websites = await websiteRepository.GetWebsitesAsync(new WebsiteFilter(), cancellationToken);
         return websites.ToEntities();
     }
 }

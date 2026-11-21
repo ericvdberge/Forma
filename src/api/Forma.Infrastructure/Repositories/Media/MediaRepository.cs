@@ -16,7 +16,8 @@ public class MediaRepository(FormaDbContext db) : IMediaRepository
     public async Task<MediaItemDao?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         await db.Media
             .AsNoTracking()
-            .FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
+            .ApplyFilter(new MediaFilter { Id = id })
+            .FirstOrDefaultAsync(cancellationToken);
 
     public async Task AddAsync(MediaItemDao media, CancellationToken cancellationToken = default)
     {
@@ -25,5 +26,5 @@ public class MediaRepository(FormaDbContext db) : IMediaRepository
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default) =>
-        await db.Media.Where(m => m.Id == id).ExecuteDeleteAsync(cancellationToken) > 0;
+        await db.Media.ApplyFilter(new MediaFilter { Id = id }).ExecuteDeleteAsync(cancellationToken) > 0;
 }

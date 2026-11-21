@@ -67,7 +67,7 @@ public class MediaCoreService(
         Stream content,
         CancellationToken cancellationToken = default)
     {
-        if (!await websiteRepository.ExistsAsync(websiteId, cancellationToken))
+        if (!await websiteRepository.ExistsAsync(new WebsiteFilter { Id = websiteId }, cancellationToken))
         {
             return new MediaUploadResult.WebsiteNotFound();
         }
