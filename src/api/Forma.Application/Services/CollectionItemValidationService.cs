@@ -16,15 +16,23 @@ namespace Forma.Application.Services;
 public interface ICollectionItemValidationService
 {
     /// <summary>
-    /// The errors of an item of <paramref name="collection"/> with <paramref name="slug"/> and <paramref name="values"/>;
-    /// <paramref name="itemId"/> is the item being changed, or <c>null</c> for a new one. Empty when there are none.
+    /// The errors of saving a draft of an item of <paramref name="collection"/> with <paramref name="slug"/> and
+    /// <paramref name="values"/>; <paramref name="itemId"/> is the item being changed, or <c>null</c> for a new one.
+    /// Values are checked against the collection's draft fields (or its live ones without a draft). A draft may still
+    /// leave required fields empty: that is checked when it is published. Empty when there are none.
     /// </summary>
-    Task<IDictionary<string, string[]>> ValidateAsync(
+    Task<IDictionary<string, string[]>> ValidateDraftAsync(
         Collection collection,
         string slug,
         IReadOnlyDictionary<string, JsonElement> values,
         Guid? itemId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The errors of <paramref name="values"/> against all of <paramref name="collection"/>'s <see cref="Collection.Fields"/>,
+    /// required fields included: what an item must pass to be live. <paramref name="mediaIds"/> are the website's media.
+    /// </summary>
+    IDictionary<string, string[]> ValidateValues(Collection collection, IReadOnlyDictionary<string, JsonElement> values, IReadOnlySet<Guid> mediaIds);
 }
 
 public class CollectionItemValidationService(
@@ -32,7 +40,7 @@ public class CollectionItemValidationService(
     IMediaCoreService mediaCoreService,
     IRichTextSanitizer sanitizer) : ICollectionItemValidationService
 {
-    public async Task<IDictionary<string, string[]>> ValidateAsync(
+    public async Task<IDictionary<string, string[]>> ValidateDraftAsync(
         Collection collection,
         string slug,
         IReadOnlyDictionary<string, JsonElement> values,
@@ -43,23 +51,50 @@ public class CollectionItemValidationService(
 
         await CheckSlugAsync(collection, slug, itemId, errors, cancellationToken);
 
-        CheckUnknownFields(collection, values, errors);
+        var fields = collection.DraftFields ?? collection.Fields;
+
+        // Values of live fields the draft removes are still known: they move or go when the collection is published.
+        var known = fields.Concat(collection.Fields).Select(f => f.Id).ToHashSet(StringComparer.Ordinal);
+
+        CheckUnknownFields(collection, known, values, errors);
 
         var media = await mediaCoreService.GetMediaItemsAsync(collection.WebsiteId, cancellationToken);
-        var mediaIds = media.Select(m => m.Id).ToHashSet();
 
-        foreach (var field in collection.Fields)
+        CheckValues(fields, values, media.Select(m => m.Id).ToHashSet(), requireAll: false, errors);
+
+        return errors;
+    }
+
+    public IDictionary<string, string[]> ValidateValues(Collection collection, IReadOnlyDictionary<string, JsonElement> values, IReadOnlySet<Guid> mediaIds)
+    {
+        var errors = new Dictionary<string, string[]>();
+
+        var known = collection.Fields.Select(f => f.Id).ToHashSet(StringComparer.Ordinal);
+
+        CheckUnknownFields(collection, known, values, errors);
+
+        CheckValues(collection.Fields, values, mediaIds, requireAll: true, errors);
+
+        return errors;
+    }
+
+    private void CheckValues(
+        IReadOnlyList<CollectionField> fields,
+        IReadOnlyDictionary<string, JsonElement> values,
+        IReadOnlySet<Guid> mediaIds,
+        bool requireAll,
+        Dictionary<string, string[]> errors)
+    {
+        foreach (var field in fields)
         {
             var key = $"values.{field.Id}";
             var error = values.TryGetValue(field.Id, out var value) && !IsEmpty(value)
                 ? CheckValue(field, value, mediaIds)
-                : field.Required ? $"‘{field.Label}’ is required." : null;
+                : requireAll && field.Required ? $"‘{field.Label}’ is required." : null;
 
             if (error is not null)
                 errors[key] = [error];
         }
-
-        return errors;
     }
 
     private async Task CheckSlugAsync(Collection collection, string slug, Guid? itemId, Dictionary<string, string[]> errors, CancellationToken cancellationToken)
@@ -70,10 +105,8 @@ public class CollectionItemValidationService(
             errors["slug"] = [$"Another {collection.SingularName.ToLowerInvariant()} already uses /{collection.Slug}/{slug}."];
     }
 
-    private static void CheckUnknownFields(Collection collection, IReadOnlyDictionary<string, JsonElement> values, Dictionary<string, string[]> errors)
+    private static void CheckUnknownFields(Collection collection, HashSet<string> known, IReadOnlyDictionary<string, JsonElement> values, Dictionary<string, string[]> errors)
     {
-        var known = collection.Fields.Select(f => f.Id).ToHashSet(StringComparer.Ordinal);
-
         foreach (var id in values.Keys.Where(id => !known.Contains(id)))
             errors[$"values.{id}"] = [$"{collection.Name} has no field ‘{id}’."];
     }
@@ -84,7 +117,7 @@ public class CollectionItemValidationService(
         || (value.ValueKind == JsonValueKind.String && value.GetString()!.Trim().Length == 0);
 
     /// <summary>The problem with a filled-in value, or <c>null</c> when it is fine.</summary>
-    private string? CheckValue(CollectionField field, JsonElement value, HashSet<Guid> mediaIds) => field.Type switch
+    private string? CheckValue(CollectionField field, JsonElement value, IReadOnlySet<Guid> mediaIds) => field.Type switch
     {
         CollectionFieldType.Text => CheckText(value),
         CollectionFieldType.RichText => CheckRichText(value),
@@ -123,7 +156,7 @@ public class CollectionItemValidationService(
         return null;
     }
 
-    private static string? CheckImage(JsonElement value, HashSet<Guid> mediaIds)
+    private static string? CheckImage(JsonElement value, IReadOnlySet<Guid> mediaIds)
     {
         if (value.ValueKind != JsonValueKind.String || !DocumentRules.IsImageSource(value.GetString()!))
             return "Images must come from the media library.";

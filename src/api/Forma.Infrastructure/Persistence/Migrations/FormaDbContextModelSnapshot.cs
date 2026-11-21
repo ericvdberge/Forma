@@ -26,6 +26,19 @@ namespace Forma.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DraftFields")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DraftSlug")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DraftUpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DraftValueMoves")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Fields")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -38,6 +51,9 @@ namespace Forma.Infrastructure.Persistence.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("PublishedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("SingularName")
@@ -76,17 +92,22 @@ namespace Forma.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DraftSlug")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DraftUpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DraftValues")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime?>("PublishedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -155,25 +176,54 @@ namespace Forma.Infrastructure.Persistence.Migrations
                     b.ToTable("Media", (string)null);
                 });
 
+            modelBuilder.Entity("Forma.Infrastructure.Daos.PageBindingUsageDao", b =>
+                {
+                    b.Property<Guid>("PageId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CollectionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FieldId")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("PageId", "CollectionId", "FieldId", "Kind");
+
+                    b.HasIndex("CollectionId", "FieldId");
+
+                    b.ToTable("PageBindingUsages", (string)null);
+                });
+
             modelBuilder.Entity("Forma.Infrastructure.Daos.PageContentDao", b =>
                 {
                     b.Property<Guid>("PageId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Content")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("SchemaVersion")
+                    b.Property<string>("DraftContent")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DraftSchemaVersion")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
+                    b.Property<DateTime?>("DraftUpdatedAt")
                         .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");
@@ -226,10 +276,84 @@ namespace Forma.Infrastructure.Persistence.Migrations
                     b.HasIndex("CollectionId")
                         .IsUnique();
 
+                    b.HasIndex("WebsiteId", "CollectionId");
+
                     b.HasIndex("WebsiteId", "Slug")
                         .IsUnique();
 
-                    b.ToTable("Pages", (string)null);
+                    b.ToTable("Pages", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Pages_Kind", "(\"Kind\" = 'Static' AND \"CollectionId\" IS NULL) OR (\"Kind\" = 'CollectionTemplate' AND \"CollectionId\" IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Forma.Infrastructure.Daos.ScheduledPublishDao", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Issues")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("PublishAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("WebsiteId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WebsiteId");
+
+                    b.HasIndex("Status", "PublishAt");
+
+                    b.ToTable("ScheduledPublishes", (string)null);
+                });
+
+            modelBuilder.Entity("Forma.Infrastructure.Daos.ScheduledPublishEntryDao", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CollectionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CollectionItemId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("PageId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ScheduledPublishId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CollectionId");
+
+                    b.HasIndex("CollectionItemId");
+
+                    b.HasIndex("PageId");
+
+                    b.HasIndex("ScheduledPublishId");
+
+                    b.ToTable("ScheduledPublishEntries", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ScheduledPublishEntries_OneEntity", "(\"CollectionId\" IS NOT NULL) + (\"PageId\" IS NOT NULL) + (\"CollectionItemId\" IS NOT NULL) = 1");
+                        });
                 });
 
             modelBuilder.Entity("Forma.Infrastructure.Daos.WebsiteDao", b =>
@@ -305,6 +429,25 @@ namespace Forma.Infrastructure.Persistence.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Forma.Infrastructure.Daos.PageBindingUsageDao", b =>
+                {
+                    b.HasOne("Forma.Infrastructure.Daos.CollectionDao", "Collection")
+                        .WithMany()
+                        .HasForeignKey("CollectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Forma.Infrastructure.Daos.PageDao", "Page")
+                        .WithMany()
+                        .HasForeignKey("PageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Collection");
+
+                    b.Navigation("Page");
+                });
+
             modelBuilder.Entity("Forma.Infrastructure.Daos.PageContentDao", b =>
                 {
                     b.HasOne("Forma.Infrastructure.Daos.PageDao", "Page")
@@ -318,20 +461,64 @@ namespace Forma.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Forma.Infrastructure.Daos.PageDao", b =>
                 {
-                    b.HasOne("Forma.Infrastructure.Daos.CollectionDao", "Collection")
-                        .WithMany()
-                        .HasForeignKey("CollectionId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
                     b.HasOne("Forma.Infrastructure.Daos.WebsiteDao", "Website")
                         .WithMany()
                         .HasForeignKey("WebsiteId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Forma.Infrastructure.Daos.CollectionDao", "Collection")
+                        .WithMany()
+                        .HasForeignKey("WebsiteId", "CollectionId")
+                        .HasPrincipalKey("WebsiteId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.Navigation("Collection");
 
                     b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Forma.Infrastructure.Daos.ScheduledPublishDao", b =>
+                {
+                    b.HasOne("Forma.Infrastructure.Daos.WebsiteDao", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Forma.Infrastructure.Daos.ScheduledPublishEntryDao", b =>
+                {
+                    b.HasOne("Forma.Infrastructure.Daos.CollectionDao", "Collection")
+                        .WithMany()
+                        .HasForeignKey("CollectionId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Forma.Infrastructure.Daos.CollectionItemDao", "CollectionItem")
+                        .WithMany()
+                        .HasForeignKey("CollectionItemId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Forma.Infrastructure.Daos.PageDao", "Page")
+                        .WithMany()
+                        .HasForeignKey("PageId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Forma.Infrastructure.Daos.ScheduledPublishDao", "ScheduledPublish")
+                        .WithMany()
+                        .HasForeignKey("ScheduledPublishId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Collection");
+
+                    b.Navigation("CollectionItem");
+
+                    b.Navigation("Page");
+
+                    b.Navigation("ScheduledPublish");
                 });
 #pragma warning restore 612, 618
         }

@@ -2,7 +2,6 @@ using Forma.Application.Documents;
 using Forma.Application.Documents.Validation;
 using Forma.Application.Entities;
 using System.Text.Json;
-using Forma.Infrastructure.Daos;
 using Forma.Infrastructure.Repositories.CollectionItems;
 using Forma.Infrastructure.Repositories.Collections;
 using Forma.Infrastructure.Repositories.Pages;
@@ -17,8 +16,14 @@ namespace Forma.Application.Services;
 /// </summary>
 public interface IPageContentValidationService
 {
-    /// <summary>The issues of <paramref name="document"/> on <paramref name="page"/>: errors first, then warnings.</summary>
+    /// <summary>The issues of <paramref name="document"/> on <paramref name="page"/> against the live website: errors first, then warnings.</summary>
     Task<IReadOnlyList<ContentIssue>> ValidateAsync(PageDocument document, Page page, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The issues of <paramref name="document"/> on <paramref name="page"/> against <paramref name="site"/>, the website as
+    /// it would be after a publish: errors first, then warnings.
+    /// </summary>
+    IReadOnlyList<ContentIssue> Validate(PageDocument document, Page page, SiteSnapshot site);
 }
 
 public class PageContentValidationService(
@@ -29,21 +34,28 @@ public class PageContentValidationService(
 {
     public async Task<IReadOnlyList<ContentIssue>> ValidateAsync(PageDocument document, Page page, CancellationToken cancellationToken = default)
     {
-        // Everything the rules look up, loaded once: the website's media, pages, collections and published items.
+        // Everything the rules look up, loaded once: the website's media, pages, live collections and live items.
         var media = await mediaCoreService.GetMediaItemsAsync(page.WebsiteId, cancellationToken);
         var pages = await pageCoreService.GetPagesAsync(new PageFilter { WebsiteId = page.WebsiteId }, cancellationToken);
-        var collections = await collectionCoreService.GetCollectionsAsync(new CollectionFilter { WebsiteId = page.WebsiteId }, cancellationToken);
-        var items = await collectionItemCoreService.GetCollectionItemsAsync(PublishedItemsOf(page.WebsiteId), cancellationToken);
+        var collections = await collectionCoreService.GetCollectionsAsync(new CollectionFilter { WebsiteId = page.WebsiteId, IsLive = true }, cancellationToken);
+        var items = await collectionItemCoreService.GetCollectionItemsAsync(new CollectionItemFilter { WebsiteId = page.WebsiteId, IsLive = true }, cancellationToken);
 
-        var pageCollection = collections.FirstOrDefault(c => page.Kind == PageKind.CollectionTemplate && c.Id == page.CollectionId);
+        var site = new SiteSnapshot(media.Select(m => m.Id).ToHashSet(), pages, collections, items);
+
+        return Validate(document, page, site);
+    }
+
+    public IReadOnlyList<ContentIssue> Validate(PageDocument document, Page page, SiteSnapshot site)
+    {
+        var pageCollection = site.Collections.FirstOrDefault(c => page.Kind == PageKind.CollectionTemplate && c.Id == page.CollectionId);
 
         var lookups = new Lookups(
-            Media: media.Select(m => m.Id).ToHashSet(),
-            Slugs: pages.Where(p => p.Kind == PageKind.Static).Select(p => p.Slug).ToHashSet(StringComparer.OrdinalIgnoreCase),
-            Collections: collections.ToDictionary(c => c.Id),
-            ItemAddresses: ItemAddresses(collections, items),
+            Media: site.Media,
+            Slugs: site.Pages.Where(p => p.Kind == PageKind.Static).Select(p => p.Slug).ToHashSet(StringComparer.OrdinalIgnoreCase),
+            Collections: site.Collections.ToDictionary(c => c.Id),
+            ItemAddresses: ItemAddresses(site.Collections, site.Items),
             PageCollection: pageCollection,
-            PageItems: items.Where(i => i.CollectionId == pageCollection?.Id).ToList());
+            PageItems: site.Items.Where(i => i.CollectionId == pageCollection?.Id).ToList());
 
         var issues = new List<ContentIssue>();
         new Walker(issues, lookups).Visit(document);
@@ -52,10 +64,7 @@ public class PageContentValidationService(
         return issues.OrderBy(i => i.Severity).ToList();
     }
 
-    private static CollectionItemFilter PublishedItemsOf(Guid websiteId) =>
-        new() { WebsiteId = websiteId, Status = CollectionItemDaoStatus.Published };
-
-    /// <summary>The addresses of the published items, without the leading slash: <c>blog/opening-our-studio</c>.</summary>
+    /// <summary>The addresses of the live items, without the leading slash: <c>blog/opening-our-studio</c>.</summary>
     private static HashSet<string> ItemAddresses(IReadOnlyList<Collection> collections, IReadOnlyList<CollectionItem> items)
     {
         var slugs = collections.ToDictionary(c => c.Id, c => c.Slug);
@@ -73,7 +82,7 @@ public class PageContentValidationService(
     /// <param name="PageCollection">The collection whose items the page shows, when it is a collection's detail page.</param>
     /// <param name="PageItems">The published items of <paramref name="PageCollection"/>.</param>
     private sealed record Lookups(
-        HashSet<Guid> Media,
+        IReadOnlySet<Guid> Media,
         HashSet<string> Slugs,
         Dictionary<Guid, Collection> Collections,
         HashSet<string> ItemAddresses,

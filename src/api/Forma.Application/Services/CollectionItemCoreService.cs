@@ -43,11 +43,13 @@ public class CollectionItemCoreService(ICollectionItemRepository itemRepository,
             Id = Guid.CreateVersion7(),
             CollectionId = insert.CollectionId,
             Slug = insert.Slug,
-            Status = insert.Status,
             Values = insert.Values,
+            DraftSlug = insert.DraftValues is null ? null : insert.DraftSlug ?? insert.Slug,
+            DraftValues = insert.DraftValues,
+            DraftUpdatedAt = insert.DraftValues is null ? null : now,
             CreatedAt = now,
             UpdatedAt = now,
-            PublishedAt = insert.Status == CollectionItemStatus.Published ? now : null,
+            PublishedAt = insert.PublishedAt,
         };
 
         await itemRepository.AddAsync(item.ToDao(), cancellationToken);
@@ -65,11 +67,22 @@ public class CollectionItemCoreService(ICollectionItemRepository itemRepository,
 
         item.Slug = update.Slug ?? item.Slug;
         item.Values = update.Values ?? item.Values;
-        item.Status = update.Status ?? item.Status;
+        item.PublishedAt = update.PublishedAt ?? item.PublishedAt;
         item.UpdatedAt = now;
 
-        if (update.Status == CollectionItemStatus.Published)
-            item.PublishedAt = now;
+        if (update.DraftValues is not null)
+        {
+            item.DraftSlug = update.DraftSlug ?? item.DraftSlug ?? item.Slug;
+            item.DraftValues = update.DraftValues;
+            item.DraftUpdatedAt = now;
+        }
+
+        if (update.ClearDraft == true)
+        {
+            item.DraftSlug = null;
+            item.DraftValues = null;
+            item.DraftUpdatedAt = null;
+        }
 
         await itemRepository.UpdateAsync(item.ToDao(), cancellationToken);
 

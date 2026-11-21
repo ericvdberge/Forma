@@ -12,6 +12,12 @@ public class CollectionFilter
     /// <summary>Only collections that belong to this website.</summary>
     public Guid? WebsiteId { get; init; }
 
-    /// <summary>Only the collection with exactly this slug.</summary>
+    /// <summary>Only the collection with exactly this (live) slug.</summary>
     public string? Slug { get; init; }
+
+    /// <summary><c>true</c>: only collections visitors see (published at least once); <c>false</c>: only those never published.</summary>
+    public bool? IsLive { get; init; }
+
+    /// <summary><c>true</c>: only collections with a draft; <c>false</c>: only those without one.</summary>
+    public bool? HasDraft { get; init; }
 }

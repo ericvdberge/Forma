@@ -244,7 +244,7 @@ public class PageContentValidationServiceTests
         Id = Guid.NewGuid(),
         CollectionId = Blog.Id,
         Slug = slug,
-        Status = CollectionItemStatus.Published,
+        PublishedAt = DateTime.UtcNow,
         Values = new Dictionary<string, JsonElement> { ["fld_video"] = JsonSerializer.SerializeToElement(video) },
     };
 

@@ -1,8 +1,8 @@
 using Forma.Api.Abstractions;
 using Forma.Api.Dtos;
 using Forma.Api.Mappers;
-using Forma.Application.Documents.Validation;
 using Forma.Application.Entities;
+using Forma.Application.Publishing;
 using Forma.Application.Services;
 using Forma.Infrastructure.Repositories.PageContents;
 using Forma.Infrastructure.Repositories.Pages;
@@ -12,7 +12,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace Forma.Api.Endpoints;
 
 /// <summary>
-/// Endpoints for a page's Design Studio content. Specification: <c>docs/design/page-content-api.md</c>.
+/// Endpoints for a page's Design Studio content: read it, save its draft, discard the draft. A draft goes live with
+/// <c>POST /publish</c>. Specification: <c>docs/design/page-content-api.md</c> and <c>docs/design/drafts-and-publish.md</c>.
 /// </summary>
 public class PageContentEndpoints : IEndpoints
 {
@@ -25,96 +26,103 @@ public class PageContentEndpoints : IEndpoints
 
         group.MapGet("/", GetContentAsync).WithName("GetPageContent");
 
-        group.MapPut("/", PublishContentAsync)
-            .WithName("PublishPageContent")
-            .WithValidation<PublishPageContentRequest>()
+        group.MapPut("/draft", SaveDraftAsync)
+            .WithName("SavePageDraft")
+            .WithValidation<SavePageDraftRequest>()
             .WithMetadata(new RequestSizeLimitAttribute(MaxRequestBytes))
             .ProducesProblem(StatusCodes.Status413PayloadTooLarge);
+
+        group.MapDelete("/draft", DiscardDraftAsync).WithName("DiscardPageDraft");
     }
 
-    /// <summary>Gets a page's content.</summary>
+    /// <summary>Gets a page's content: what visitors see, or the draft.</summary>
     /// <param name="pageId">The page's id.</param>
+    /// <param name="version"><c>live</c> (the default) for what visitors see; <c>draft</c> for the draft, or the live version when there is none.</param>
     /// <param name="pageCoreService">Service that reads pages.</param>
     /// <param name="pageContentCoreService">Service that reads page content.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
-    /// <returns>The page's content, 204 when it has none yet, or 404 when the page does not exist.</returns>
+    /// <returns>The page's content, 204 when it has none in that version, or 404 when the page does not exist.</returns>
     /// <response code="200">The page's content.</response>
-    /// <response code="204">The page exists but has no content yet.</response>
+    /// <response code="204">The page has no content in that version yet (never published, or no draft and nothing live).</response>
     /// <response code="404">No page exists with this id.</response>
     internal static async Task<Results<Ok<PageContentDto>, NoContent, NotFound>> GetContentAsync(
         Guid pageId,
         IPageCoreService pageCoreService,
         IPageContentCoreService pageContentCoreService,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        ContentVersion version = ContentVersion.Live)
     {
         var page = await pageCoreService.GetPageAsync(new PageFilter { Id = pageId }, cancellationToken);
         if (page is null)
             return TypedResults.NotFound();
 
         var content = await pageContentCoreService.GetPageContentAsync(new PageContentFilter { PageId = page.Id }, cancellationToken);
-        if (content is null)
+
+        if (content?.ToDto(version) is not { } dto)
             return TypedResults.NoContent();
 
-        return TypedResults.Ok(content.ToDto());
+        return TypedResults.Ok(dto);
     }
 
-    /// <summary>Publishes a page: stores the document and marks the content published. The studio calls this on Publish.</summary>
+    /// <summary>Saves a page's draft. Nothing changes on the site until the draft is published.</summary>
     /// <remarks>
-    /// The document must pass the structural rules (block types, ranges, safe links, allowed rich text) and the content
-    /// rules (no missing images, links that go somewhere). Errors are answered with a validation problem whose
-    /// <c>issues</c> point at the sections and blocks to fix; warnings don't block and come back with the result.
+    /// Only the document's structure is checked here (block types, ranges, safe links, allowed rich text). Content rules
+    /// such as missing images or fields that don't exist are checked when it is published (<c>POST /publish/check</c>).
     /// </remarks>
     /// <param name="pageId">The page's id.</param>
-    /// <param name="request">The document to publish.</param>
+    /// <param name="request">The document.</param>
     /// <param name="pageCoreService">Service that reads pages.</param>
     /// <param name="pageContentCoreService">Service that stores page content.</param>
-    /// <param name="validationService">Service that checks the content rules.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
-    /// <returns>The published content and its warnings, a validation problem, or 404.</returns>
-    /// <response code="200">Published; the body is the content and any warnings.</response>
-    /// <response code="400">The document is malformed or has errors to fix first.</response>
+    /// <returns>The draft, a validation problem, or 404.</returns>
+    /// <response code="200">Saved; the body is the draft.</response>
+    /// <response code="400">The document is malformed.</response>
     /// <response code="404">No page exists with this id.</response>
     /// <response code="413">The request body is larger than 1 MB.</response>
-    internal static async Task<Results<Ok<PublishedPageContentDto>, ValidationProblem, NotFound>> PublishContentAsync(
+    internal static async Task<Results<Ok<PageContentDto>, ValidationProblem, NotFound>> SaveDraftAsync(
         Guid pageId,
-        PublishPageContentRequest request,
+        SavePageDraftRequest request,
         IPageCoreService pageCoreService,
         IPageContentCoreService pageContentCoreService,
-        IPageContentValidationService validationService,
         CancellationToken cancellationToken)
     {
         var page = await pageCoreService.GetPageAsync(new PageFilter { Id = pageId }, cancellationToken);
         if (page is null)
             return TypedResults.NotFound();
 
-        var issues = await validationService.ValidateAsync(request.Document, page, cancellationToken);
-        var errors = issues.Where(i => i.Severity == IssueSeverity.Error).ToList();
-        if (errors.Count > 0)
-            return ToValidationProblem(errors);
-
         var existing = await pageContentCoreService.GetPageContentAsync(new PageContentFilter { PageId = page.Id }, cancellationToken);
 
         var content = existing is null
-            ? await pageContentCoreService.CreateAsync(
-                new PageContentInsert { PageId = page.Id, Document = request.Document, Status = PageContentStatus.Published },
-                cancellationToken)
-            : await pageContentCoreService.UpdateAsync(
-                page.Id,
-                new PageContentUpdate { Document = request.Document, Status = PageContentStatus.Published },
-                cancellationToken);
+            ? await pageContentCoreService.CreateAsync(new PageContentInsert { PageId = page.Id, DraftDocument = request.Document }, cancellationToken)
+            : await pageContentCoreService.UpdateAsync(page.Id, new PageContentUpdate { DraftDocument = request.Document }, cancellationToken);
 
-        var warnings = issues.Where(i => i.Severity == IssueSeverity.Warning).ToList();
-
-        return TypedResults.Ok(new PublishedPageContentDto(content!.ToDto(), warnings.ToDtos()));
+        return TypedResults.Ok(content!.ToDto(ContentVersion.Draft)!);
     }
 
-    /// <summary>
-    /// A <c>400</c> problem with the errors keyed by where they are (<c>sectionId.blockId.field</c>), and the full
-    /// issues under <c>issues</c> so the studio can select what to fix.
-    /// </summary>
-    private static ValidationProblem ToValidationProblem(IReadOnlyList<ContentIssue> errors) =>
-        TypedResults.ValidationProblem(
-            errors.GroupBy(e => e.Location).ToDictionary(g => g.Key, g => g.Select(e => e.Message).ToArray()),
-            title: "The page has errors to fix before it can be published.",
-            extensions: new Dictionary<string, object?> { ["issues"] = errors.ToDtos() });
+    /// <summary>Discards a page's draft: the page goes back to its live version, and leaves any scheduled publish.</summary>
+    /// <param name="pageId">The page's id.</param>
+    /// <param name="pageCoreService">Service that reads pages.</param>
+    /// <param name="pageContentCoreService">Service that stores page content.</param>
+    /// <param name="scheduledPublishService">Service that takes the page out of its scheduled publish.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>204, or 404.</returns>
+    /// <response code="204">The draft is gone (or there was none).</response>
+    /// <response code="404">No page exists with this id.</response>
+    internal static async Task<Results<NoContent, NotFound>> DiscardDraftAsync(
+        Guid pageId,
+        IPageCoreService pageCoreService,
+        IPageContentCoreService pageContentCoreService,
+        IScheduledPublishService scheduledPublishService,
+        CancellationToken cancellationToken)
+    {
+        var page = await pageCoreService.GetPageAsync(new PageFilter { Id = pageId }, cancellationToken);
+        if (page is null)
+            return TypedResults.NotFound();
+
+        await pageContentCoreService.UpdateAsync(page.Id, new PageContentUpdate { ClearDraft = true }, cancellationToken);
+
+        await scheduledPublishService.RemoveAsync(page.WebsiteId, DraftKind.Page, page.Id, cancellationToken);
+
+        return TypedResults.NoContent();
+    }
 }

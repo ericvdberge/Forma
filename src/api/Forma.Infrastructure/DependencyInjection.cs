@@ -4,6 +4,9 @@ using Forma.Infrastructure.Persistence;
 using Forma.Infrastructure.Repositories.CollectionItems;
 using Forma.Infrastructure.Repositories.Collections;
 using Forma.Infrastructure.Repositories.Media;
+using Forma.Infrastructure.Repositories.PageBindingUsages;
+using Forma.Infrastructure.Repositories.ScheduledPublishEntries;
+using Forma.Infrastructure.Repositories.ScheduledPublishes;
 using Forma.Infrastructure.Repositories.PageContents;
 using Forma.Infrastructure.Repositories.Pages;
 using Forma.Infrastructure.Repositories.Websites;
@@ -29,6 +32,11 @@ public static class DependencyInjection
         services.AddScoped<IPageContentRepository, PageContentRepository>();
         services.AddScoped<ICollectionRepository, CollectionRepository>();
         services.AddScoped<ICollectionItemRepository, CollectionItemRepository>();
+        services.AddScoped<IPageBindingUsageRepository, PageBindingUsageRepository>();
+        services.AddScoped<IScheduledPublishRepository, ScheduledPublishRepository>();
+        services.AddScoped<IScheduledPublishEntryRepository, ScheduledPublishEntryRepository>();
+
+        services.AddScoped<ITransactionRunner, TransactionRunner>();
 
         // Uploaded media are plain files under Assets:Path (relative paths resolve from the working directory).
         var assetsPath = configuration["Assets:Path"] is { Length: > 0 } path ? path : "assets";

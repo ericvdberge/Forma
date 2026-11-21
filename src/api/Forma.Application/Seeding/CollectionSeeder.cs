@@ -10,8 +10,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Forma.Application.Seeding;
 
 /// <summary>
-/// Gives every sample website a <i>Blog posts</i> collection with three published posts, its (empty) detail page, which
-/// the studio fills with a starter design the first time it is opened, and a published <c>/blog</c> page that lists the
+/// Gives every sample website a live <i>Blog posts</i> collection with three live posts, its (empty) detail page, which
+/// the studio fills with a starter design the first time it is opened, and a live <c>/blog</c> page that lists the
 /// posts as cards. Websites that already have a collection or a <c>/blog</c> page are left alone, so deleting the
 /// sample blog sticks: the <c>/blog</c> page stays behind and keeps it from coming back.
 /// </summary>
@@ -76,6 +76,7 @@ public static class CollectionSeeder
                 Slug = "blog",
                 Icon = "newspaper",
                 Fields = BlogFields,
+                PublishedAt = DateTime.UtcNow,
             }, cancellationToken);
 
             await pageCoreService.CreateAsync(new PageInsert
@@ -94,8 +95,8 @@ public static class CollectionSeeder
                 {
                     CollectionId = blog.Id,
                     Slug = post.Slug,
-                    Status = CollectionItemStatus.Published,
                     Values = Values(post),
+                    PublishedAt = DateTime.UtcNow,
                 }, cancellationToken);
         }
     }
@@ -117,7 +118,7 @@ public static class CollectionSeeder
         return blogPage is not null;
     }
 
-    /// <summary>A published <c>/blog</c> page: an intro, then the posts as cards (<c>blog.json</c>).</summary>
+    /// <summary>A live <c>/blog</c> page: an intro, then the posts as cards (<c>blog.json</c>).</summary>
     private static async Task SeedBlogPageAsync(
         Guid websiteId,
         string websiteName,
@@ -142,7 +143,7 @@ public static class CollectionSeeder
         {
             PageId = page.Id,
             Document = PageDocumentSerializer.Deserialize(json, PageDocument.CurrentVersion),
-            Status = PageContentStatus.Published,
+            PublishedAt = DateTime.UtcNow,
         }, cancellationToken);
     }
 

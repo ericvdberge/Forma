@@ -47,6 +47,11 @@ public class CollectionCoreService(ICollectionRepository collectionRepository, T
             Slug = insert.Slug,
             Icon = insert.Icon,
             Fields = insert.Fields,
+            DraftSlug = insert.DraftSlug,
+            DraftFields = insert.DraftFields,
+            DraftValueMoves = insert.DraftFields is null ? null : new Dictionary<string, string?>(),
+            DraftUpdatedAt = insert.DraftFields is null ? null : now,
+            PublishedAt = insert.PublishedAt,
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -62,12 +67,31 @@ public class CollectionCoreService(ICollectionRepository collectionRepository, T
         if (collection is null)
             return null;
 
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+
         collection.Name = update.Name ?? collection.Name;
         collection.SingularName = update.SingularName ?? collection.SingularName;
         collection.Slug = update.Slug ?? collection.Slug;
         collection.Icon = update.Icon ?? collection.Icon;
         collection.Fields = update.Fields ?? collection.Fields;
-        collection.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+        collection.PublishedAt = update.PublishedAt ?? collection.PublishedAt;
+        collection.UpdatedAt = now;
+
+        if (update.DraftFields is not null)
+        {
+            collection.DraftSlug = update.DraftSlug ?? collection.DraftSlug ?? collection.Slug;
+            collection.DraftFields = update.DraftFields;
+            collection.DraftValueMoves = update.DraftValueMoves ?? collection.DraftValueMoves ?? new Dictionary<string, string?>();
+            collection.DraftUpdatedAt = now;
+        }
+
+        if (update.ClearDraft == true)
+        {
+            collection.DraftSlug = null;
+            collection.DraftFields = null;
+            collection.DraftValueMoves = null;
+            collection.DraftUpdatedAt = null;
+        }
 
         await collectionRepository.UpdateAsync(collection.ToDao(), cancellationToken);
 

@@ -17,6 +17,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Development");
         builder.UseSetting("ConnectionStrings:Forma", $"Data Source={Path.Combine(_directory, "forma.db")}");
         builder.UseSetting("Assets:Path", Path.Combine(_directory, "assets"));
+
+        // Tests run scheduled publishes themselves (ScheduledPublishWorker.RunDueAsync); the timer stays out of the way.
+        builder.UseSetting("Publishing:WorkerInterval", "1.00:00:00");
     }
 
     protected override void Dispose(bool disposing)
@@ -45,6 +48,23 @@ public static class ApiClientExtensions
         return pages.Single(p => p.Slug == slug);
     }
 
-    public static Task<HttpResponseMessage> PublishAsync(this HttpClient client, Guid pageId, PageDocument document) =>
-        client.PutAsJsonAsync($"/pages/{pageId}/content", new PublishPageContentRequest(document), PageDocumentJson.Options);
+    public static Task<HttpResponseMessage> SaveDraftAsync(this HttpClient client, Guid pageId, PageDocument document) =>
+        client.PutAsJsonAsync($"/pages/{pageId}/content/draft", new SavePageDraftRequest(document), PageDocumentJson.Options);
+
+    public static Task<HttpResponseMessage> PublishAsync(this HttpClient client, PublishRequest request) =>
+        client.PostAsJsonAsync("/publish", request, PageDocumentJson.Options);
+
+    public static async Task<PublishCheckDto> CheckAsync(this HttpClient client, PublishRequest request) =>
+        await (await client.PostAsJsonAsync("/publish/check", request, PageDocumentJson.Options)).ReadAsync<PublishCheckDto>();
+
+    /// <summary>What the studio does on Publish: saves the draft, then publishes the page. The draft's response when saving fails.</summary>
+    public static async Task<HttpResponseMessage> PublishPageAsync(this HttpClient client, PageDto page, PageDocument document)
+    {
+        var draft = await client.SaveDraftAsync(page.Id, document);
+
+        if (!draft.IsSuccessStatusCode)
+            return draft;
+
+        return await client.PublishAsync(new PublishRequest(page.WebsiteId, [], [page.Id], []));
+    }
 }

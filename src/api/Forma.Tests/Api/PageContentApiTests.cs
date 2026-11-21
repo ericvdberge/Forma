@@ -23,8 +23,8 @@ public class PageContentApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var aboutContent = await _client.GetAsync<PageContentDto>($"/pages/{about.Id}/content");
         var contactContent = await _client.GetAsync<PageContentDto>($"/pages/{contact.Id}/content");
 
-        Assert.Equal(PageContentStatus.Published, aboutContent.Status);
-        Assert.Equal(PageContentStatus.Published, contactContent.Status);
+        Assert.Equal((ContentVersion.Live, false), (aboutContent.Version, aboutContent.HasDraft));
+        Assert.NotNull(contactContent.PublishedAt);
         Assert.NotEmpty(contactContent.Document.Sections);
         Assert.DoesNotContain("{{title}}", PageDocumentSerializer.Serialize(contactContent.Document));
     }
@@ -35,7 +35,7 @@ public class PageContentApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var document = new PageDocumentBuilder().WithSection("s_a").Build();
 
         var get = await _client.GetAsync($"/pages/{Guid.NewGuid()}/content");
-        var put = await _client.PublishAsync(Guid.NewGuid(), document);
+        var put = await _client.SaveDraftAsync(Guid.NewGuid(), document);
 
         Assert.Equal(HttpStatusCode.NotFound, get.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, put.StatusCode);
@@ -49,11 +49,11 @@ public class PageContentApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
             .WithSection("s_hero", section => section.WithHeading("b_title", "<p>Welcome</p>", level: 1))
             .Build();
 
-        var response = await _client.PublishAsync(page.Id, document);
+        var response = await _client.PublishPageAsync(page, document);
         var content = await _client.GetAsync<PageContentDto>($"/pages/{page.Id}/content");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal(PageContentStatus.Published, content.Status);
+        Assert.Equal((ContentVersion.Live, false), (content.Version, content.HasDraft));
         JsonAssert.Equal("""
             {
               "version": 1,
@@ -120,13 +120,14 @@ public class PageContentApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
             .WithSection("s_cta", section => section.WithButton("b_cta", "Contact us", href: "#"))
             .Build();
 
-        var response = await _client.PublishAsync(page.Id, document);
-        var result = await response.ReadAsync<PublishedPageContentDto>();
+        var response = await _client.PublishPageAsync(page, document);
+        var result = await response.ReadAsync<PublishResultDto>();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        JsonAssert.Equal("""
+        JsonAssert.Equal($$"""
             [
               {
+                "entity": { "kind": "page", "id": "{{page.Id}}", "name": "About", "collectionId": null },
                 "severity": "warning",
                 "code": "link.placeholder",
                 "message": "The button ‘Contact us’ still links to # (nowhere).",
@@ -148,16 +149,19 @@ public class PageContentApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
             .WithSection("s_photo", section => section.WithImage("b_photo", src: $"/media/{Guid.NewGuid()}/image"))
             .Build();
 
-        var response = await _client.PublishAsync(page.Id, document);
+        var response = await _client.PublishPageAsync(page, document);
         var problem = await response.ReadAsync<HttpValidationProblemDetails>();
-        var issues = ((JsonElement)problem.Extensions["issues"]!).Deserialize<List<ContentIssueDto>>(PageDocumentJson.Options);
+        var issues = ((JsonElement)problem.Extensions["issues"]!).Deserialize<List<PublishIssueDto>>(PageDocumentJson.Options);
         var after = await _client.GetAsync<PageContentDto>($"/pages/{page.Id}/content");
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
-        Assert.Equal(["This image was deleted from the media library."], problem.Errors["s_photo.b_photo.src"]);
-        Assert.Equal([new ContentIssueDto(IssueSeverity.Error, "media.not_found", "This image was deleted from the media library.", "s_photo", "b_photo", "src", null)], issues);
-        Assert.Equal(before.UpdatedAt, after.UpdatedAt);
+        Assert.Equal(["This image was deleted from the media library."], problem.Errors["Contact"]);
+        Assert.Equal(
+            [new PublishIssueDto(IssueSeverity.Error, "media.not_found", "This image was deleted from the media library.", new EntityRefDto(DraftKind.Page, page.Id, "Contact", null), "s_photo", "b_photo", "src", null)],
+            issues);
+        Assert.Equal((before.PublishedAt, ContentVersion.Live), (after.PublishedAt, after.Version));
+        JsonAssert.Equal(PageDocumentSerializer.Serialize(before.Document), after.Document);
     }
 
     [Fact]
@@ -168,7 +172,7 @@ public class PageContentApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
             .WithSection("s_split", section => section.WithSettings(s => s with { SplitRatio = 99 }))
             .Build();
 
-        var response = await _client.PublishAsync(page.Id, document);
+        var response = await _client.SaveDraftAsync(page.Id, document);
         var problem = await response.ReadAsync<HttpValidationProblemDetails>();
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -182,10 +186,10 @@ public class PageContentApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var document = new PageDocumentBuilder()
             .WithSection("s_a", section => section.WithHeading("b_a"))
             .Build();
-        var json = JsonSerializer.Serialize(new PublishPageContentRequest(document), PageDocumentJson.Options)
+        var json = JsonSerializer.Serialize(new SavePageDraftRequest(document), PageDocumentJson.Options)
             .Replace("\"type\":\"heading\"", "\"type\":\"marquee\"");
 
-        var response = await _client.PutAsync($"/pages/{page.Id}/content", new StringContent(json, Encoding.UTF8, "application/json"));
+        var response = await _client.PutAsync($"/pages/{page.Id}/content/draft", new StringContent(json, Encoding.UTF8, "application/json"));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
@@ -206,7 +210,7 @@ public class SamplePagesApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var page = await _client.SamplePageAsync(slug);
         var content = await _client.GetAsync<PageContentDto>($"/pages/{page.Id}/content");
 
-        var response = await _client.PublishAsync(page.Id, content.Document);
+        var response = await _client.PublishPageAsync(page, content.Document);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }

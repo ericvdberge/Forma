@@ -6,9 +6,13 @@ namespace Forma.Infrastructure.Persistence.Configurations;
 
 public class PageConfiguration : IEntityTypeConfiguration<PageDao>
 {
+    /// <summary>A page of its own has no collection; a detail page always has one.</summary>
+    private const string KindCheck =
+        """("Kind" = 'Static' AND "CollectionId" IS NULL) OR ("Kind" = 'CollectionTemplate' AND "CollectionId" IS NOT NULL)""";
+
     public void Configure(EntityTypeBuilder<PageDao> builder)
     {
-        builder.ToTable("Pages");
+        builder.ToTable("Pages", t => t.HasCheckConstraint("CK_Pages_Kind", KindCheck));
 
         builder.HasKey(p => p.Id);
 
@@ -22,10 +26,11 @@ public class PageConfiguration : IEntityTypeConfiguration<PageDao>
             .HasForeignKey(p => p.WebsiteId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Deleting a collection deletes its detail page.
+        // A detail page is on its collection's website. Deleting a collection deletes its detail page.
         builder.HasOne(p => p.Collection)
             .WithMany()
-            .HasForeignKey(p => p.CollectionId)
+            .HasForeignKey(p => new { p.WebsiteId, p.CollectionId })
+            .HasPrincipalKey(c => new { c.WebsiteId, c.Id })
             .OnDelete(DeleteBehavior.Cascade);
 
         // A collection has at most one detail page.

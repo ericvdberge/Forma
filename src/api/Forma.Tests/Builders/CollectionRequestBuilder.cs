@@ -35,14 +35,24 @@ public class CollectionRequestBuilder
 
     public CreateCollectionRequest BuildCreate(Guid websiteId) => new(websiteId, _name, _singularName, _slug, _icon, [.. _fields]);
 
-    public UpdateCollectionRequest BuildUpdate() => new(_name, _singularName, _slug, _icon, [.. _fields]);
+    public UpdateCollectionRequest BuildUpdate() => new(_name, _singularName, _icon);
+
+    /// <summary>A draft of the slug and fields; <paramref name="moves"/> say where the values of removed fields go.</summary>
+    public SaveCollectionDraftRequest BuildDraft(IReadOnlyDictionary<string, string?>? moves = null) =>
+        new(_slug, [.. _fields], moves ?? new Dictionary<string, string?>());
+
+    /// <summary>Drops a field, e.g. to remove it in a draft.</summary>
+    public CollectionRequestBuilder WithoutField(string id)
+    {
+        _fields.RemoveAll(f => f.Id == id);
+        return this;
+    }
 }
 
-/// <summary>Builds item requests for tests: a draft with a slug and no values, until a test adds some.</summary>
+/// <summary>Builds item requests for tests: a slug and no values, until a test adds some.</summary>
 public class CollectionItemRequestBuilder(string slug)
 {
     private readonly Dictionary<string, JsonElement> _values = [];
-    private CollectionItemStatus _status = CollectionItemStatus.Draft;
 
     public CollectionItemRequestBuilder With(string fieldId, object? value)
     {
@@ -50,11 +60,5 @@ public class CollectionItemRequestBuilder(string slug)
         return this;
     }
 
-    public CollectionItemRequestBuilder Published()
-    {
-        _status = CollectionItemStatus.Published;
-        return this;
-    }
-
-    public SaveCollectionItemRequest Build() => new(slug, _values, _status);
+    public SaveCollectionItemRequest Build() => new(slug, _values);
 }

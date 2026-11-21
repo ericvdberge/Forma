@@ -12,6 +12,9 @@ public class FormaDbContext(DbContextOptions<FormaDbContext> options) : DbContex
     public DbSet<PageContentDao> PageContents => Set<PageContentDao>();
     public DbSet<CollectionDao> Collections => Set<CollectionDao>();
     public DbSet<CollectionItemDao> CollectionItems => Set<CollectionItemDao>();
+    public DbSet<PageBindingUsageDao> PageBindingUsages => Set<PageBindingUsageDao>();
+    public DbSet<ScheduledPublishDao> ScheduledPublishes => Set<ScheduledPublishDao>();
+    public DbSet<ScheduledPublishEntryDao> ScheduledPublishEntries => Set<ScheduledPublishEntryDao>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

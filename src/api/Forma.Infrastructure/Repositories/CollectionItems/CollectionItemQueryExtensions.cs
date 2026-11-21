@@ -12,7 +12,8 @@ internal static class CollectionItemQueryExtensions
             .WithCollectionId(filter.CollectionId)
             .WithWebsiteId(filter.WebsiteId)
             .WithSlug(filter.Slug)
-            .WithStatus(filter.Status);
+            .WithIsLive(filter.IsLive)
+            .WithHasDraft(filter.HasDraft);
 
     private static IQueryable<CollectionItemDao> WithId(this IQueryable<CollectionItemDao> query, Guid? id) =>
         query.WhereIf(id.HasValue, i => i.Id == id);
@@ -26,6 +27,9 @@ internal static class CollectionItemQueryExtensions
     private static IQueryable<CollectionItemDao> WithSlug(this IQueryable<CollectionItemDao> query, string? slug) =>
         query.WhereIf(!string.IsNullOrWhiteSpace(slug), i => i.Slug == slug!.Trim());
 
-    private static IQueryable<CollectionItemDao> WithStatus(this IQueryable<CollectionItemDao> query, CollectionItemDaoStatus? status) =>
-        query.WhereIf(status.HasValue, i => i.Status == status);
+    private static IQueryable<CollectionItemDao> WithIsLive(this IQueryable<CollectionItemDao> query, bool? isLive) =>
+        query.WhereIf(isLive.HasValue, i => (i.PublishedAt != null) == isLive);
+
+    private static IQueryable<CollectionItemDao> WithHasDraft(this IQueryable<CollectionItemDao> query, bool? hasDraft) =>
+        query.WhereIf(hasDraft.HasValue, i => (i.DraftValues != null) == hasDraft);
 }

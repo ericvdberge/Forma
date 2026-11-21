@@ -26,7 +26,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The website's collections with their fields.",
+            "description": "The website's collections with their fields and drafts.",
             "content": {
               "application/json": {
                 "schema": {
@@ -44,8 +44,8 @@
         "tags": [
           "Collections"
         ],
-        "summary": "Creates a collection and the detail page its items are shown with.",
-        "description": "The detail page starts empty; design it in the studio like any page.",
+        "summary": "Creates a collection, as a draft, and the detail page its items are shown with.",
+        "description": "Visitors don't see the collection until it is published. The detail page starts empty; design it in the studio like any page.",
         "operationId": "CreateCollection",
         "requestBody": {
           "description": "Cancels the request.",
@@ -90,7 +90,7 @@
         "tags": [
           "Collections"
         ],
-        "summary": "Gets a collection with its fields.",
+        "summary": "Gets a collection with its fields and draft.",
         "operationId": "GetCollection",
         "parameters": [
           {
@@ -124,8 +124,7 @@
         "tags": [
           "Collections"
         ],
-        "summary": "Changes a collection's names, slug and fields.",
-        "description": "Items keep their values for fields that stay. Values of removed fields are dropped the next time an item is saved.\nPages that show a removed field report it when they are next published.",
+        "summary": "Changes a collection's names and icon. These can't break anything, so they are saved directly.",
         "operationId": "UpdateCollection",
         "parameters": [
           {
@@ -162,7 +161,7 @@
             }
           },
           "400": {
-            "description": "The request is invalid, or another collection uses the slug.",
+            "description": "The request is invalid.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -204,12 +203,153 @@
         }
       }
     },
+    "/collections/{collectionId}/usages": {
+      "get": {
+        "tags": [
+          "Collections"
+        ],
+        "summary": "Lists which live pages show which of the collection's fields: \"Used by…\" in the field editor.",
+        "operationId": "GetCollectionFieldUsages",
+        "parameters": [
+          {
+            "name": "collectionId",
+            "in": "path",
+            "description": "The collection's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One entry per page and field it shows.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FieldUsageDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No collection exists with this id."
+          }
+        }
+      }
+    },
+    "/collections/{collectionId}/draft": {
+      "put": {
+        "tags": [
+          "Collections"
+        ],
+        "summary": "Saves a collection's draft: its slug and fields, and where the values of removed fields go.",
+        "description": "Nothing changes on the site until the draft is published. Then the values of each removed field move to the field\r\n`valueMoves` names, or are removed; pages that show a removed field must be published with it.",
+        "operationId": "SaveCollectionDraft",
+        "parameters": [
+          {
+            "name": "collectionId",
+            "in": "path",
+            "description": "The collection's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Cancels the request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCollectionDraftRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Saved; the body is the collection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid, another collection uses the slug, or a move doesn't start at a removed field.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No collection exists with this id."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Collections"
+        ],
+        "summary": "Discards a collection's draft: its slug and fields go back to the live version, and it leaves any scheduled publish.",
+        "operationId": "DiscardCollectionDraft",
+        "parameters": [
+          {
+            "name": "collectionId",
+            "in": "path",
+            "description": "The collection's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The draft is gone; the body is the collection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The collection was never published, so there is no live version to go back to.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No collection exists with this id."
+          }
+        }
+      }
+    },
     "/collections/{collectionId}/items": {
       "get": {
         "tags": [
           "Collection items"
         ],
-        "summary": "Lists a collection's items, newest first.",
+        "summary": "Lists a collection's items, newest first, with their drafts.",
         "operationId": "GetCollectionItems",
         "parameters": [
           {
@@ -246,8 +386,8 @@
         "tags": [
           "Collection items"
         ],
-        "summary": "Adds an item to a collection.",
-        "description": "Values are checked against the collection's fields: types, required fields, links, images and rich text.",
+        "summary": "Adds an item to a collection, as a draft. Visitors don't see it until it is published.",
+        "description": "Values are checked against the collection's fields (its draft's, when it has one). Required fields are checked when it is published.",
         "operationId": "CreateCollectionItem",
         "parameters": [
           {
@@ -344,12 +484,51 @@
           }
         }
       },
+      "delete": {
+        "tags": [
+          "Collection items"
+        ],
+        "summary": "Deletes an item.",
+        "operationId": "DeleteCollectionItem",
+        "parameters": [
+          {
+            "name": "collectionId",
+            "in": "path",
+            "description": "The collection's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "description": "The item's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          },
+          "404": {
+            "description": "The collection has no item with this id."
+          }
+        }
+      }
+    },
+    "/collections/{collectionId}/items/{itemId}/draft": {
       "put": {
         "tags": [
           "Collection items"
         ],
-        "summary": "Saves an item: its slug, values and status. Publishing is saving with status `published`.",
-        "operationId": "SaveCollectionItem",
+        "summary": "Saves an item's draft: its slug and values. Nothing changes on the site until it is published.",
+        "operationId": "SaveCollectionItemDraft",
         "parameters": [
           {
             "name": "collectionId",
@@ -413,8 +592,8 @@
         "tags": [
           "Collection items"
         ],
-        "summary": "Deletes an item.",
-        "operationId": "DeleteCollectionItem",
+        "summary": "Discards an item's draft: it goes back to its live version, and leaves any scheduled publish.",
+        "operationId": "DiscardCollectionItemDraft",
         "parameters": [
           {
             "name": "collectionId",
@@ -438,8 +617,25 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "Deleted."
+          "200": {
+            "description": "The draft is gone; the body is the item.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionItemDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The item was never published, so there is no live version to go back to.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           },
           "404": {
             "description": "The collection has no item with this id."
@@ -487,7 +683,7 @@
           "Media"
         ],
         "summary": "Uploads an image to a website's media library and creates its thumbnail.",
-        "description": "Accepts JPEG, PNG, GIF and WebP files up to 10 MB and 100 megapixels. The file's contents are checked\nas well as its extension, so a file that is not really a supported image, or is damaged, is rejected.",
+        "description": "Accepts JPEG, PNG, GIF and WebP files up to 10 MB and 100 megapixels. The file's contents are checked\r\nas well as its extension, so a file that is not really a supported image, or is damaged, is rejected.",
         "operationId": "UploadMedia",
         "requestBody": {
           "description": "Cancels the request.",
@@ -689,7 +885,7 @@
         "tags": [
           "Page content"
         ],
-        "summary": "Gets a page's content.",
+        "summary": "Gets a page's content: what visitors see, or the draft.",
         "operationId": "GetPageContent",
         "parameters": [
           {
@@ -700,6 +896,15 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "description": "`live` (the default) for what visitors see; `draft` for the draft, or the live version when there is none.",
+            "schema": {
+              "default": "live",
+              "$ref": "#/components/schemas/ContentVersion"
             }
           }
         ],
@@ -715,20 +920,22 @@
             }
           },
           "204": {
-            "description": "The page exists but has no content yet."
+            "description": "The page has no content in that version yet (never published, or no draft and nothing live)."
           },
           "404": {
             "description": "No page exists with this id."
           }
         }
-      },
+      }
+    },
+    "/pages/{pageId}/content/draft": {
       "put": {
         "tags": [
           "Page content"
         ],
-        "summary": "Publishes a page: stores the document and marks the content published. The studio calls this on Publish.",
-        "description": "The document must pass the structural rules (block types, ranges, safe links, allowed rich text) and the content\nrules (no missing images, links that go somewhere). Errors are answered with a validation problem whose\n`issues` point at the sections and blocks to fix; warnings don't block and come back with the result.",
-        "operationId": "PublishPageContent",
+        "summary": "Saves a page's draft. Nothing changes on the site until the draft is published.",
+        "description": "Only the document's structure is checked here (block types, ranges, safe links, allowed rich text). Content rules\r\nsuch as missing images or fields that don't exist are checked when it is published (`POST /publish/check`).",
+        "operationId": "SavePageDraft",
         "parameters": [
           {
             "name": "pageId",
@@ -746,7 +953,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PublishPageContentRequest"
+                "$ref": "#/components/schemas/SavePageDraftRequest"
               }
             }
           },
@@ -754,17 +961,17 @@
         },
         "responses": {
           "200": {
-            "description": "Published; the body is the content and any warnings.",
+            "description": "Saved; the body is the draft.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PublishedPageContentDto"
+                  "$ref": "#/components/schemas/PageContentDto"
                 }
               }
             }
           },
           "400": {
-            "description": "The document is malformed or has errors to fix first.",
+            "description": "The document is malformed.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -785,6 +992,33 @@
                 }
               }
             }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Page content"
+        ],
+        "summary": "Discards a page's draft: the page goes back to its live version, and leaves any scheduled publish.",
+        "operationId": "DiscardPageDraft",
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "description": "The page's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The draft is gone (or there was none)."
+          },
+          "404": {
+            "description": "No page exists with this id."
           }
         }
       }
@@ -821,6 +1055,297 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/drafts": {
+      "get": {
+        "tags": [
+          "Publishing"
+        ],
+        "summary": "Lists every draft of a website, with what changed and when it is scheduled.",
+        "operationId": "GetDrafts",
+        "parameters": [
+          {
+            "name": "websiteId",
+            "in": "query",
+            "description": "The website.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The website's drafts; empty when everything is live.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DraftDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/publish/check": {
+      "post": {
+        "tags": [
+          "Publishing"
+        ],
+        "summary": "Checks a publish against the site as it would be, without publishing anything.",
+        "description": "The answer lists what changes, the issues (errors block publishing), and `needs`: drafts not in the publish\r\nthat would fix a blocking issue.",
+        "operationId": "CheckPublish",
+        "requestBody": {
+          "description": "Cancels the request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The check.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishCheckDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A collection, page or item isn't one of the website's."
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/publish": {
+      "post": {
+        "tags": [
+          "Publishing"
+        ],
+        "summary": "Puts drafts live now, all at once: everything goes live, or nothing does.",
+        "operationId": "Publish",
+        "requestBody": {
+          "description": "Cancels the request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Live; the body lists what went live and any warnings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something blocks the publish; `issues` and `needs` say what. Nothing was published.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A collection, page or item isn't one of the website's."
+          }
+        }
+      }
+    },
+    "/scheduled-publishes": {
+      "get": {
+        "tags": [
+          "Publishing"
+        ],
+        "summary": "Lists a website's upcoming and failed scheduled publishes, soonest first.",
+        "operationId": "GetScheduledPublishes",
+        "parameters": [
+          {
+            "name": "websiteId",
+            "in": "query",
+            "description": "The website.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pending and failed publishes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScheduledPublishDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Publishing"
+        ],
+        "summary": "Schedules drafts to go live at a time. The publish is checked now, and again when it runs.",
+        "description": "A draft can be in one scheduled publish at a time. The drafts go live as they are when it runs.",
+        "operationId": "SchedulePublish",
+        "requestBody": {
+          "description": "Cancels the request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchedulePublishRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Scheduled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledPublishDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The time is in the past, a draft is already scheduled, or something blocks the publish.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A collection, page or item isn't one of the website's."
+          }
+        }
+      }
+    },
+    "/scheduled-publishes/{id}": {
+      "put": {
+        "tags": [
+          "Publishing"
+        ],
+        "summary": "Changes a scheduled publish's time, or what is in it. A failed publish that is changed is scheduled again.",
+        "operationId": "UpdateScheduledPublish",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The scheduled publish's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Cancels the request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateScheduledPublishRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Changed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledPublishDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The time is in the past, a draft is already scheduled, or something blocks the publish.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No pending or failed publish with this id, or an id isn't one of its website's."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Publishing"
+        ],
+        "summary": "Cancels a scheduled publish. Its drafts stay drafts.",
+        "operationId": "CancelScheduledPublish",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The scheduled publish's id.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cancelled."
+          },
+          "404": {
+            "description": "No pending or failed publish with this id."
           }
         }
       }
@@ -1815,6 +2340,45 @@
           "oldest"
         ]
       },
+      "CollectionDraftDto": {
+        "required": [
+          "slug",
+          "fields",
+          "valueMoves",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "The draft's slug."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CollectionFieldDto"
+            },
+            "description": "The draft's fields, in display order."
+          },
+          "valueMoves": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Where the values of removed fields go when it is published: removed field id → field id, or `null` to remove them."
+          },
+          "updatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the draft was last saved (UTC).",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A collection's draft."
+      },
       "CollectionDto": {
         "required": [
           "id",
@@ -1824,9 +2388,11 @@
           "slug",
           "icon",
           "fields",
+          "draft",
           "detailPageId",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "publishedAt"
         ],
         "type": "object",
         "properties": {
@@ -1850,7 +2416,7 @@
           },
           "slug": {
             "type": "string",
-            "description": "The first part of an item's address: `/{slug}/{item}`."
+            "description": "The first part of a live item's address: `/{slug}/{item}`."
           },
           "icon": {
             "type": "string",
@@ -1861,7 +2427,18 @@
             "items": {
               "$ref": "#/components/schemas/CollectionFieldDto"
             },
-            "description": "The fields every item has, in display order."
+            "description": "The fields every live item has, in display order."
+          },
+          "draft": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "The slug and fields that aren't live yet, or `null` when there are no changes.",
+                "$ref": "#/components/schemas/CollectionDraftDto"
+              }
+            ]
           },
           "detailPageId": {
             "type": [
@@ -1880,10 +2457,18 @@
             "type": "string",
             "description": "When the collection last changed (UTC).",
             "format": "date-time"
+          },
+          "publishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the collection was last published (UTC), or `null` while it never was.",
+            "format": "date-time"
           }
         },
         "additionalProperties": false,
-        "description": "A website's collection, such as <i>Blog posts</i>, with its fields."
+        "description": "A website's collection, such as <i>Blog posts</i>: its live slug and fields, and its draft."
       },
       "CollectionFieldDto": {
         "required": [
@@ -1928,7 +2513,7 @@
               "null",
               "string"
             ],
-            "description": "The field's id; `null` for a new field, which is given one."
+            "description": "The field's id; `null` for a new field, which is given one. The editor may also choose one (`fld_…`)."
           },
           "label": {
             "type": "string",
@@ -1957,13 +2542,41 @@
           "boolean"
         ]
       },
+      "CollectionItemDraftDto": {
+        "required": [
+          "slug",
+          "values",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "The draft's slug."
+          },
+          "values": {
+            "type": "object",
+            "description": "The draft's values keyed by field id."
+          },
+          "updatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the draft was last saved (UTC).",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "An item's draft."
+      },
       "CollectionItemDto": {
         "required": [
           "id",
           "collectionId",
           "slug",
-          "status",
           "values",
+          "draft",
           "createdAt",
           "updatedAt",
           "publishedAt"
@@ -1982,15 +2595,22 @@
           },
           "slug": {
             "type": "string",
-            "description": "The last part of the item's address: `/{collection}/{slug}`."
-          },
-          "status": {
-            "description": "`published` once visitors see it.",
-            "$ref": "#/components/schemas/CollectionItemStatus"
+            "description": "The last part of the item's live address: `/{collection}/{slug}`."
           },
           "values": {
             "type": "object",
-            "description": "The item's values keyed by field id: a string, number or boolean depending on the field's type."
+            "description": "The item's live values keyed by field id: a string, number or boolean depending on the field's type."
+          },
+          "draft": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "The changes that aren't live yet, or `null` when there are none.",
+                "$ref": "#/components/schemas/CollectionItemDraftDto"
+              }
+            ]
           },
           "createdAt": {
             "type": "string",
@@ -2007,75 +2627,19 @@
               "null",
               "string"
             ],
-            "description": "When the item was last published (UTC), or `null` when it never was.",
+            "description": "When the item was last published (UTC), or `null` while it never was: visitors don't see it yet.",
             "format": "date-time"
           }
         },
         "additionalProperties": false,
-        "description": "One item of a collection, e.g. one blog post."
+        "description": "One item of a collection, e.g. one blog post: its live version and its draft."
       },
-      "CollectionItemStatus": {
+      "ContentVersion": {
         "enum": [
-          "draft",
-          "published"
-        ]
-      },
-      "ContentIssueDto": {
-        "required": [
-          "severity",
-          "code",
-          "message",
-          "sectionId",
-          "blockId",
-          "field",
-          "itemIndex"
+          "live",
+          "draft"
         ],
-        "type": "object",
-        "properties": {
-          "severity": {
-            "description": "`error` blocks publishing; `warning` doesn't.",
-            "$ref": "#/components/schemas/IssueSeverity"
-          },
-          "code": {
-            "type": "string",
-            "description": "Stable code, e.g. `image.missing` or `link.placeholder`."
-          },
-          "message": {
-            "type": "string",
-            "description": "What is wrong, in plain language."
-          },
-          "sectionId": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "The section it is in; null when it is about the whole page."
-          },
-          "blockId": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "The block it is about; null when it is about a section or the page."
-          },
-          "field": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "The block prop or section setting, e.g. `href` or `background.image`."
-          },
-          "itemIndex": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "description": "The item of a list prop (a gallery image, a menu link), when it is about one.",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false,
-        "description": "A problem in a page's content that a person can fix."
+        "description": "Which version of a page's content to read."
       },
       "ContentWidth": {
         "enum": [
@@ -2126,7 +2690,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Creates a collection, and the detail page its items are shown with."
+        "description": "Creates a collection, and the detail page its items are shown with. It is a draft until it is published."
       },
       "DividerProps": {
         "required": [
@@ -2150,6 +2714,106 @@
           "solid",
           "dashed"
         ]
+      },
+      "DraftDto": {
+        "required": [
+          "entity",
+          "summary",
+          "details",
+          "isNew",
+          "updatedAt",
+          "scheduledPublishId",
+          "scheduledAt"
+        ],
+        "type": "object",
+        "properties": {
+          "entity": {
+            "description": "What the draft is of.",
+            "$ref": "#/components/schemas/EntityRefDto"
+          },
+          "summary": {
+            "type": "string",
+            "description": "What changed, e.g. `Removed Cover image, added Hero image`, `Edited` or `New page`."
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "More lines, e.g. `14 items: Cover image moves to Hero image`."
+          },
+          "isNew": {
+            "type": "boolean",
+            "description": "Whether it was never published."
+          },
+          "updatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the draft was last saved (UTC).",
+            "format": "date-time"
+          },
+          "scheduledPublishId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The pending scheduled publish it is in, if any.",
+            "format": "uuid"
+          },
+          "scheduledAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When that publish runs (UTC).",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A draft of a website, as the top bar and the publish dialog list it."
+      },
+      "DraftKind": {
+        "enum": [
+          "collection",
+          "page",
+          "item"
+        ]
+      },
+      "EntityRefDto": {
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "collectionId"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "description": "`collection`, `page` or `item`.",
+            "$ref": "#/components/schemas/DraftKind"
+          },
+          "id": {
+            "type": "string",
+            "description": "Its id.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "A collection's name, a page's title, or an item's title."
+          },
+          "collectionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The collection of an item; `null` otherwise.",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A collection, page or item, with the name the app shows it by."
       },
       "EntranceAnimation": {
         "enum": [
@@ -2234,6 +2898,36 @@
           }
         },
         "additionalProperties": false
+      },
+      "FieldUsageDto": {
+        "required": [
+          "fieldId",
+          "pageId",
+          "pageTitle",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "fieldId": {
+            "type": "string",
+            "description": "The field."
+          },
+          "pageId": {
+            "type": "string",
+            "description": "The page.",
+            "format": "uuid"
+          },
+          "pageTitle": {
+            "type": "string",
+            "description": "The page's title."
+          },
+          "kind": {
+            "description": "`binding`: a block on the detail page is connected to it; `cards`: Collection cards show it.",
+            "$ref": "#/components/schemas/PageBindingUsageKind"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A page whose live content shows a field of the collection."
       },
       "FormField": {
         "required": [
@@ -2615,11 +3309,20 @@
         },
         "additionalProperties": false
       },
+      "PageBindingUsageKind": {
+        "enum": [
+          "binding",
+          "cards"
+        ]
+      },
       "PageContentDto": {
         "required": [
           "pageId",
           "document",
-          "status",
+          "version",
+          "hasDraft",
+          "draftUpdatedAt",
+          "publishedAt",
           "createdAt",
           "updatedAt"
         ],
@@ -2631,12 +3334,32 @@
             "format": "uuid"
           },
           "document": {
-            "description": "The page's sections and blocks.",
+            "description": "The page's sections and blocks, in the Version that was read.",
             "$ref": "#/components/schemas/PageDocument"
           },
-          "status": {
-            "description": "`published` once visitors see it; `draft` for sample content that was never published.",
-            "$ref": "#/components/schemas/PageContentStatus"
+          "version": {
+            "description": "Which version Document is: `draft` or `live`.",
+            "$ref": "#/components/schemas/ContentVersion"
+          },
+          "hasDraft": {
+            "type": "boolean",
+            "description": "Whether there are changes that aren't live yet."
+          },
+          "draftUpdatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the draft was last saved (UTC), or `null` without a draft.",
+            "format": "date-time"
+          },
+          "publishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the page was last published (UTC), or `null` while it never was.",
+            "format": "date-time"
           },
           "createdAt": {
             "type": "string",
@@ -2650,13 +3373,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "A page's Design Studio document."
-      },
-      "PageContentStatus": {
-        "enum": [
-          "draft",
-          "published"
-        ]
+        "description": "A page's Design Studio document: its live version or its draft."
       },
       "PageDocument": {
         "required": [
@@ -2789,41 +3506,207 @@
         },
         "additionalProperties": false
       },
-      "PublishedPageContentDto": {
+      "PublishCheckDto": {
         "required": [
-          "content",
+          "canPublish",
+          "entities",
+          "issues",
+          "needs"
+        ],
+        "type": "object",
+        "properties": {
+          "canPublish": {
+            "type": "boolean",
+            "description": "Whether nothing blocks it."
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DraftDto"
+            },
+            "description": "The drafts in the publish, with what changed."
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishIssueDto"
+            },
+            "description": "Errors first, then warnings."
+          },
+          "needs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishNeedDto"
+            },
+            "description": "Drafts to add to fix blocking issues; the publish dialog ticks them."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The result of checking a publish against the site as it would be."
+      },
+      "PublishIssueDto": {
+        "required": [
+          "severity",
+          "code",
+          "message",
+          "entity",
+          "sectionId",
+          "blockId",
+          "field",
+          "itemIndex"
+        ],
+        "type": "object",
+        "properties": {
+          "severity": {
+            "description": "`error` blocks publishing; `warning` doesn't.",
+            "$ref": "#/components/schemas/IssueSeverity"
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable code, e.g. `binding.field_missing` or `item.invalid`."
+          },
+          "message": {
+            "type": "string",
+            "description": "What is wrong, in plain language."
+          },
+          "entity": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "The collection, page or item it is in, to open its editor; `null` when it is about the publish.",
+                "$ref": "#/components/schemas/EntityRefDto"
+              }
+            ]
+          },
+          "sectionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "On a page: the section it is in."
+          },
+          "blockId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "On a page: the block it is about."
+          },
+          "field": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The block prop, or on an item the value (`values.fld_…`)."
+          },
+          "itemIndex": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "The item of a list prop, when it is about one.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A problem the publish check found."
+      },
+      "PublishNeedDto": {
+        "required": [
+          "entity",
+          "neededBy"
+        ],
+        "type": "object",
+        "properties": {
+          "entity": {
+            "description": "The draft to add.",
+            "$ref": "#/components/schemas/EntityRefDto"
+          },
+          "neededBy": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityRefDto"
+            },
+            "description": "What in the publish needs it."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A draft that isn't in the publish but is needed to fix it."
+      },
+      "PublishRequest": {
+        "required": [
+          "websiteId",
+          "collections",
+          "pages",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "websiteId": {
+            "type": "string",
+            "description": "The website; every id must be one of its.",
+            "format": "uuid"
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Collections whose draft goes live."
+          },
+          "pages": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Pages whose draft goes live."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Items whose draft goes live."
+          }
+        },
+        "additionalProperties": false,
+        "description": "What to put live: drafts of one website."
+      },
+      "PublishResultDto": {
+        "required": [
+          "publishedAt",
+          "entities",
           "warnings"
         ],
         "type": "object",
         "properties": {
-          "content": {
-            "description": "The page's content now.",
-            "$ref": "#/components/schemas/PageContentDto"
+          "publishedAt": {
+            "type": "string",
+            "description": "When it went live (UTC).",
+            "format": "date-time"
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityRefDto"
+            },
+            "description": "What went live."
           },
           "warnings": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ContentIssueDto"
+              "$ref": "#/components/schemas/PublishIssueDto"
             },
-            "description": "Things worth a look that didn't block publishing, in page order. Empty when there are none."
+            "description": "Things worth a look that didn't block publishing."
           }
         },
         "additionalProperties": false,
-        "description": "The result of publishing a page."
-      },
-      "PublishPageContentRequest": {
-        "required": [
-          "document"
-        ],
-        "type": "object",
-        "properties": {
-          "document": {
-            "description": "The complete document, as the studio normalised it.",
-            "$ref": "#/components/schemas/PageDocument"
-          }
-        },
-        "additionalProperties": false,
-        "description": "Publishes a page: the document replaces what visitors see."
+        "description": "What was published."
       },
       "ResponsiveSpacing": {
         "required": [
@@ -2857,11 +3740,40 @@
         },
         "additionalProperties": false
       },
+      "SaveCollectionDraftRequest": {
+        "required": [
+          "slug",
+          "fields",
+          "valueMoves"
+        ],
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "Lowercase words separated by dashes, e.g. `blog`; unique within the website."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CollectionFieldRequest"
+            },
+            "description": "The complete list of fields, in display order."
+          },
+          "valueMoves": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "For live fields the draft removes: the field their values move to, or `null` to remove them."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Saves a collection's draft: its slug and fields, and where the values of removed fields go."
+      },
       "SaveCollectionItemRequest": {
         "required": [
           "slug",
-          "values",
-          "status"
+          "values"
         ],
         "type": "object",
         "properties": {
@@ -2872,14 +3784,143 @@
           "values": {
             "type": "object",
             "description": "The item's values keyed by field id. Leave a field out (or empty) when it has no value."
-          },
-          "status": {
-            "description": "`published` to show the item to visitors, `draft` to keep it hidden.",
-            "$ref": "#/components/schemas/CollectionItemStatus"
           }
         },
         "additionalProperties": false,
-        "description": "Creates or saves an item."
+        "description": "Creates an item (as a draft) or saves an item's draft."
+      },
+      "SavePageDraftRequest": {
+        "required": [
+          "document"
+        ],
+        "type": "object",
+        "properties": {
+          "document": {
+            "description": "The complete document, as the studio normalised it.",
+            "$ref": "#/components/schemas/PageDocument"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Saves a page's draft: nothing changes on the site until it is published."
+      },
+      "ScheduledPublishDto": {
+        "required": [
+          "id",
+          "websiteId",
+          "publishAt",
+          "status",
+          "entries",
+          "issues",
+          "createdAt",
+          "completedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The scheduled publish's id.",
+            "format": "uuid"
+          },
+          "websiteId": {
+            "type": "string",
+            "description": "The website.",
+            "format": "uuid"
+          },
+          "publishAt": {
+            "type": "string",
+            "description": "When it runs (UTC).",
+            "format": "date-time"
+          },
+          "status": {
+            "description": "`pending`, or `failed` when it didn't go live.",
+            "$ref": "#/components/schemas/ScheduledPublishStatus"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityRefDto"
+            },
+            "description": "What it puts live."
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishIssueDto"
+            },
+            "description": "Why it didn't go live, when it failed."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When it was scheduled (UTC).",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it ran (UTC).",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Drafts put live together at a set time."
+      },
+      "ScheduledPublishStatus": {
+        "enum": [
+          "pending",
+          "published",
+          "failed",
+          "cancelled"
+        ]
+      },
+      "SchedulePublishRequest": {
+        "required": [
+          "websiteId",
+          "publishAt",
+          "collections",
+          "pages",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "websiteId": {
+            "type": "string",
+            "description": "The website.",
+            "format": "uuid"
+          },
+          "publishAt": {
+            "type": "string",
+            "description": "When to publish; in the future. Sent with its offset or in UTC.",
+            "format": "date-time"
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Collections whose draft goes live."
+          },
+          "pages": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Pages whose draft goes live."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Items whose draft goes live."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Schedules drafts of a website to go live at a time."
       },
       "Section": {
         "required": [
@@ -3192,9 +4233,7 @@
         "required": [
           "name",
           "singularName",
-          "slug",
-          "icon",
-          "fields"
+          "icon"
         ],
         "type": "object",
         "properties": {
@@ -3206,24 +4245,67 @@
             "type": "string",
             "description": "What one item is called, e.g. `Blog post`."
           },
-          "slug": {
-            "type": "string",
-            "description": "Lowercase words separated by dashes, e.g. `blog`; unique within the website."
-          },
           "icon": {
             "type": "string",
             "description": "The icon the app shows it with, e.g. `newspaper`."
-          },
-          "fields": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CollectionFieldRequest"
-            },
-            "description": "The complete list of fields, in display order."
           }
         },
         "additionalProperties": false,
-        "description": "Changes a collection: its names, slug and fields. Items keep their values for fields that stay."
+        "description": "Changes what can't break anything and is saved directly: a collection's names and icon."
+      },
+      "UpdateScheduledPublishRequest": {
+        "required": [
+          "publishAt",
+          "collections",
+          "pages",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "publishAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The new time, or `null` to keep it.",
+            "format": "date-time"
+          },
+          "collections": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The collections, or `null` to keep what is in it (all three lists go together)."
+          },
+          "pages": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The pages."
+          },
+          "items": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The items."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Changes a scheduled publish: its time, and what is in it when the lists are given."
       },
       "UploadMediaRequest": {
         "required": [
@@ -3360,6 +4442,9 @@
     },
     {
       "name": "Pages"
+    },
+    {
+      "name": "Publishing"
     },
     {
       "name": "Websites"

@@ -11,7 +11,8 @@ namespace Forma.Application.Seeding;
 
 /// <summary>
 /// Gives the sample pages (home, about, contact) Design Studio content: the sample home page for <c>home</c>, the
-/// starter page for the others. Content of published sample pages is published too. Pages that have content are left alone.
+/// starter page for the others. Content of published sample pages is live; the others get it as a draft. Pages that have
+/// content are left alone.
 /// </summary>
 public static class PageContentSeeder
 {
@@ -38,11 +39,15 @@ public static class PageContentSeeder
                 ? ReadResource("home.json")
                 : ReadResource("page.json").Replace("{{title}}", Plain(page.Title)).Replace("{{website}}", Plain(websiteName));
 
+            var document = PageDocumentSerializer.Deserialize(json, PageDocument.CurrentVersion);
+            var isLive = page.Status == PageStatus.Published;
+
             await pageContentCoreService.CreateAsync(new PageContentInsert
             {
                 PageId = page.Id,
-                Document = PageDocumentSerializer.Deserialize(json, PageDocument.CurrentVersion),
-                Status = page.Status == PageStatus.Published ? PageContentStatus.Published : PageContentStatus.Draft,
+                Document = isLive ? document : null,
+                DraftDocument = isLive ? null : document,
+                PublishedAt = isLive ? DateTime.UtcNow : null,
             }, cancellationToken);
         }
     }

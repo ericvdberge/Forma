@@ -24,7 +24,8 @@ public class CollectionApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.Equal(["Title", "Cover image", "Summary", "Content", "Published on"], blog.Fields.Select(f => f.Label));
         Assert.Equal("newspaper", blog.Icon);
         Assert.NotNull(blog.DetailPageId);
-        Assert.Equal(3, items.Count(i => i.Status == CollectionItemStatus.Published));
+        Assert.NotNull(blog.PublishedAt);
+        Assert.Equal(3, items.Count(i => i.PublishedAt is not null && i.Draft is null));
     }
 
     [Fact]
@@ -36,7 +37,7 @@ public class CollectionApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var cards = content.Document.Sections.SelectMany(s => s.Blocks).OfType<CollectionCardsBlock>().Single();
         var collection = await _client.GetAsync<CollectionDto>($"/collections/{cards.Props.CollectionId}");
 
-        Assert.Equal(PageContentStatus.Published, content.Status);
+        Assert.NotNull(content.PublishedAt);
         Assert.Equal("blog", collection.Slug);
     }
 
@@ -86,13 +87,15 @@ public class CollectionApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
-    public async Task Renaming_the_slug_moves_the_detail_page()
+    public async Task Publishing_a_new_slug_moves_the_detail_page()
     {
         var websiteId = await WebsiteIdAsync();
         var builder = new CollectionRequestBuilder().Named("Projects", "Project", "projects");
         var created = await (await _client.PostAsJsonAsync("/collections", builder.BuildCreate(websiteId), PageDocumentJson.Options)).ReadAsync<CollectionDto>();
 
-        var response = await _client.PutAsJsonAsync($"/collections/{created.Id}", builder.Named("Work", "Case", "work").BuildUpdate(), PageDocumentJson.Options);
+        await _client.PutAsJsonAsync($"/collections/{created.Id}", builder.Named("Work", "Case", "work").BuildUpdate(), PageDocumentJson.Options);
+        await _client.PutAsJsonAsync($"/collections/{created.Id}/draft", builder.BuildDraft(), PageDocumentJson.Options);
+        var response = await _client.PublishAsync(new PublishRequest(websiteId, [created.Id], [], []));
         var pages = await _client.GetAsync<List<PageDto>>($"/pages?websiteId={websiteId}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -117,7 +120,6 @@ public class CollectionApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
             new Dictionary<string, string[]>
             {
                 ["values.fld_unknown"] = ["Recipes has no field ‘fld_unknown’."],
-                ["values.fld_name"] = ["‘Name’ is required."],
                 ["values.fld_servings"] = ["Enter a number."],
                 ["values.fld_photo"] = ["Images must come from the media library."],
             },
@@ -125,19 +127,21 @@ public class CollectionApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
-    public async Task Items_are_created_saved_and_published()
+    public async Task Items_are_created_as_drafts_and_published()
     {
         var collection = await CreateRecipesAsync();
-        var draft = new CollectionItemRequestBuilder("pancakes").With("fld_name", "Pancakes").With("fld_servings", 4).Build();
-        var published = new CollectionItemRequestBuilder("fluffy-pancakes").With("fld_name", "Fluffy pancakes").With("fld_servings", 4).Published().Build();
+        var first = new CollectionItemRequestBuilder("pancakes").With("fld_name", "Pancakes").With("fld_servings", 4).Build();
+        var second = new CollectionItemRequestBuilder("fluffy-pancakes").With("fld_name", "Fluffy pancakes").With("fld_servings", 4).Build();
 
-        var created = await (await _client.PostAsJsonAsync($"/collections/{collection.Id}/items", draft, PageDocumentJson.Options)).ReadAsync<CollectionItemDto>();
-        var response = await _client.PutAsJsonAsync($"/collections/{collection.Id}/items/{created.Id}", published, PageDocumentJson.Options);
+        var created = await (await _client.PostAsJsonAsync($"/collections/{collection.Id}/items", first, PageDocumentJson.Options)).ReadAsync<CollectionItemDto>();
+        var response = await _client.PutAsJsonAsync($"/collections/{collection.Id}/items/{created.Id}/draft", second, PageDocumentJson.Options);
+        var publish = await _client.PublishAsync(new PublishRequest(collection.WebsiteId, [collection.Id], [], [created.Id]));
         var saved = await _client.GetAsync<CollectionItemDto>($"/collections/{collection.Id}/items/{created.Id}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal((CollectionItemStatus.Draft, null), (created.Status, created.PublishedAt));
-        Assert.Equal(("fluffy-pancakes", CollectionItemStatus.Published), (saved.Slug, saved.Status));
+        Assert.Equal(HttpStatusCode.OK, publish.StatusCode);
+        Assert.Null(created.PublishedAt);
+        Assert.Equal(("fluffy-pancakes", null), (saved.Slug, saved.Draft));
         Assert.NotNull(saved.PublishedAt);
         JsonAssert.Equal("""{ "fld_name": "Fluffy pancakes", "fld_servings": 4 }""", saved.Values);
     }
