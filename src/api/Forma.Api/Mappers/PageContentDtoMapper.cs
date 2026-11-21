@@ -17,7 +17,7 @@ public static partial class PageContentDtoMapper
     {
         var (document, shown) = version == ContentVersion.Draft && content.DraftDocument is { } draft
             ? (draft, ContentVersion.Draft)
-            : (content.Document, ContentVersion.Live);
+            : (content.IsLive ? content.Document : null, ContentVersion.Live);
 
         if (document is null)
             return null;

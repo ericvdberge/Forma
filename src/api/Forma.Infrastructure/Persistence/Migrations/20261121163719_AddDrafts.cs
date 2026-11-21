@@ -102,14 +102,15 @@ namespace Forma.Infrastructure.Persistence.Migrations
                 nullable: true);
 
             // Existing rows: what was published is live with no draft; what wasn't becomes a draft that isn't live.
-            // Collections were always live.
+            // Collections were always live. The live Content of unpublished pages is cleared in ClearUnpublishedContent,
+            // once SQLite has rebuilt PageContents with Content nullable.
             migrationBuilder.Sql("""
                 UPDATE "PageContents" SET "PublishedAt" = "UpdatedAt" WHERE "Status" = 'Published';
                 """);
 
             migrationBuilder.Sql("""
                 UPDATE "PageContents"
-                SET "DraftContent" = "Content", "DraftSchemaVersion" = "SchemaVersion", "DraftUpdatedAt" = "UpdatedAt", "Content" = NULL
+                SET "DraftContent" = "Content", "DraftSchemaVersion" = "SchemaVersion", "DraftUpdatedAt" = "UpdatedAt"
                 WHERE "Status" <> 'Published';
                 """);
 
