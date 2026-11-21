@@ -9,7 +9,7 @@ internal static class PageSeeder
     [
         ("Home", "home", PageDaoStatus.Published),
         ("About", "about", PageDaoStatus.Published),
-        ("Contact", "contact", PageDaoStatus.Draft),
+        ("Contact", "contact", PageDaoStatus.Published),
     ];
 
     public static async Task SeedAsync(FormaDbContext db, CancellationToken cancellationToken = default)
