@@ -30,13 +30,18 @@ onMounted(() => {
 
 onBeforeUnmount(() => resizer?.disconnect())
 
-const width = computed(() => frameWidth[props.device])
+/* Desktop fills the window like a real browser; tablet and phone are device-sized frames. */
+const fullWidth = computed(() => props.device === 'desktop')
+
+const width = computed(() => (fullWidth.value ? '100%' : `${frameWidth[props.device]}px`))
 
 watch(
-  [available, width],
-  ([a, w]) => {
-    if (a)
-      zoom.value = Math.min(1, Math.max(0.2, (a - 32) / w))
+  [available, () => props.device],
+  ([a, device]) => {
+    if (fullWidth.value)
+      zoom.value = 1
+    else if (a)
+      zoom.value = Math.min(1, Math.max(0.2, (a - 32) / frameWidth[device]))
   },
   { immediate: true },
 )
@@ -87,14 +92,13 @@ defineExpose({ showFromTop })
 </script>
 
 <template>
-  <div ref="viewport" class="min-h-0 flex-1 overflow-auto bg-[#ecebe8] p-4">
-    <div class="mx-auto origin-top transition-[width] duration-300" :style="{ width: `${width}px`, zoom }">
+  <div ref="viewport" :class="cn('flex min-h-0 flex-1 flex-col overflow-auto', fullWidth ? 'bg-[#f7f7f5]' : 'bg-[#ecebe8] p-4')">
+    <div :class="cn('mx-auto origin-top', fullWidth && 'flex-1')" :style="{ width, zoom }">
       <div
         :class="
           cn(
-            'relative flex min-h-[640px] flex-col gap-3 bg-[#f7f7f5] p-3 font-sans text-charcoal',
-            device !== 'desktop' && 'rounded-[28px] shadow-card ring-1 ring-charcoal/[0.06]',
-            device === 'desktop' && 'rounded-2xl shadow-soft',
+            'relative flex flex-col gap-3 bg-[#f7f7f5] p-3 font-sans text-charcoal',
+            fullWidth ? 'min-h-full' : 'min-h-[640px] rounded-[28px] shadow-card ring-1 ring-charcoal/[0.06]',
           )
         "
         @click="onClick"
