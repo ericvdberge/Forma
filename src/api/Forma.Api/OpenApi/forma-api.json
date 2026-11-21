@@ -903,8 +903,7 @@
             "in": "query",
             "description": "`live` (the default) for what visitors see; `draft` for the draft, or the live version when there is none.",
             "schema": {
-              "default": "live",
-              "$ref": "#/components/schemas/ContentVersion"
+              "type": "string"
             }
           }
         ],

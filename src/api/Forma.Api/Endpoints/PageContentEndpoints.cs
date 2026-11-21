@@ -50,15 +50,17 @@ public class PageContentEndpoints : IEndpoints
         IPageCoreService pageCoreService,
         IPageContentCoreService pageContentCoreService,
         CancellationToken cancellationToken,
-        ContentVersion version = ContentVersion.Live)
+        string? version = null)
     {
+        var wanted = string.Equals(version, "draft", StringComparison.OrdinalIgnoreCase) ? ContentVersion.Draft : ContentVersion.Live;
+
         var page = await pageCoreService.GetPageAsync(new PageFilter { Id = pageId }, cancellationToken);
         if (page is null)
             return TypedResults.NotFound();
 
         var content = await pageContentCoreService.GetPageContentAsync(new PageContentFilter { PageId = page.Id }, cancellationToken);
 
-        if (content?.ToDto(version) is not { } dto)
+        if (content?.ToDto(wanted) is not { } dto)
             return TypedResults.NoContent();
 
         return TypedResults.Ok(dto);
