@@ -12,7 +12,8 @@ namespace Forma.Application.Seeding;
 /// <summary>
 /// Gives every sample website a <i>Blog posts</i> collection with three published posts, its (empty) detail page, which
 /// the studio fills with a starter design the first time it is opened, and a published <c>/blog</c> page that lists the
-/// posts as cards. Websites that have collections are left alone.
+/// posts as cards. Websites that already have a collection or a <c>/blog</c> page are left alone, so deleting the
+/// sample blog sticks: the <c>/blog</c> page stays behind and keeps it from coming back.
 /// </summary>
 public static class CollectionSeeder
 {
@@ -64,8 +65,7 @@ public static class CollectionSeeder
 
         foreach (var website in await websites.GetAllAsync(cancellationToken))
         {
-            var existing = await collectionCoreService.GetCollectionsAsync(new CollectionFilter { WebsiteId = website.Id }, cancellationToken);
-            if (existing.Count > 0)
+            if (await IsSeededAsync(website.Id, collectionCoreService, pageCoreService, cancellationToken))
                 continue;
 
             var blog = await collectionCoreService.CreateAsync(new CollectionInsert
@@ -100,6 +100,23 @@ public static class CollectionSeeder
         }
     }
 
+    /// <summary>Whether the website has a collection or a <c>/blog</c> page, from an earlier run or made by hand.</summary>
+    private static async Task<bool> IsSeededAsync(
+        Guid websiteId,
+        ICollectionCoreService collectionCoreService,
+        IPageCoreService pageCoreService,
+        CancellationToken cancellationToken)
+    {
+        var collections = await collectionCoreService.GetCollectionsAsync(new CollectionFilter { WebsiteId = websiteId }, cancellationToken);
+
+        if (collections.Count > 0)
+            return true;
+
+        var blogPage = await pageCoreService.GetPageAsync(new PageFilter { WebsiteId = websiteId, Slug = "blog" }, cancellationToken);
+
+        return blogPage is not null;
+    }
+
     /// <summary>A published <c>/blog</c> page: an intro, then the posts as cards (<c>blog.json</c>).</summary>
     private static async Task SeedBlogPageAsync(
         Guid websiteId,
@@ -109,10 +126,6 @@ public static class CollectionSeeder
         IPageContentCoreService pageContentCoreService,
         CancellationToken cancellationToken)
     {
-        var existing = await pageCoreService.GetPageAsync(new PageFilter { WebsiteId = websiteId, Slug = "blog" }, cancellationToken);
-        if (existing is not null)
-            return;
-
         var page = await pageCoreService.CreateAsync(new PageInsert
         {
             WebsiteId = websiteId,

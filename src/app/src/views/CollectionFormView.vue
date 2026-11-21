@@ -7,7 +7,7 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { useActiveWebsite } from '@/composables/useActiveWebsite'
 import { useCollections, type CollectionDraft } from '@/composables/useCollections'
-import type { CollectionField, CollectionFieldType } from '@/data/types'
+import type { Collection, CollectionField, CollectionFieldType } from '@/data/types'
 import { collectionIcons, collectionPresets, fieldTypeOrder, fieldTypes } from '@/utils/collections'
 import { slugify } from '@/utils/slugify'
 
@@ -52,22 +52,26 @@ function startFrom(presetId: string) {
   errors.value = {}
 }
 
-// A new collection starts as a blog: the most common case, and easy to change.
-if (!editing.value) startFrom('blog')
-
+// A new collection starts as a blog: the most common case, and easy to change. Both routes share this view, so the
+// form is filled again whenever it switches between "new" and a collection (or the collection loads).
 watch(
-  collection,
-  (c) => {
-    if (!c || !editing.value) return
-    name.value = c.name
-    singularName.value = c.singularName
-    slug.value = c.slug
-    icon.value = c.icon
-    fields.value = c.fields.map(row)
-    slugTouched.value = singularTouched.value = true
+  [collection, editing],
+  ([c, isEditing]) => {
+    if (!isEditing) startFrom('blog')
+    else if (c) loadFrom(c)
   },
   { immediate: true },
 )
+
+function loadFrom(c: Collection) {
+  name.value = c.name
+  singularName.value = c.singularName
+  slug.value = c.slug
+  icon.value = c.icon
+  fields.value = c.fields.map(row)
+  slugTouched.value = singularTouched.value = true
+  errors.value = {}
+}
 
 /** Typing a name: until the person types their own, the address and the singular name follow it. */
 function onName(n: string) {
@@ -109,8 +113,8 @@ const changedTypes = computed(() =>
 
 /* ---------- Saving ---------- */
 const errorFor = (key: string) => errors.value[key]?.[0]
-const fieldError = (i: number) => errorFor(`fields[${i}].label`) ?? errorFor(`Fields[${i}].Label`)
-const formError = computed(() => errorFor('fields') ?? errorFor('Fields'))
+const fieldError = (i: number) => errorFor(`fields[${i}].label`)
+const formError = computed(() => errorFor('fields'))
 
 function draft(): CollectionDraft {
   return {
@@ -129,16 +133,11 @@ async function save() {
     const outcome = editing.value && collection.value
       ? await collectionsApi.updateCollection(collection.value, draft())
       : await collectionsApi.createCollection(activeWebsite.value.id, draft())
-    if (outcome.kind === 'invalid') errors.value = normalize(outcome.errors)
+    if (outcome.kind === 'invalid') errors.value = outcome.errors
     if (outcome.kind === 'saved') router.push({ name: 'collection', params: { collectionId: outcome.collection.id } })
   } finally {
     saving.value = false
   }
-}
-
-/** The API names properties in PascalCase (`Name`) or camelCase (`slug`); the form looks them up in camelCase. */
-function normalize(e: Record<string, string[]>) {
-  return Object.fromEntries(Object.entries(e).map(([k, v]) => [k.replace(/(^|\.)([A-Z])/g, (_, dot: string, c: string) => dot + c.toLowerCase()), v]))
 }
 
 const canSave = computed(() => name.value.trim() && singularName.value.trim() && slug.value.trim() && !saving.value)

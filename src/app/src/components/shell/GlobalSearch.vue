@@ -36,7 +36,9 @@ const results = computed<Result[]>(() => {
   const sites: Result[] = websites.value
     .filter((w) => `${w.name} ${w.domain}`.toLowerCase().includes(q))
     .map((w) => ({ id: w.id, label: w.name, hint: w.domain, kind: 'website', run: () => router.push(`/websites/${w.id}`) }))
+  // Like the Pages view, only the website's own pages: a collection's detail page is opened from its collection.
   const pageResults: Result[] = pages.value
+    .filter((p) => p.kind === 'static')
     .filter((p) => `${p.title} ${p.path}`.toLowerCase().includes(q))
     .map((p) => {
       const site = websites.value.find((w) => w.id === p.websiteId)

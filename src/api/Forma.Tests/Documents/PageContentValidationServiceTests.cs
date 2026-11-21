@@ -1,7 +1,9 @@
+using System.Text.Json;
 using Forma.Application.Documents;
 using Forma.Application.Documents.Validation;
 using Forma.Application.Entities;
 using Forma.Application.Services;
+using Forma.Infrastructure.Repositories.CollectionItems;
 using Forma.Infrastructure.Repositories.Collections;
 using Forma.Infrastructure.Repositories.Pages;
 using Forma.Tests.Builders;
@@ -26,8 +28,16 @@ public class PageContentValidationServiceTests
             new CollectionField("fld_title", "Title", CollectionFieldType.Text, Required: true),
             new CollectionField("fld_cover", "Cover", CollectionFieldType.Image, Required: false),
             new CollectionField("fld_body", "Body", CollectionFieldType.RichText, Required: true),
+            new CollectionField("fld_video", "Video", CollectionFieldType.Url, Required: true),
         ],
     };
+
+    /// <summary>The published posts of <see cref="Blog"/>; drafts aren't returned for publish checks.</summary>
+    private static readonly CollectionItem[] PublishedPosts =
+    [
+        Post("opening-our-studio", video: "https://youtu.be/dQw4w9WgXcQ"),
+        Post("our-new-website", video: "https://acme.example"),
+    ];
 
     private static readonly Page StaticPage = new() { WebsiteId = WebsiteId, Title = "About", Slug = "about" };
 
@@ -40,7 +50,7 @@ public class PageContentValidationServiceTests
         CollectionId = Blog.Id,
     };
 
-    private readonly PageContentValidationService _service = new(new FakeMedia(), new FakePages(), new FakeCollections());
+    private readonly PageContentValidationService _service = new(new FakeMedia(), new FakePages(), new FakeCollections(), new FakeItems());
 
     private Task<IReadOnlyList<ContentIssue>> ValidateAsync(PageDocument document, Page? page = null) =>
         _service.ValidateAsync(document, page ?? StaticPage);
@@ -75,6 +85,21 @@ public class PageContentValidationServiceTests
             .Build();
 
         Assert.Empty(await ValidateAsync(document));
+    }
+
+    [Theory]
+    [InlineData("/blog/opening-our-stuido")]
+    [InlineData("/blog/a-draft-post")]
+    [InlineData("/team/opening-our-studio")]
+    public async Task Warns_about_links_to_items_that_arent_published(string href)
+    {
+        var document = new PageDocumentBuilder()
+            .WithSection("s_a", section => section.WithButton("b_cta", "Go", href))
+            .Build();
+
+        var issue = Assert.Single(await ValidateAsync(document));
+
+        Assert.Equal(("link.page_missing", "s_a.b_cta.href"), (issue.Code, issue.Location));
     }
 
     [Fact]
@@ -199,6 +224,30 @@ public class PageContentValidationServiceTests
             issues.Select(i => (i.Code, i.Location)));
     }
 
+    [Fact]
+    public async Task Warns_when_a_bound_video_shows_items_that_arent_videos()
+    {
+        var document = new PageDocumentBuilder()
+            .WithSection("s_a", section => section.WithVideo("b_video", url: "", bindings: Bind("url", "fld_video")))
+            .Build();
+
+        var issue = Assert.Single(await ValidateAsync(document, BlogDetailPage));
+
+        Assert.Equal(
+            ("video.binding_not_video", IssueSeverity.Warning, "s_a.b_video.bindings.url"),
+            (issue.Code, issue.Severity, issue.Location));
+        Assert.Contains("1 item", issue.Message);
+    }
+
+    private static CollectionItem Post(string slug, string video) => new()
+    {
+        Id = Guid.NewGuid(),
+        CollectionId = Blog.Id,
+        Slug = slug,
+        Status = CollectionItemStatus.Published,
+        Values = new Dictionary<string, JsonElement> { ["fld_video"] = JsonSerializer.SerializeToElement(video) },
+    };
+
     private static Dictionary<string, Binding> Bind(string prop, string fieldId) =>
         new() { [prop] = new Binding(BindingScope.Page, fieldId) };
 
@@ -224,6 +273,17 @@ public class PageContentValidationServiceTests
         public Task<Page?> GetPageAsync(PageFilter filter, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<Page> CreateAsync(PageInsert insert, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<Page?> UpdateAsync(Guid id, PageUpdate update, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
+    private sealed class FakeItems : ICollectionItemCoreService
+    {
+        public Task<IReadOnlyList<CollectionItem>> GetCollectionItemsAsync(CollectionItemFilter filter, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<CollectionItem>>(filter.WebsiteId == WebsiteId ? PublishedPosts : []);
+
+        public Task<CollectionItem?> GetCollectionItemAsync(CollectionItemFilter filter, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<CollectionItem> CreateAsync(CollectionItemInsert insert, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<CollectionItem?> UpdateAsync(Guid id, CollectionItemUpdate update, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 

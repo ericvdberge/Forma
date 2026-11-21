@@ -9,6 +9,7 @@ import {
   type UpdateCollectionRequest,
 } from '@/api/generated'
 import { getCollectionsOptions } from '@/api/generated/@tanstack/vue-query.gen'
+import { validationErrors } from '@/utils/validationErrors'
 
 /** Matches every cached GET /collections query, whatever website it is for. */
 export const allCollectionsQueryKey = [{ _id: 'getCollections' }] as const
@@ -24,7 +25,7 @@ async function toOutcome(call: Promise<{ data?: CollectionDto; error?: unknown; 
   try {
     const { data, error, response } = await call
     if (data) return { kind: 'saved', collection: data }
-    if (response?.status === 400) return { kind: 'invalid', errors: (error as { errors?: Record<string, string[]> })?.errors ?? {} }
+    if (response?.status === 400) return { kind: 'invalid', errors: validationErrors(error) }
     if (response?.status === 404) return { kind: 'not-found' }
     return { kind: 'failed' }
   } catch {

@@ -1,6 +1,9 @@
 using Forma.Application.Documents;
 using Forma.Application.Documents.Validation;
 using Forma.Application.Entities;
+using System.Text.Json;
+using Forma.Infrastructure.Daos;
+using Forma.Infrastructure.Repositories.CollectionItems;
 using Forma.Infrastructure.Repositories.Collections;
 using Forma.Infrastructure.Repositories.Pages;
 
@@ -21,20 +24,26 @@ public interface IPageContentValidationService
 public class PageContentValidationService(
     IMediaCoreService mediaCoreService,
     IPageCoreService pageCoreService,
-    ICollectionCoreService collectionCoreService) : IPageContentValidationService
+    ICollectionCoreService collectionCoreService,
+    ICollectionItemCoreService collectionItemCoreService) : IPageContentValidationService
 {
     public async Task<IReadOnlyList<ContentIssue>> ValidateAsync(PageDocument document, Page page, CancellationToken cancellationToken = default)
     {
-        // Everything the rules look up, loaded once: the website's media, page slugs and collections.
+        // Everything the rules look up, loaded once: the website's media, pages, collections and published items.
         var media = await mediaCoreService.GetMediaItemsAsync(page.WebsiteId, cancellationToken);
         var pages = await pageCoreService.GetPagesAsync(new PageFilter { WebsiteId = page.WebsiteId }, cancellationToken);
         var collections = await collectionCoreService.GetCollectionsAsync(new CollectionFilter { WebsiteId = page.WebsiteId }, cancellationToken);
+        var items = await collectionItemCoreService.GetCollectionItemsAsync(PublishedItemsOf(page.WebsiteId), cancellationToken);
+
+        var pageCollection = collections.FirstOrDefault(c => page.Kind == PageKind.CollectionTemplate && c.Id == page.CollectionId);
 
         var lookups = new Lookups(
             Media: media.Select(m => m.Id).ToHashSet(),
             Slugs: pages.Where(p => p.Kind == PageKind.Static).Select(p => p.Slug).ToHashSet(StringComparer.OrdinalIgnoreCase),
             Collections: collections.ToDictionary(c => c.Id),
-            PageCollection: collections.FirstOrDefault(c => page.Kind == PageKind.CollectionTemplate && c.Id == page.CollectionId));
+            ItemAddresses: ItemAddresses(collections, items),
+            PageCollection: pageCollection,
+            PageItems: items.Where(i => i.CollectionId == pageCollection?.Id).ToList());
 
         var issues = new List<ContentIssue>();
         new Walker(issues, lookups).Visit(document);
@@ -43,15 +52,33 @@ public class PageContentValidationService(
         return issues.OrderBy(i => i.Severity).ToList();
     }
 
+    private static CollectionItemFilter PublishedItemsOf(Guid websiteId) =>
+        new() { WebsiteId = websiteId, Status = CollectionItemDaoStatus.Published };
+
+    /// <summary>The addresses of the published items, without the leading slash: <c>blog/opening-our-studio</c>.</summary>
+    private static HashSet<string> ItemAddresses(IReadOnlyList<Collection> collections, IReadOnlyList<CollectionItem> items)
+    {
+        var slugs = collections.ToDictionary(c => c.Id, c => c.Slug);
+
+        return items
+            .Where(i => slugs.ContainsKey(i.CollectionId))
+            .Select(i => $"{slugs[i.CollectionId]}/{i.Slug}")
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
     /// <param name="Media">Ids of the website's media items.</param>
     /// <param name="Slugs">Slugs of the website's own pages.</param>
     /// <param name="Collections">The website's collections by id.</param>
+    /// <param name="ItemAddresses">Addresses of the published items of those collections (<c>blog/opening-our-studio</c>).</param>
     /// <param name="PageCollection">The collection whose items the page shows, when it is a collection's detail page.</param>
+    /// <param name="PageItems">The published items of <paramref name="PageCollection"/>.</param>
     private sealed record Lookups(
         HashSet<Guid> Media,
         HashSet<string> Slugs,
         Dictionary<Guid, Collection> Collections,
-        Collection? PageCollection);
+        HashSet<string> ItemAddresses,
+        Collection? PageCollection,
+        IReadOnlyList<CollectionItem> PageItems);
 
     private sealed class Walker(List<ContentIssue> issues, Lookups lookups)
     {
@@ -129,7 +156,10 @@ public class PageContentValidationService(
                         CheckImage(carousel.Props.Slides[i].Src, "slides", i);
 
                     break;
-                case VideoBlock video when video.Props.Url.Length == 0 && !IsBound(block, "url"):
+                case VideoBlock when IsBound(block, "url"):
+                    CheckBoundVideo(block.Bindings!["url"]);
+                    break;
+                case VideoBlock video when video.Props.Url.Length == 0:
                     Error("video.missing", "This video has no link yet.", "url");
                     break;
                 case FormBlock form when form.Props.Fields.Count == 0:
@@ -175,6 +205,28 @@ public class PageContentValidationService(
                     Warn("binding.optional_field", $"‘{definition.Label}’ isn't required, so some items will show the placeholder.", field);
             }
         }
+
+        /// <summary>
+        /// A video can only show a YouTube or Vimeo link, but the field it shows is a plain link field,
+        /// so the published items' values are checked here.
+        /// </summary>
+        private void CheckBoundVideo(Binding binding)
+        {
+            if (lookups.PageCollection?.Fields.FirstOrDefault(f => f.Id == binding.Field) is not { } definition)
+                return;
+
+            var notVideos = lookups.PageItems.Count(item => !IsVideoValue(item, binding.Field));
+
+            if (notVideos > 0)
+                Warn("video.binding_not_video", $"‘{definition.Label}’ isn't a YouTube or Vimeo link in {Items(notVideos)}, so those pages show no video.", "bindings.url");
+        }
+
+        private static bool IsVideoValue(CollectionItem item, string fieldId) =>
+            !item.Values.TryGetValue(fieldId, out var value)
+            || value.ValueKind != JsonValueKind.String
+            || DocumentRules.IsVideoUrl(value.GetString()!);
+
+        private static string Items(int count) => count == 1 ? "1 item" : $"{count} items";
 
         private void CheckCollectionCards(CollectionCardsProps props)
         {
@@ -244,18 +296,14 @@ public class PageContentValidationService(
         }
 
         /// <summary>
-        /// Whether a site-relative link points at one of the website's pages (<c>/</c> is the home page) or at an item
-        /// of one of its collections (<c>/blog/opening-our-studio</c>).
+        /// Whether a site-relative link points at one of the website's pages (<c>/</c> is the home page) or at a published
+        /// item of one of its collections (<c>/blog/opening-our-studio</c>).
         /// </summary>
         private bool IsPage(string href)
         {
             var path = href.Split('#', '?')[0].Trim('/');
-            if (path.Length == 0 || lookups.Slugs.Contains(path))
-                return true;
 
-            var segments = path.Split('/');
-
-            return segments.Length == 2 && lookups.Collections.Values.Any(c => string.Equals(c.Slug, segments[0], StringComparison.OrdinalIgnoreCase));
+            return path.Length == 0 || lookups.Slugs.Contains(path) || lookups.ItemAddresses.Contains(path);
         }
 
         private void Error(string code, string message, string? field = null, int? item = null) =>

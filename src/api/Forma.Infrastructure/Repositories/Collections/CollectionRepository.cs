@@ -28,5 +28,5 @@ public class CollectionRepository(FormaDbContext db) : ICollectionRepository
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default) =>
-        await db.Collections.Where(c => c.Id == id).ExecuteDeleteAsync(cancellationToken) > 0;
+        await db.Collections.ApplyFilter(new CollectionFilter { Id = id }).ExecuteDeleteAsync(cancellationToken) > 0;
 }

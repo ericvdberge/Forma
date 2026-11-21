@@ -6,6 +6,9 @@ namespace Forma.Infrastructure.Repositories.Media;
 /// </summary>
 public class MediaFilter
 {
+    /// <summary>Only the media item with this id.</summary>
+    public Guid? Id { get; init; }
+
     /// <summary>Only media that belongs to this website.</summary>
     public Guid? WebsiteId { get; init; }
 

@@ -41,15 +41,15 @@ const snapshot = () => JSON.stringify({ values: values.value, slug: slug.value }
 const dirty = computed(() => snapshot() !== saved.value)
 
 watch(
-  [item, isNew],
+  [item, isNew, () => collection.value?.id],
   () => {
     if (isNew.value) {
-      values.value = {}
+      values.value = withDefaults({})
       slug.value = ''
       slugTouched.value = false
       status.value = 'draft'
     } else if (item.value) {
-      values.value = { ...item.value.values }
+      values.value = withDefaults(item.value.values)
       slug.value = item.value.slug
       slugTouched.value = true
       status.value = item.value.status
@@ -59,6 +59,13 @@ watch(
   },
   { immediate: true },
 )
+
+/** Yes/no fields read as "no" until switched on, so they start as `false` rather than without a value. */
+function withDefaults(current: Record<string, CollectionValue | null>) {
+  const booleans = (collection.value?.fields ?? []).filter((f) => f.type === 'boolean' && typeof current[f.id] !== 'boolean')
+
+  return { ...current, ...Object.fromEntries(booleans.map((f) => [f.id, false])) }
+}
 
 // A new item's address follows its title until the person types their own.
 const nameField = computed(() => (collection.value ? titleField(collection.value) : undefined))

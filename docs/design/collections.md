@@ -184,6 +184,8 @@ The same two levels as pages ([page-content.md § 6](page-content.md#6-validatio
 | `list.collection_missing` | error | `collectionList.collectionId` doesn't exist or belongs to another website |
 | `list.filter_field` | error | A filter or sort field doesn't exist or doesn't support that operator |
 | `binding.optional_field` | warning | Bound to a field that isn't required: the literal fallback will show for some items |
+| `video.binding_not_video` | warning | A video's `url` is bound to a link field whose value isn't a YouTube or Vimeo link for some published items |
+| `link.page_missing` | warning | Also for `/{collection}/{item}` links whose item doesn't exist or isn't published |
 
 **Changing collections that pages depend on.** Deleting a field, or changing its type, when `PageBindingUsages` has rows answers `409` with the pages that use it, the same pattern as media.
 

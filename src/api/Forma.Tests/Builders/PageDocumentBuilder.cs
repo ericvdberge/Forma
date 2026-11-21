@@ -115,8 +115,8 @@ public class SectionBuilder(string id)
     public SectionBuilder WithGallery(string blockId, params GalleryImage[] images) =>
         WithBlock(new GalleryBlock { Id = blockId, Style = DefaultStyle, Props = new GalleryProps(images, 3, 12, 8) });
 
-    public SectionBuilder WithVideo(string blockId, string url = "https://youtu.be/dQw4w9WgXcQ") =>
-        WithBlock(new VideoBlock { Id = blockId, Style = DefaultStyle, Props = new VideoProps(url, VideoAspect.Wide16x9, 0) });
+    public SectionBuilder WithVideo(string blockId, string url = "https://youtu.be/dQw4w9WgXcQ", IReadOnlyDictionary<string, Binding>? bindings = null) =>
+        WithBlock(new VideoBlock { Id = blockId, Style = DefaultStyle, Props = new VideoProps(url, VideoAspect.Wide16x9, 0), Bindings = bindings });
 
     public Section Build() => new() { Id = id, Settings = _settings, Blocks = [.. _blocks] };
 }

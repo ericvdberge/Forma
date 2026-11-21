@@ -8,6 +8,7 @@ import {
   type SaveCollectionItemRequest,
 } from '@/api/generated'
 import { getCollectionItemsOptions } from '@/api/generated/@tanstack/vue-query.gen'
+import { validationErrors } from '@/utils/validationErrors'
 
 /** The result of saving an item: errors are keyed `slug` or `values.{fieldId}`. */
 export type ItemWriteOutcome =
@@ -20,7 +21,7 @@ async function toOutcome(call: Promise<{ data?: CollectionItemDto; error?: unkno
   try {
     const { data, error, response } = await call
     if (data) return { kind: 'saved', item: data }
-    if (response?.status === 400) return { kind: 'invalid', errors: (error as { errors?: Record<string, string[]> })?.errors ?? {} }
+    if (response?.status === 400) return { kind: 'invalid', errors: validationErrors(error) }
     if (response?.status === 404) return { kind: 'not-found' }
     return { kind: 'failed' }
   } catch {

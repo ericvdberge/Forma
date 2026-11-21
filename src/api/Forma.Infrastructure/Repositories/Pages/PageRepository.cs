@@ -28,5 +28,5 @@ public class PageRepository(FormaDbContext db) : IPageRepository
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default) =>
-        await db.Pages.Where(p => p.Id == id).ExecuteDeleteAsync(cancellationToken) > 0;
+        await db.Pages.ApplyFilter(new PageFilter { Id = id }).ExecuteDeleteAsync(cancellationToken) > 0;
 }
