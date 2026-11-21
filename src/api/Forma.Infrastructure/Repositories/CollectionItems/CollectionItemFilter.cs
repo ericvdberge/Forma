@@ -1,5 +1,3 @@
-using Forma.Infrastructure.Daos;
-
 namespace Forma.Infrastructure.Repositories.CollectionItems;
 
 /// <summary>
@@ -20,6 +18,9 @@ public class CollectionItemFilter
     /// <summary>Only the item with exactly this slug.</summary>
     public string? Slug { get; init; }
 
-    /// <summary>Only items with this status.</summary>
-    public CollectionItemDaoStatus? Status { get; init; }
+    /// <summary><c>true</c>: only items visitors see (published at least once); <c>false</c>: only items never published.</summary>
+    public bool? IsLive { get; init; }
+
+    /// <summary><c>true</c>: only items with a draft; <c>false</c>: only items without one.</summary>
+    public bool? HasDraft { get; init; }
 }

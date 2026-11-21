@@ -7,6 +7,8 @@ namespace Forma.Application.Services;
 /// <summary>Creates, reads, updates and deletes page content. Rules and workflows belong to the callers.</summary>
 public interface IPageContentCoreService
 {
+    Task<IReadOnlyList<PageContent>> GetPageContentsAsync(PageContentFilter filter, CancellationToken cancellationToken = default);
+
     /// <summary>The content matching <paramref name="filter"/>, or <c>null</c> when there is none.</summary>
     Task<PageContent?> GetPageContentAsync(PageContentFilter filter, CancellationToken cancellationToken = default);
 
@@ -21,6 +23,12 @@ public interface IPageContentCoreService
 
 public class PageContentCoreService(IPageContentRepository pageContentRepository, TimeProvider timeProvider) : IPageContentCoreService
 {
+    public async Task<IReadOnlyList<PageContent>> GetPageContentsAsync(PageContentFilter filter, CancellationToken cancellationToken = default)
+    {
+        var contents = await pageContentRepository.GetPageContentsAsync(filter, cancellationToken);
+        return contents.ToEntities();
+    }
+
     public async Task<PageContent?> GetPageContentAsync(PageContentFilter filter, CancellationToken cancellationToken = default)
     {
         var contents = await pageContentRepository.GetPageContentsAsync(filter, cancellationToken);
@@ -34,7 +42,9 @@ public class PageContentCoreService(IPageContentRepository pageContentRepository
         {
             PageId = insert.PageId,
             Document = insert.Document,
-            Status = insert.Status,
+            DraftDocument = insert.DraftDocument,
+            DraftUpdatedAt = insert.DraftDocument is null ? null : now,
+            PublishedAt = insert.PublishedAt,
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -50,9 +60,23 @@ public class PageContentCoreService(IPageContentRepository pageContentRepository
         if (content is null)
             return null;
 
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+
         content.Document = update.Document ?? content.Document;
-        content.Status = update.Status ?? content.Status;
-        content.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+        content.PublishedAt = update.PublishedAt ?? content.PublishedAt;
+        content.UpdatedAt = now;
+
+        if (update.DraftDocument is not null)
+        {
+            content.DraftDocument = update.DraftDocument;
+            content.DraftUpdatedAt = now;
+        }
+
+        if (update.ClearDraft == true)
+        {
+            content.DraftDocument = null;
+            content.DraftUpdatedAt = null;
+        }
 
         await pageContentRepository.UpdateAsync(content.ToDao(), cancellationToken);
 

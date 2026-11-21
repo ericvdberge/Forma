@@ -11,4 +11,10 @@ public class PageContentFilter
 
     /// <summary>Only content of pages that belong to this website.</summary>
     public Guid? WebsiteId { get; init; }
+
+    /// <summary><c>true</c>: only content visitors see (published at least once); <c>false</c>: only content never published.</summary>
+    public bool? IsLive { get; init; }
+
+    /// <summary><c>true</c>: only content with a draft; <c>false</c>: only content without one.</summary>
+    public bool? HasDraft { get; init; }
 }

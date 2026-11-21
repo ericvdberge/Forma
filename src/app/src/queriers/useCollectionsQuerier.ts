@@ -3,12 +3,15 @@ import { useQuery } from '@tanstack/vue-query'
 import {
   createCollection,
   deleteCollection,
+  discardCollectionDraft,
+  saveCollectionDraft,
   updateCollection,
   type CollectionDto,
   type CreateCollectionRequest,
+  type SaveCollectionDraftRequest,
   type UpdateCollectionRequest,
 } from '@/api/generated'
-import { getCollectionsOptions } from '@/api/generated/@tanstack/vue-query.gen'
+import { getCollectionFieldUsagesOptions, getCollectionsOptions } from '@/api/generated/@tanstack/vue-query.gen'
 import { validationErrors } from '@/utils/validationErrors'
 
 /** Matches every cached GET /collections query, whatever website it is for. */
@@ -45,6 +48,16 @@ export function useCollectionsQuerier() {
     )
   }
 
+  /** GET /collections/{collectionId}/usages: which live pages show which fields. */
+  function getUsages(collectionId: MaybeRefOrGetter<string>) {
+    return useQuery(
+      computed(() => ({
+        ...getCollectionFieldUsagesOptions({ path: { collectionId: toValue(collectionId) } }),
+        enabled: !!toValue(collectionId),
+      })),
+    )
+  }
+
   /** POST /collections */
   function create(body: CreateCollectionRequest) {
     return toOutcome(createCollection({ body }))
@@ -53,6 +66,16 @@ export function useCollectionsQuerier() {
   /** PUT /collections/{collectionId} */
   function update(collectionId: string, body: UpdateCollectionRequest) {
     return toOutcome(updateCollection({ path: { collectionId }, body }))
+  }
+
+  /** PUT /collections/{collectionId}/draft */
+  function saveDraft(collectionId: string, body: SaveCollectionDraftRequest) {
+    return toOutcome(saveCollectionDraft({ path: { collectionId }, body }))
+  }
+
+  /** DELETE /collections/{collectionId}/draft */
+  function discardDraft(collectionId: string) {
+    return toOutcome(discardCollectionDraft({ path: { collectionId } }))
   }
 
   /** DELETE /collections/{collectionId}. True when it is gone. */
@@ -67,8 +90,11 @@ export function useCollectionsQuerier() {
 
   return {
     getCollections,
+    getUsages,
     create,
     update,
+    saveDraft,
+    discardDraft,
     remove,
   }
 }

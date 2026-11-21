@@ -16,6 +16,7 @@ import StudioInspector from './StudioInspector.vue'
 import StudioLibrary from './StudioLibrary.vue'
 import StudioToolbar from './StudioToolbar.vue'
 import AppToast from '@/components/shell/AppToast.vue'
+import ScheduledBanner from '@/components/publishing/ScheduledBanner.vue'
 
 /** The full-screen page editor. Rendered by StudioView once websites have loaded. */
 
@@ -56,7 +57,7 @@ const seed = computed<StudioPageSeed | undefined>(() => {
   if (pageCollectionId.value && collectionsPending.value) return undefined
   return { title: page.value.title, websiteName: activeWebsite.value.name, collection: pageCollection.value }
 })
-const studio = createStudio(() => (page.value ? pageId.value : ''), seed, () => activeWebsite.value.id, pageCollectionId)
+const studio = createStudio(() => (page.value ? pageId.value : ''), seed, () => activeWebsite.value.id, pageCollectionId, () => page.value?.title ?? '')
 provideStudio(studio)
 
 
@@ -136,9 +137,9 @@ function onKey(e: KeyboardEvent) {
   }
 }
 
-/* Edits stay in the browser until they are published, so closing the tab with unpublished changes asks first. */
+/* Edits stay in the browser until they are saved, so closing the tab with unsaved changes asks first. */
 function onBeforeUnload(e: BeforeUnloadEvent) {
-  if (studio.hasChanges.value) e.preventDefault()
+  if (studio.dirty.value) e.preventDefault()
 }
 onMounted(() => {
   window.addEventListener('keydown', onKey)
@@ -163,6 +164,7 @@ const notOnServer = computed(() => studio.query.error.value instanceof StudioPag
       @library="openAdd"
       @inspector="drawer = 'inspector'"
     />
+    <ScheduledBanner v-if="studio.entity.value" :website-id="activeWebsite.id" :entity="studio.entity.value" class="mx-3 mt-3 sm:mx-4" />
 
     <div class="relative flex min-h-0 flex-1">
       <div v-if="drawer" class="fixed inset-0 z-40 bg-charcoal/30 xl:hidden" aria-hidden="true" @click="drawer = null" />

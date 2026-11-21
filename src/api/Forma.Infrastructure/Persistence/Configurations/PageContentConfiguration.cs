@@ -13,8 +13,7 @@ public class PageContentConfiguration : IEntityTypeConfiguration<PageContentDao>
         // A page has one content row; the key also serves lookups by page.
         builder.HasKey(c => c.PageId);
 
-        builder.Property(c => c.Status).HasConversion<string>().HasMaxLength(20);
-        builder.Property(c => c.Content).IsRequired();
+        // Content and DraftContent are both nullable: a new page has only a draft, a page without changes only live content.
 
         builder.HasOne(c => c.Page)
             .WithOne()

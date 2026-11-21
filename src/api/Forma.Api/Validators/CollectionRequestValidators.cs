@@ -34,7 +34,7 @@ public class CreateCollectionRequestValidator : AbstractValidator<CreateCollecti
     }
 }
 
-/// <summary>A collection's changed names, slug and fields. A slug another collection uses is checked by the endpoint.</summary>
+/// <summary>A collection's changed names and icon, which are saved directly.</summary>
 public class UpdateCollectionRequestValidator : AbstractValidator<UpdateCollectionRequest>
 {
     public UpdateCollectionRequestValidator()
@@ -43,21 +43,39 @@ public class UpdateCollectionRequestValidator : AbstractValidator<UpdateCollecti
 
         RuleFor(r => r.SingularName).NotEmpty().MaximumLength(CollectionLimits.MaxNameLength);
 
+        RuleFor(r => r.Icon)
+            .Must(CollectionIcons.All.Contains).WithMessage("Choose one of the collection icons.");
+    }
+}
+
+/// <summary>
+/// A collection's draft: slug, fields and value moves. A slug another collection uses, and moves that don't fit the
+/// collection's live fields, are checked by the endpoint.
+/// </summary>
+public class SaveCollectionDraftRequestValidator : AbstractValidator<SaveCollectionDraftRequest>
+{
+    public SaveCollectionDraftRequestValidator()
+    {
         RuleFor(r => r.Slug)
             .MaximumLength(CollectionLimits.MaxSlugLength)
             .Must(DocumentRules.IsSlug).WithMessage("Use lowercase letters, digits and dashes, e.g. blog.");
 
-        RuleFor(r => r.Icon)
-            .Must(CollectionIcons.All.Contains).WithMessage("Choose one of the collection icons.");
-
         RuleFor(r => r.Fields.Count)
             .LessThanOrEqualTo(CollectionLimits.MaxFields).WithMessage($"A collection can have at most {CollectionLimits.MaxFields} fields.")
-            .OverridePropertyName(nameof(UpdateCollectionRequest.Fields));
+            .OverridePropertyName(nameof(SaveCollectionDraftRequest.Fields));
 
         RuleFor(r => r.Fields)
             .Must(CollectionLimits.HaveUniqueIds).WithMessage("Every field needs its own id.");
 
         RuleForEach(r => r.Fields).SetValidator(new CollectionFieldRequestValidator());
+
+        RuleFor(r => r.ValueMoves)
+            .Must(moves => moves.Keys.All(DocumentRules.IsFieldId)).WithMessage("Values can only move from a field.");
+
+        RuleFor(r => r)
+            .Must(r => r.ValueMoves.Values.All(to => to is null || r.Fields.Any(f => f.Id == to)))
+            .WithMessage("Values can only move to a field the collection has.")
+            .OverridePropertyName(nameof(SaveCollectionDraftRequest.ValueMoves));
     }
 }
 
@@ -86,8 +104,6 @@ public class SaveCollectionItemRequestValidator : AbstractValidator<SaveCollecti
         RuleFor(r => r.Values.Count)
             .LessThanOrEqualTo(CollectionLimits.MaxFields).WithMessage($"An item can have at most {CollectionLimits.MaxFields} values.")
             .OverridePropertyName(nameof(SaveCollectionItemRequest.Values));
-
-        RuleFor(r => r.Status).IsInEnum();
     }
 }
 

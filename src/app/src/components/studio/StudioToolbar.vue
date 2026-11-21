@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { ArrowLeft, ArrowRight, ChevronDown, Database, ExternalLink, Eye, EyeOff, Monitor, PanelRight, Plus, Redo2, Smartphone, Tablet, Undo2 } from 'lucide-vue-next'
-import { FButton, FLogo, cn } from '@forma/design-system'
+import { ArrowLeft, ChevronDown, Database, ExternalLink, Eye, EyeOff, Monitor, PanelRight, Plus, Redo2, Smartphone, Tablet, Undo2 } from 'lucide-vue-next'
+import { FLogo, cn } from '@forma/design-system'
+import PublishControls from '@/components/publishing/PublishControls.vue'
+import { useActiveWebsite } from '@/composables/useActiveWebsite'
 import { useStudio, type StudioMode } from '@/composables/useStudio'
 import type { Breakpoint } from '@/studio/types'
 import { itemTitle } from '@/utils/collections'
 
 /**
- * The editor's top bar: back to Pages (or to the collection, for its detail page), the page, view controls and
- * publishing. A detail page also picks the item it is previewed with.
+ * The editor's top bar: back to Pages (or to the collection, for its detail page), the page, view controls, and the
+ * status, Save and Publish every editor shares (PublishControls). A detail page also picks the item it is previewed with.
  */
 defineProps<{
   pageTitle: string
@@ -20,6 +22,7 @@ defineProps<{
 }>()
 const emit = defineEmits<{ library: []; inspector: [] }>()
 const studio = useStudio()
+const activeWebsite = useActiveWebsite().getActiveWebsite()
 
 const devices: Array<{ value: Breakpoint; label: string; icon: typeof Monitor }> = [
   { value: 'desktop', label: 'Computer', icon: Monitor },
@@ -31,20 +34,9 @@ const modes: Array<{ value: StudioMode; label: string }> = [
   { value: 'advanced', label: 'Advanced' },
 ]
 
-/** A page that was never published can be published as is. */
-const canPublish = computed(() => studio.hasChanges.value || !studio.isPublished.value)
-const status = computed(() => {
-  if (!studio.isPublished.value) return { label: 'Not published yet', dot: 'bg-accent' }
-  return studio.hasChanges.value ? { label: 'Changes not published', dot: 'bg-accent' } : { label: 'Published', dot: 'bg-positive' }
-})
-
-function discard() {
-  if (window.confirm('Throw away all changes since the last publish? You can still undo this.')) studio.discard()
-}
-
 const previewOptions = computed(() => {
   const c = studio.pageCollection.value
-  return c ? studio.previewItems.value.map((i) => ({ value: i.id, label: `${itemTitle(c, i)}${i.status === 'live' ? '' : ' (draft)'}` })) : []
+  return c ? studio.previewItems.value.map((i) => ({ value: i.id, label: `${itemTitle(c, i)}${i.status === 'live' ? '' : ' (not live)'}` })) : []
 })
 
 const textBtn =
@@ -61,10 +53,7 @@ const textBtn =
 
     <div class="min-w-0 border-l border-charcoal/[0.08] pl-3">
       <p class="truncate text-base font-bold leading-tight">{{ pageTitle }}</p>
-      <p class="flex items-center gap-1.5 truncate text-xs text-muted" role="status">
-        <span :class="cn('size-1.5 shrink-0 rounded-full', status.dot)" aria-hidden="true" />
-        {{ status.label }}<span class="hidden md:inline"> · {{ pagePath }}</span>
-      </p>
+      <p class="truncate text-xs text-muted">{{ pagePath }}</p>
     </div>
 
     <div class="flex items-center gap-1 sm:ml-4">
@@ -167,10 +156,19 @@ const textBtn =
         <span class="hidden 2xl:inline">View site</span>
         <span class="sr-only 2xl:hidden">View site</span>
       </RouterLink>
-      <FButton size="sm" variant="secondary" :disabled="!studio.hasChanges.value" @click="discard">Discard</FButton>
-      <FButton size="sm" :disabled="!canPublish || studio.publishing.value" @click="studio.publish()">
-        {{ studio.publishing.value ? 'Publishing…' : 'Publish' }} <ArrowRight class="size-4" aria-hidden="true" />
-      </FButton>
+      <PublishControls
+        :website-id="activeWebsite.id"
+        :entity="studio.entity.value"
+        :name="pageTitle"
+        :dirty="studio.dirty.value"
+        :is-live="studio.isPublished.value"
+        :has-draft="studio.hasDraft.value"
+        :draft-saved-at="studio.page.value?.draftSavedAt ?? null"
+        :save="studio.save"
+        :discard="studio.discard"
+        @blocked="studio.onBlocked"
+        @published="studio.onPublished"
+      />
       <button type="button" :class="cn(textBtn, 'xl:hidden')" aria-label="Show settings" title="Settings for the selection" @click="emit('inspector')">
         <PanelRight class="size-5" :stroke-width="1.6" aria-hidden="true" />
       </button>

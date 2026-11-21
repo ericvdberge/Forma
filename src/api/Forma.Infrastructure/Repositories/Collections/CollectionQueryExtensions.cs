@@ -10,7 +10,9 @@ internal static class CollectionQueryExtensions
         query
             .WithId(filter.Id)
             .WithWebsiteId(filter.WebsiteId)
-            .WithSlug(filter.Slug);
+            .WithSlug(filter.Slug)
+            .WithIsLive(filter.IsLive)
+            .WithHasDraft(filter.HasDraft);
 
     private static IQueryable<CollectionDao> WithId(this IQueryable<CollectionDao> query, Guid? id) =>
         query.WhereIf(id.HasValue, c => c.Id == id);
@@ -20,4 +22,10 @@ internal static class CollectionQueryExtensions
 
     private static IQueryable<CollectionDao> WithSlug(this IQueryable<CollectionDao> query, string? slug) =>
         query.WhereIf(!string.IsNullOrWhiteSpace(slug), c => c.Slug == slug!.Trim());
+
+    private static IQueryable<CollectionDao> WithIsLive(this IQueryable<CollectionDao> query, bool? isLive) =>
+        query.WhereIf(isLive.HasValue, c => (c.PublishedAt != null) == isLive);
+
+    private static IQueryable<CollectionDao> WithHasDraft(this IQueryable<CollectionDao> query, bool? hasDraft) =>
+        query.WhereIf(hasDraft.HasValue, c => (c.DraftFields != null) == hasDraft);
 }

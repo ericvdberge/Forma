@@ -4,8 +4,9 @@ import { pageContentQueryKey, usePageContentQuerier, type StudioPageSeed } from 
 import type { StudioPage } from '@/studio/types'
 
 /**
- * A page's Design Studio content: loaded from GET /pages/{id}/content into the query cache, where the editor keeps its
- * working copy, and published with PUT /pages/{id}/content. Nothing is sent to the server until Publish.
+ * A page's Design Studio content: loaded from GET /pages/{id}/content (the draft, and the live version) into the query
+ * cache, where the editor keeps its working copy. Save stores the draft with PUT /pages/{id}/content/draft; nothing
+ * changes on the site until it is published.
  */
 export function usePageContent(pageId: MaybeRefOrGetter<string>, seed: MaybeRefOrGetter<StudioPageSeed | undefined>) {
   const queryClient = useQueryClient()
@@ -23,6 +24,7 @@ export function usePageContent(pageId: MaybeRefOrGetter<string>, seed: MaybeRefO
     query,
     page,
     writePage,
-    publish: querier.publish,
+    saveDraft: querier.saveDraft,
+    discardDraft: querier.discardDraft,
   }
 }

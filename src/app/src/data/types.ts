@@ -50,7 +50,19 @@ export interface Collection {
   fields: CollectionField[]
   /** The page every item is shown with; designed in the studio. */
   detailPageId: string | null
+  /** The slug and fields that aren't live yet; null when there are no changes. */
+  draft: CollectionDraftState | null
+  /** Null while it was never published. */
+  publishedAt: number | null
   updatedAt: number
+}
+
+/** A collection's draft: where the values of removed fields go when it is published (`null`: they are removed). */
+export interface CollectionDraftState {
+  slug: string
+  fields: CollectionField[]
+  valueMoves: Record<string, string | null>
+  updatedAt: number | null
 }
 
 /** A value of an item's field: a string (text, rich text, image, link, date), a number or a boolean. */
@@ -59,9 +71,13 @@ export type CollectionValue = string | number | boolean
 export interface CollectionItem {
   id: string
   collectionId: string
+  /** The live slug and values; for an item that was never published, its first saved version. */
   slug: string
+  /** `live` once it was published; visitors see the live slug and values. */
   status: PageStatus
   values: Record<string, CollectionValue>
+  /** The changes that aren't live yet; null when there are none. */
+  draft: { slug: string; values: Record<string, CollectionValue>; updatedAt: number | null } | null
   updatedAt: number
   publishedAt: number | null
 }

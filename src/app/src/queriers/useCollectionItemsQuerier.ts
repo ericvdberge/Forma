@@ -3,7 +3,8 @@ import { useQueries, useQuery } from '@tanstack/vue-query'
 import {
   createCollectionItem,
   deleteCollectionItem,
-  saveCollectionItem,
+  discardCollectionItemDraft,
+  saveCollectionItemDraft,
   type CollectionItemDto,
   type SaveCollectionItemRequest,
 } from '@/api/generated'
@@ -50,14 +51,19 @@ export function useCollectionItemsQuerier() {
     })
   }
 
-  /** POST /collections/{collectionId}/items */
+  /** POST /collections/{collectionId}/items: a new item, as a draft. */
   function create(collectionId: string, body: SaveCollectionItemRequest) {
     return toOutcome(createCollectionItem({ path: { collectionId }, body }))
   }
 
-  /** PUT /collections/{collectionId}/items/{itemId} */
-  function save(collectionId: string, itemId: string, body: SaveCollectionItemRequest) {
-    return toOutcome(saveCollectionItem({ path: { collectionId, itemId }, body }))
+  /** PUT /collections/{collectionId}/items/{itemId}/draft */
+  function saveDraft(collectionId: string, itemId: string, body: SaveCollectionItemRequest) {
+    return toOutcome(saveCollectionItemDraft({ path: { collectionId, itemId }, body }))
+  }
+
+  /** DELETE /collections/{collectionId}/items/{itemId}/draft */
+  function discardDraft(collectionId: string, itemId: string) {
+    return toOutcome(discardCollectionItemDraft({ path: { collectionId, itemId } }))
   }
 
   /** DELETE /collections/{collectionId}/items/{itemId}. True when it is gone. */
@@ -74,7 +80,8 @@ export function useCollectionItemsQuerier() {
     getItems,
     getItemsOfMany,
     create,
-    save,
+    saveDraft,
+    discardDraft,
     remove,
   }
 }

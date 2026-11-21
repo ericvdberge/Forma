@@ -13,8 +13,8 @@ public class CollectionItemConfiguration : IEntityTypeConfiguration<CollectionIt
         builder.HasKey(i => i.Id);
 
         builder.Property(i => i.Slug).HasMaxLength(200).IsRequired();
-        builder.Property(i => i.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(i => i.Values).IsRequired();
+        builder.Property(i => i.DraftSlug).HasMaxLength(200);
 
         builder.HasOne(i => i.Collection)
             .WithMany()

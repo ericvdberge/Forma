@@ -1,7 +1,7 @@
 import { computed, ref, toValue, watch, type MaybeRefOrGetter, type Ref } from 'vue'
 import { useCollections } from '@/composables/useCollections'
 import { toCollectionItem } from '@/composables/useCollectionItems'
-import type { CollectionItem } from '@/data/types'
+import type { Collection, CollectionItem, CollectionValue } from '@/data/types'
 import { useCollectionItemsQuerier } from '@/queriers/useCollectionItemsQuerier'
 import type { StudioCollectionData } from '@/studio/inject'
 import type { PageDocument } from '@/studio/types'
@@ -15,6 +15,29 @@ function listedCollections(doc: PageDocument | undefined) {
   return ids
 }
 
+/** A collection as it will be once its draft is published: the draft's address and fields. */
+function asDrafted(collection: Collection): Collection {
+  return collection.draft ? { ...collection, slug: collection.draft.slug, fields: collection.draft.fields } : collection
+}
+
+/**
+ * An item as it will be once its draft, and its collection's draft, are published: the draft's slug and values, with
+ * the values of removed fields moved where the collection's draft says (the server does the same when it publishes).
+ */
+function draftedItem(collection: Collection | undefined, item: CollectionItem): CollectionItem {
+  const values: Record<string, CollectionValue> = { ...(item.draft?.values ?? item.values) }
+  const drafted = { ...item, slug: item.draft?.slug ?? item.slug, values }
+  if (!collection?.draft) return drafted
+
+  const kept = new Set(collection.draft.fields.map((f) => f.id))
+  const filled = (v: unknown) => v !== undefined && v !== null && v !== ''
+  for (const [from, to] of Object.entries(collection.draft.valueMoves)) {
+    if (to && kept.has(to) && !kept.has(from) && filled(values[from]) && !filled(values[to])) values[to] = values[from]!
+  }
+  for (const id of Object.keys(values)) if (!kept.has(id)) delete values[id]
+  return drafted
+}
+
 /**
  * The collections the studio (and the website preview) shows: the website's collections, the items of every collection the page lists, and on a
  * collection's detail page the item it is previewed with. Items load as soon as a list or the detail page needs them.
@@ -23,9 +46,12 @@ export function useStudioCollections(
   websiteId: MaybeRefOrGetter<string>,
   pageCollectionId: MaybeRefOrGetter<string | null>,
   doc: Ref<PageDocument | undefined>,
+  /** The studio designs pages for the site as it will be: collections and items with their drafts. The website preview shows what is live. */
+  { drafts = false }: { drafts?: boolean } = {},
 ) {
   const collectionsQuery = useCollections().getCollections(websiteId)
-  const collections = collectionsQuery.collections
+  const collections = computed(() => (drafts ? collectionsQuery.collections.value.map(asDrafted) : collectionsQuery.collections.value))
+  const sourceCollections = computed(() => new Map(collectionsQuery.collections.value.map((c) => [c.id, c])))
 
   const pageCollection = computed(() => collections.value.find((c) => c.id === toValue(pageCollectionId)))
 
@@ -42,7 +68,8 @@ export function useStudioCollections(
     const map = new Map<string, { items: CollectionItem[]; loading: boolean }>()
     ids.value.forEach((id, i) => {
       const q = itemQueries.value[i]
-      map.set(id, { items: (q?.data ?? []).map(toCollectionItem), loading: !!q?.isPending })
+      const items = (q?.data ?? []).map(toCollectionItem)
+      map.set(id, { items: drafts ? items.map((i) => draftedItem(sourceCollections.value.get(id), i)) : items, loading: !!q?.isPending })
     })
     return map
   })

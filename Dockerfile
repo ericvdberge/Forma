@@ -27,6 +27,7 @@ COPY src/api/Forma.Api.slnx ./
 COPY src/api/Forma.Api/Forma.Api.csproj Forma.Api/
 COPY src/api/Forma.Application/Forma.Application.csproj Forma.Application/
 COPY src/api/Forma.Infrastructure/Forma.Infrastructure.csproj Forma.Infrastructure/
+COPY src/api/Forma.Analyzers/Forma.Analyzers.csproj Forma.Analyzers/
 RUN dotnet restore Forma.Api/Forma.Api.csproj
 
 COPY src/api .

@@ -121,13 +121,23 @@ A .NET 10 backend in three projects ([`Forma.Api.slnx`](src/api/Forma.Api.slnx))
 | `GET /media/{id}/thumbnail` | The WebP thumbnail's bytes                                      |
 | `POST /media`               | Uploads an image (multipart: `websiteId`, `file`), `201` or `400` |
 | `DELETE /media/{id}`        | Deletes a media item and its files, `204`                       |
-| `GET /pages/{id}/content`   | A page's Design Studio content (`204` when it has none yet)      |
-| `PUT /pages/{id}/content`   | Publishes a page (`{ document }`): `200` with warnings, or `400` with the issues to fix |
-| `GET /collections?websiteId={id}` | The collections of one website, with their fields and detail page |
-| `POST /collections`         | Creates a collection and its detail page, `201` or `400`        |
-| `GET` / `PUT` / `DELETE /collections/{id}` | One collection: read, change names, slug and fields, or delete it with its items and detail page |
-| `GET` / `POST /collections/{id}/items` | A collection's items / adds one (values checked against the fields), `201` or `400` |
-| `GET` / `PUT` / `DELETE /collections/{id}/items/{itemId}` | One item: read, save (publishing is saving with `status: published`) or delete |
+| `GET /pages/{id}/content?version=` | A page's live content, or its draft with `version=draft` (`204` when it has none) |
+| `PUT` / `DELETE /pages/{id}/content/draft` | Saves the page's draft (`{ document }`, structural checks only) / discards it |
+| `GET /collections?websiteId={id}` | The collections of one website, with their fields, draft and detail page |
+| `POST /collections`         | Creates a collection (as a draft) and its detail page, `201` or `400` |
+| `GET` / `PUT` / `DELETE /collections/{id}` | One collection: read, change its names and icon (saved directly), or delete it with its items and detail page |
+| `PUT` / `DELETE /collections/{id}/draft` | Saves the draft of its slug and fields, with where removed fields' values move (`{ slug, fields, valueMoves }`) / discards it |
+| `GET /collections/{id}/usages` | Which live pages show which fields ("Used by…") |
+| `GET` / `POST /collections/{id}/items` | A collection's items / adds one as a draft (values checked against the fields), `201` or `400` |
+| `GET` / `DELETE /collections/{id}/items/{itemId}` | One item: read or delete |
+| `PUT` / `DELETE /collections/{id}/items/{itemId}/draft` | Saves the item's draft (`{ slug, values }`) / discards it |
+| `GET /drafts?websiteId={id}` | Every draft of a website, with what changed and when it is scheduled |
+| `POST /publish/check`       | Checks a publish (`{ websiteId, collections, pages, items }`): summaries, issues and `needs` |
+| `POST /publish`             | Puts drafts live together in one transaction: `200`, or `400` with the issues |
+| `GET` / `POST /scheduled-publishes?websiteId={id}` | Upcoming and failed scheduled publishes / schedules one (`{ publishAt, … }`), `201` or `400` |
+| `PUT` / `DELETE /scheduled-publishes/{id}` | Changes its time or what is in it / cancels it |
+
+More in [`src/api/README.md`](src/api/README.md), including the data model.
 
 #### Page content
 

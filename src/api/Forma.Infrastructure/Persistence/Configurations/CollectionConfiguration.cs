@@ -12,11 +12,15 @@ public class CollectionConfiguration : IEntityTypeConfiguration<CollectionDao>
 
         builder.HasKey(c => c.Id);
 
+        // Lets a detail page refer to its collection together with the website, so both are on the same website.
+        builder.HasAlternateKey(c => new { c.WebsiteId, c.Id });
+
         builder.Property(c => c.Name).HasMaxLength(100).IsRequired();
         builder.Property(c => c.SingularName).HasMaxLength(100).IsRequired();
         builder.Property(c => c.Slug).HasMaxLength(100).IsRequired();
         builder.Property(c => c.Icon).HasMaxLength(40).IsRequired();
         builder.Property(c => c.Fields).IsRequired();
+        builder.Property(c => c.DraftSlug).HasMaxLength(100);
 
         builder.HasOne(c => c.Website)
             .WithMany()

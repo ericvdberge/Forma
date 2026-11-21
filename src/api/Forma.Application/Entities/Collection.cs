@@ -1,7 +1,10 @@
 namespace Forma.Application.Entities;
 
-/// <summary>A website's own content type, such as <i>Blog posts</i>, with the fields its items fill in.</summary>
-/// <remarks>See <c>docs/design/collections.md</c>.</remarks>
+/// <summary>
+/// A website's own content type, such as <i>Blog posts</i>, with the fields its items fill in. Its slug and fields have a
+/// live version and a draft; its names and icon are saved directly.
+/// </summary>
+/// <remarks>See <c>docs/design/collections.md</c> and <c>docs/design/drafts-and-publish.md</c>.</remarks>
 public class Collection
 {
     public Guid Id { get; set; }
@@ -19,11 +22,31 @@ public class Collection
     /// <summary>The icon the app shows it with, one of <see cref="CollectionIcons.All"/>.</summary>
     public required string Icon { get; set; }
 
-    /// <summary>The fields every item has, in display order.</summary>
+    /// <summary>The fields every live item has, in display order.</summary>
     public required IReadOnlyList<CollectionField> Fields { get; set; }
+
+    /// <summary>The draft's slug, or <c>null</c> when there is no draft.</summary>
+    public string? DraftSlug { get; set; }
+
+    /// <summary>The draft's fields, or <c>null</c> when there is no draft.</summary>
+    public IReadOnlyList<CollectionField>? DraftFields { get; set; }
+
+    /// <summary>Where the values of the draft's removed fields go: removed field id → field id, or <c>null</c> to drop them.</summary>
+    public IReadOnlyDictionary<string, string?>? DraftValueMoves { get; set; }
+
+    public DateTime? DraftUpdatedAt { get; set; }
+
+    /// <summary>When the collection was last published, or <c>null</c> while it never was.</summary>
+    public DateTime? PublishedAt { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    /// <summary>Whether visitors see the collection.</summary>
+    public bool IsLive => PublishedAt is not null;
+
+    /// <summary>Whether there are changes to publish.</summary>
+    public bool HasDraft => DraftFields is not null;
 }
 
 /// <summary>One field of a collection.</summary>

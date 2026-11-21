@@ -1,12 +1,13 @@
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { getPageContent, publishPageContent, type ContentIssueDto, type PageContentDto } from '@/api/generated'
+import { discardPageDraft, getPageContent, savePageDraft, type PageContentDto } from '@/api/generated'
 import pageJson from '@/data/studio/page.json'
 import type { Collection } from '@/data/types'
 import { fromApiDocument, toApiDocument } from '@/studio/contract'
 import { detailPageSections } from '@/studio/detailPage'
 import { normalizeDocument, type PageDocumentJson } from '@/studio/sections'
 import type { PageDocument, StudioPage } from '@/studio/types'
+import { validationErrors } from '@/utils/validationErrors'
 
 export const pageContentQueryKey = (pageId: string) => ['page-content', pageId] as const
 export const publishedContentQueryKey = (pageId: string) => ['published-page-content', pageId] as const
@@ -42,39 +43,50 @@ export function starterDocument({ title, websiteName, collection }: StudioPageSe
   return doc
 }
 
-/** The API's page content as the studio keeps it. A page without content starts from the starter page. */
-export function toStudioPage(pageId: string, dto: PageContentDto | undefined, seed: StudioPageSeed): StudioPage {
-  const document = dto ? fromApiDocument(dto.document) : starterDocument(seed)
-  const published = dto?.status === 'published'
+/**
+ * The API's page content as the studio keeps it: the draft (or the live version without one) as the working copy.
+ * A page without content starts from the starter page, which isn't saved until Save.
+ */
+export function toStudioPage(pageId: string, draft: PageContentDto | undefined, live: PageContentDto | undefined, seed: StudioPageSeed): StudioPage {
+  const saved = draft ? fromApiDocument(draft.document) : null
+  const published = live ? fromApiDocument(live.document) : null
   return {
     pageId,
-    draft: document,
-    published: published ? document : null,
-    updatedAt: dto ? Date.parse(dto.updatedAt) : Date.now(),
-    publishedAt: published ? Date.parse(dto.updatedAt) : null,
+    draft: saved ?? starterDocument(seed),
+    saved,
+    hasDraft: !!draft?.hasDraft,
+    draftSavedAt: draft?.draftUpdatedAt ? Date.parse(draft.draftUpdatedAt) : null,
+    published,
+    updatedAt: draft ? Date.parse(draft.updatedAt) : Date.now(),
+    publishedAt: draft?.publishedAt ? Date.parse(draft.publishedAt) : null,
   }
 }
 
-export type PublishOutcome =
-  | { kind: 'published'; content: PageContentDto; warnings: ContentIssueDto[] }
-  /** The server refused the document: `issues` are the errors to fix, empty when the document itself is malformed. */
-  | { kind: 'invalid'; issues: ContentIssueDto[]; errors: Record<string, string[]> }
+export type SaveDraftOutcome =
+  | { kind: 'saved'; content: PageContentDto }
+  /** The server refused the document: something the studio produced that the API doesn't accept. */
+  | { kind: 'invalid'; errors: Record<string, string[]> }
   | { kind: 'not-found' }
   | { kind: 'failed' }
 
+async function read(pageId: string, version: 'draft' | 'live', signal?: AbortSignal) {
+  const { data, response } = await getPageContent({ path: { pageId }, query: { version }, signal })
+  if (response?.status === 404) throw new StudioPageNotFoundError()
+  if (!response?.ok) throw new Error(`Loading the page failed (${response?.status}).`)
+  return response.status === 204 ? undefined : (data as PageContentDto)
+}
+
 /** TanStack Query calls for a page's content. A page's cache entry is the editor's working copy, so it is never refetched. */
 export function usePageContentQuerier() {
-  /** GET /pages/{pageId}/content */
+  /** GET /pages/{pageId}/content?version=draft, and the live version next to it. */
   function getPageContent$(pageId: MaybeRefOrGetter<string>, seed: MaybeRefOrGetter<StudioPageSeed | undefined>) {
     return useQuery(
       computed(() => ({
         queryKey: pageContentQueryKey(toValue(pageId)),
         queryFn: async ({ signal }: { signal: AbortSignal }): Promise<StudioPage> => {
           const id = toValue(pageId)
-          const { data, response } = await getPageContent({ path: { pageId: id }, signal })
-          if (response?.status === 404) throw new StudioPageNotFoundError()
-          if (!response?.ok) throw new Error(`Loading the page failed (${response?.status}).`)
-          return toStudioPage(id, response.status === 204 ? undefined : (data as PageContentDto), toValue(seed)!)
+          const [draft, live] = await Promise.all([read(id, 'draft', signal), read(id, 'live', signal)])
+          return toStudioPage(id, draft, live, toValue(seed)!)
         },
         enabled: !!toValue(pageId) && !!toValue(seed),
         staleTime: Infinity,
@@ -86,22 +98,21 @@ export function usePageContentQuerier() {
   }
 
   /**
-   * GET /pages/{pageId}/content, only what is published: what visitors see, `null` when the page has none yet.
-   * Kept apart from the editor's working copy and refetched each time, so it shows the latest publish.
+   * GET /pages/{pageId}/content: only what is live, `null` when the page has none yet. Kept apart from the editor's
+   * working copy and refetched each time, so it shows the latest publish.
    */
   function getPublishedContent(pageId: MaybeRefOrGetter<string | undefined>) {
     return useQuery(
       computed(() => ({
         queryKey: publishedContentQueryKey(toValue(pageId) ?? ''),
         queryFn: async ({ signal }: { signal: AbortSignal }): Promise<PageDocument | null> => {
-          const { data, response } = await getPageContent({ path: { pageId: toValue(pageId)! }, signal })
-
-          if (response?.status === 204 || response?.status === 404) return null
-
-          if (!response?.ok) throw new Error(`Loading the page failed (${response?.status}).`)
-
-          const dto = data as PageContentDto
-          return dto.status === 'published' ? fromApiDocument(dto.document) : null
+          try {
+            const live = await read(toValue(pageId)!, 'live', signal)
+            return live ? fromApiDocument(live.document) : null
+          } catch (error) {
+            if (error instanceof StudioPageNotFoundError) return null
+            throw error
+          }
         },
         enabled: !!toValue(pageId),
         staleTime: 0,
@@ -109,15 +120,12 @@ export function usePageContentQuerier() {
     )
   }
 
-  /** PUT /pages/{pageId}/content */
-  async function publish(pageId: string, document: PageDocument): Promise<PublishOutcome> {
+  /** PUT /pages/{pageId}/content/draft */
+  async function saveDraft(pageId: string, document: PageDocument): Promise<SaveDraftOutcome> {
     try {
-      const { data, error, response } = await publishPageContent({ path: { pageId }, body: { document: toApiDocument(document) } })
-      if (data) return { kind: 'published', content: data.content, warnings: data.warnings }
-      if (response?.status === 400) {
-        const problem = error as { errors?: Record<string, string[]>; issues?: ContentIssueDto[] }
-        return { kind: 'invalid', issues: problem?.issues ?? [], errors: problem?.errors ?? {} }
-      }
+      const { data, error, response } = await savePageDraft({ path: { pageId }, body: { document: toApiDocument(document) } })
+      if (data) return { kind: 'saved', content: data }
+      if (response?.status === 400) return { kind: 'invalid', errors: validationErrors(error) }
       if (response?.status === 404) return { kind: 'not-found' }
       return { kind: 'failed' }
     } catch {
@@ -125,9 +133,20 @@ export function usePageContentQuerier() {
     }
   }
 
+  /** DELETE /pages/{pageId}/content/draft. True when the draft is gone. */
+  async function discardDraft(pageId: string) {
+    try {
+      const { response } = await discardPageDraft({ path: { pageId } })
+      return !!response?.ok
+    } catch {
+      return false
+    }
+  }
+
   return {
     getPageContent: getPageContent$,
     getPublishedContent,
-    publish,
+    saveDraft,
+    discardDraft,
   }
 }

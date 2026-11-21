@@ -2,7 +2,7 @@
 
 import { type Client, type ClientMeta, formDataBodySerializer, type Options as Options2, type RequestResult, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { CreateCollectionData, CreateCollectionErrors, CreateCollectionItemData, CreateCollectionItemErrors, CreateCollectionItemResponses, CreateCollectionResponses, DeleteCollectionData, DeleteCollectionErrors, DeleteCollectionItemData, DeleteCollectionItemErrors, DeleteCollectionItemResponses, DeleteCollectionResponses, DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, GetCollectionData, GetCollectionErrors, GetCollectionItemData, GetCollectionItemErrors, GetCollectionItemResponses, GetCollectionItemsData, GetCollectionItemsErrors, GetCollectionItemsResponses, GetCollectionResponses, GetCollectionsData, GetCollectionsResponses, GetMediaImageData, GetMediaImageErrors, GetMediaImageResponses, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaItemsData, GetMediaItemsResponses, GetMediaThumbnailData, GetMediaThumbnailErrors, GetMediaThumbnailResponses, GetPageContentData, GetPageContentErrors, GetPageContentResponses, GetPagesData, GetPagesResponses, GetWebsitesData, GetWebsitesResponses, PublishPageContentData, PublishPageContentErrors, PublishPageContentResponses, SaveCollectionItemData, SaveCollectionItemErrors, SaveCollectionItemResponses, UpdateCollectionData, UpdateCollectionErrors, UpdateCollectionResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
+import type { CancelScheduledPublishData, CancelScheduledPublishErrors, CancelScheduledPublishResponses, CheckPublishData, CheckPublishErrors, CheckPublishResponses, CreateCollectionData, CreateCollectionErrors, CreateCollectionItemData, CreateCollectionItemErrors, CreateCollectionItemResponses, CreateCollectionResponses, DeleteCollectionData, DeleteCollectionErrors, DeleteCollectionItemData, DeleteCollectionItemErrors, DeleteCollectionItemResponses, DeleteCollectionResponses, DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, DiscardCollectionDraftData, DiscardCollectionDraftErrors, DiscardCollectionDraftResponses, DiscardCollectionItemDraftData, DiscardCollectionItemDraftErrors, DiscardCollectionItemDraftResponses, DiscardPageDraftData, DiscardPageDraftErrors, DiscardPageDraftResponses, GetCollectionData, GetCollectionErrors, GetCollectionFieldUsagesData, GetCollectionFieldUsagesErrors, GetCollectionFieldUsagesResponses, GetCollectionItemData, GetCollectionItemErrors, GetCollectionItemResponses, GetCollectionItemsData, GetCollectionItemsErrors, GetCollectionItemsResponses, GetCollectionResponses, GetCollectionsData, GetCollectionsResponses, GetDraftsData, GetDraftsResponses, GetMediaImageData, GetMediaImageErrors, GetMediaImageResponses, GetMediaItemData, GetMediaItemErrors, GetMediaItemResponses, GetMediaItemsData, GetMediaItemsResponses, GetMediaThumbnailData, GetMediaThumbnailErrors, GetMediaThumbnailResponses, GetPageContentData, GetPageContentErrors, GetPageContentResponses, GetPagesData, GetPagesResponses, GetScheduledPublishesData, GetScheduledPublishesResponses, GetWebsitesData, GetWebsitesResponses, PublishData, PublishErrors, PublishResponses, SaveCollectionDraftData, SaveCollectionDraftErrors, SaveCollectionDraftResponses, SaveCollectionItemDraftData, SaveCollectionItemDraftErrors, SaveCollectionItemDraftResponses, SavePageDraftData, SavePageDraftErrors, SavePageDraftResponses, SchedulePublishData, SchedulePublishErrors, SchedulePublishResponses, UpdateCollectionData, UpdateCollectionErrors, UpdateCollectionResponses, UpdateScheduledPublishData, UpdateScheduledPublishErrors, UpdateScheduledPublishResponses, UploadMediaData, UploadMediaErrors, UploadMediaResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -24,9 +24,9 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 export const getCollections = <ThrowOnError extends boolean = false>(options: Options<GetCollectionsData, ThrowOnError>): RequestResult<GetCollectionsResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetCollectionsResponses, unknown, ThrowOnError>({ url: '/collections', ...options });
 
 /**
- * Creates a collection and the detail page its items are shown with.
+ * Creates a collection, as a draft, and the detail page its items are shown with.
  *
- * The detail page starts empty; design it in the studio like any page.
+ * Visitors don't see the collection until it is published. The detail page starts empty; design it in the studio like any page.
  */
 export const createCollection = <ThrowOnError extends boolean = false>(options: Options<CreateCollectionData, ThrowOnError>): RequestResult<CreateCollectionResponses, CreateCollectionErrors, ThrowOnError> => (options.client ?? client).post<CreateCollectionResponses, CreateCollectionErrors, ThrowOnError>({
     url: '/collections',
@@ -43,15 +43,12 @@ export const createCollection = <ThrowOnError extends boolean = false>(options: 
 export const deleteCollection = <ThrowOnError extends boolean = false>(options: Options<DeleteCollectionData, ThrowOnError>): RequestResult<DeleteCollectionResponses, DeleteCollectionErrors, ThrowOnError> => (options.client ?? client).delete<DeleteCollectionResponses, DeleteCollectionErrors, ThrowOnError>({ url: '/collections/{collectionId}', ...options });
 
 /**
- * Gets a collection with its fields.
+ * Gets a collection with its fields and draft.
  */
 export const getCollection = <ThrowOnError extends boolean = false>(options: Options<GetCollectionData, ThrowOnError>): RequestResult<GetCollectionResponses, GetCollectionErrors, ThrowOnError> => (options.client ?? client).get<GetCollectionResponses, GetCollectionErrors, ThrowOnError>({ url: '/collections/{collectionId}', ...options });
 
 /**
- * Changes a collection's names, slug and fields.
- *
- * Items keep their values for fields that stay. Values of removed fields are dropped the next time an item is saved.
- * Pages that show a removed field report it when they are next published.
+ * Changes a collection's names and icon. These can't break anything, so they are saved directly.
  */
 export const updateCollection = <ThrowOnError extends boolean = false>(options: Options<UpdateCollectionData, ThrowOnError>): RequestResult<UpdateCollectionResponses, UpdateCollectionErrors, ThrowOnError> => (options.client ?? client).put<UpdateCollectionResponses, UpdateCollectionErrors, ThrowOnError>({
     url: '/collections/{collectionId}',
@@ -63,14 +60,39 @@ export const updateCollection = <ThrowOnError extends boolean = false>(options: 
 });
 
 /**
- * Lists a collection's items, newest first.
+ * Lists which live pages show which of the collection's fields: "Used by…" in the field editor.
+ */
+export const getCollectionFieldUsages = <ThrowOnError extends boolean = false>(options: Options<GetCollectionFieldUsagesData, ThrowOnError>): RequestResult<GetCollectionFieldUsagesResponses, GetCollectionFieldUsagesErrors, ThrowOnError> => (options.client ?? client).get<GetCollectionFieldUsagesResponses, GetCollectionFieldUsagesErrors, ThrowOnError>({ url: '/collections/{collectionId}/usages', ...options });
+
+/**
+ * Discards a collection's draft: its slug and fields go back to the live version, and it leaves any scheduled publish.
+ */
+export const discardCollectionDraft = <ThrowOnError extends boolean = false>(options: Options<DiscardCollectionDraftData, ThrowOnError>): RequestResult<DiscardCollectionDraftResponses, DiscardCollectionDraftErrors, ThrowOnError> => (options.client ?? client).delete<DiscardCollectionDraftResponses, DiscardCollectionDraftErrors, ThrowOnError>({ url: '/collections/{collectionId}/draft', ...options });
+
+/**
+ * Saves a collection's draft: its slug and fields, and where the values of removed fields go.
+ *
+ * Nothing changes on the site until the draft is published. Then the values of each removed field move to the field
+ * `valueMoves` names, or are removed; pages that show a removed field must be published with it.
+ */
+export const saveCollectionDraft = <ThrowOnError extends boolean = false>(options: Options<SaveCollectionDraftData, ThrowOnError>): RequestResult<SaveCollectionDraftResponses, SaveCollectionDraftErrors, ThrowOnError> => (options.client ?? client).put<SaveCollectionDraftResponses, SaveCollectionDraftErrors, ThrowOnError>({
+    url: '/collections/{collectionId}/draft',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Lists a collection's items, newest first, with their drafts.
  */
 export const getCollectionItems = <ThrowOnError extends boolean = false>(options: Options<GetCollectionItemsData, ThrowOnError>): RequestResult<GetCollectionItemsResponses, GetCollectionItemsErrors, ThrowOnError> => (options.client ?? client).get<GetCollectionItemsResponses, GetCollectionItemsErrors, ThrowOnError>({ url: '/collections/{collectionId}/items', ...options });
 
 /**
- * Adds an item to a collection.
+ * Adds an item to a collection, as a draft. Visitors don't see it until it is published.
  *
- * Values are checked against the collection's fields: types, required fields, links, images and rich text.
+ * Values are checked against the collection's fields (its draft's, when it has one). Required fields are checked when it is published.
  */
 export const createCollectionItem = <ThrowOnError extends boolean = false>(options: Options<CreateCollectionItemData, ThrowOnError>): RequestResult<CreateCollectionItemResponses, CreateCollectionItemErrors, ThrowOnError> => (options.client ?? client).post<CreateCollectionItemResponses, CreateCollectionItemErrors, ThrowOnError>({
     url: '/collections/{collectionId}/items',
@@ -92,10 +114,15 @@ export const deleteCollectionItem = <ThrowOnError extends boolean = false>(optio
 export const getCollectionItem = <ThrowOnError extends boolean = false>(options: Options<GetCollectionItemData, ThrowOnError>): RequestResult<GetCollectionItemResponses, GetCollectionItemErrors, ThrowOnError> => (options.client ?? client).get<GetCollectionItemResponses, GetCollectionItemErrors, ThrowOnError>({ url: '/collections/{collectionId}/items/{itemId}', ...options });
 
 /**
- * Saves an item: its slug, values and status. Publishing is saving with status `published`.
+ * Discards an item's draft: it goes back to its live version, and leaves any scheduled publish.
  */
-export const saveCollectionItem = <ThrowOnError extends boolean = false>(options: Options<SaveCollectionItemData, ThrowOnError>): RequestResult<SaveCollectionItemResponses, SaveCollectionItemErrors, ThrowOnError> => (options.client ?? client).put<SaveCollectionItemResponses, SaveCollectionItemErrors, ThrowOnError>({
-    url: '/collections/{collectionId}/items/{itemId}',
+export const discardCollectionItemDraft = <ThrowOnError extends boolean = false>(options: Options<DiscardCollectionItemDraftData, ThrowOnError>): RequestResult<DiscardCollectionItemDraftResponses, DiscardCollectionItemDraftErrors, ThrowOnError> => (options.client ?? client).delete<DiscardCollectionItemDraftResponses, DiscardCollectionItemDraftErrors, ThrowOnError>({ url: '/collections/{collectionId}/items/{itemId}/draft', ...options });
+
+/**
+ * Saves an item's draft: its slug and values. Nothing changes on the site until it is published.
+ */
+export const saveCollectionItemDraft = <ThrowOnError extends boolean = false>(options: Options<SaveCollectionItemDraftData, ThrowOnError>): RequestResult<SaveCollectionItemDraftResponses, SaveCollectionItemDraftErrors, ThrowOnError> => (options.client ?? client).put<SaveCollectionItemDraftResponses, SaveCollectionItemDraftErrors, ThrowOnError>({
+    url: '/collections/{collectionId}/items/{itemId}/draft',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -149,19 +176,23 @@ export const getMediaImage = <ThrowOnError extends boolean = false>(options: Opt
 export const getMediaThumbnail = <ThrowOnError extends boolean = false>(options: Options<GetMediaThumbnailData, ThrowOnError>): RequestResult<GetMediaThumbnailResponses, GetMediaThumbnailErrors, ThrowOnError> => (options.client ?? client).get<GetMediaThumbnailResponses, GetMediaThumbnailErrors, ThrowOnError>({ url: '/media/{id}/thumbnail', ...options });
 
 /**
- * Gets a page's content.
+ * Gets a page's content: what visitors see, or the draft.
  */
 export const getPageContent = <ThrowOnError extends boolean = false>(options: Options<GetPageContentData, ThrowOnError>): RequestResult<GetPageContentResponses, GetPageContentErrors, ThrowOnError> => (options.client ?? client).get<GetPageContentResponses, GetPageContentErrors, ThrowOnError>({ url: '/pages/{pageId}/content', ...options });
 
 /**
- * Publishes a page: stores the document and marks the content published. The studio calls this on Publish.
- *
- * The document must pass the structural rules (block types, ranges, safe links, allowed rich text) and the content
- * rules (no missing images, links that go somewhere). Errors are answered with a validation problem whose
- * `issues` point at the sections and blocks to fix; warnings don't block and come back with the result.
+ * Discards a page's draft: the page goes back to its live version, and leaves any scheduled publish.
  */
-export const publishPageContent = <ThrowOnError extends boolean = false>(options: Options<PublishPageContentData, ThrowOnError>): RequestResult<PublishPageContentResponses, PublishPageContentErrors, ThrowOnError> => (options.client ?? client).put<PublishPageContentResponses, PublishPageContentErrors, ThrowOnError>({
-    url: '/pages/{pageId}/content',
+export const discardPageDraft = <ThrowOnError extends boolean = false>(options: Options<DiscardPageDraftData, ThrowOnError>): RequestResult<DiscardPageDraftResponses, DiscardPageDraftErrors, ThrowOnError> => (options.client ?? client).delete<DiscardPageDraftResponses, DiscardPageDraftErrors, ThrowOnError>({ url: '/pages/{pageId}/content/draft', ...options });
+
+/**
+ * Saves a page's draft. Nothing changes on the site until the draft is published.
+ *
+ * Only the document's structure is checked here (block types, ranges, safe links, allowed rich text). Content rules
+ * such as missing images or fields that don't exist are checked when it is published (`POST /publish/check`).
+ */
+export const savePageDraft = <ThrowOnError extends boolean = false>(options: Options<SavePageDraftData, ThrowOnError>): RequestResult<SavePageDraftResponses, SavePageDraftErrors, ThrowOnError> => (options.client ?? client).put<SavePageDraftResponses, SavePageDraftErrors, ThrowOnError>({
+    url: '/pages/{pageId}/content/draft',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -173,6 +204,74 @@ export const publishPageContent = <ThrowOnError extends boolean = false>(options
  * Lists the pages of a website, most recently updated first.
  */
 export const getPages = <ThrowOnError extends boolean = false>(options: Options<GetPagesData, ThrowOnError>): RequestResult<GetPagesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetPagesResponses, unknown, ThrowOnError>({ url: '/pages', ...options });
+
+/**
+ * Lists every draft of a website, with what changed and when it is scheduled.
+ */
+export const getDrafts = <ThrowOnError extends boolean = false>(options: Options<GetDraftsData, ThrowOnError>): RequestResult<GetDraftsResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetDraftsResponses, unknown, ThrowOnError>({ url: '/drafts', ...options });
+
+/**
+ * Checks a publish against the site as it would be, without publishing anything.
+ *
+ * The answer lists what changes, the issues (errors block publishing), and `needs`: drafts not in the publish
+ * that would fix a blocking issue.
+ */
+export const checkPublish = <ThrowOnError extends boolean = false>(options: Options<CheckPublishData, ThrowOnError>): RequestResult<CheckPublishResponses, CheckPublishErrors, ThrowOnError> => (options.client ?? client).post<CheckPublishResponses, CheckPublishErrors, ThrowOnError>({
+    url: '/publish/check',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Puts drafts live now, all at once: everything goes live, or nothing does.
+ */
+export const publish = <ThrowOnError extends boolean = false>(options: Options<PublishData, ThrowOnError>): RequestResult<PublishResponses, PublishErrors, ThrowOnError> => (options.client ?? client).post<PublishResponses, PublishErrors, ThrowOnError>({
+    url: '/publish',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Lists a website's upcoming and failed scheduled publishes, soonest first.
+ */
+export const getScheduledPublishes = <ThrowOnError extends boolean = false>(options: Options<GetScheduledPublishesData, ThrowOnError>): RequestResult<GetScheduledPublishesResponses, unknown, ThrowOnError> => (options.client ?? client).get<GetScheduledPublishesResponses, unknown, ThrowOnError>({ url: '/scheduled-publishes', ...options });
+
+/**
+ * Schedules drafts to go live at a time. The publish is checked now, and again when it runs.
+ *
+ * A draft can be in one scheduled publish at a time. The drafts go live as they are when it runs.
+ */
+export const schedulePublish = <ThrowOnError extends boolean = false>(options: Options<SchedulePublishData, ThrowOnError>): RequestResult<SchedulePublishResponses, SchedulePublishErrors, ThrowOnError> => (options.client ?? client).post<SchedulePublishResponses, SchedulePublishErrors, ThrowOnError>({
+    url: '/scheduled-publishes',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Cancels a scheduled publish. Its drafts stay drafts.
+ */
+export const cancelScheduledPublish = <ThrowOnError extends boolean = false>(options: Options<CancelScheduledPublishData, ThrowOnError>): RequestResult<CancelScheduledPublishResponses, CancelScheduledPublishErrors, ThrowOnError> => (options.client ?? client).delete<CancelScheduledPublishResponses, CancelScheduledPublishErrors, ThrowOnError>({ url: '/scheduled-publishes/{id}', ...options });
+
+/**
+ * Changes a scheduled publish's time, or what is in it. A failed publish that is changed is scheduled again.
+ */
+export const updateScheduledPublish = <ThrowOnError extends boolean = false>(options: Options<UpdateScheduledPublishData, ThrowOnError>): RequestResult<UpdateScheduledPublishResponses, UpdateScheduledPublishErrors, ThrowOnError> => (options.client ?? client).put<UpdateScheduledPublishResponses, UpdateScheduledPublishErrors, ThrowOnError>({
+    url: '/scheduled-publishes/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Lists all websites, most recently updated first.

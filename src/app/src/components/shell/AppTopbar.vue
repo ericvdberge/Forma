@@ -7,6 +7,8 @@ import { useActivity } from '@/composables/useActivity'
 import { useToast } from '@/composables/useToast'
 import { useDismiss } from '@/composables/useDismiss'
 import { timeAgo } from '@/utils/time'
+import UnpublishedChanges from '@/components/publishing/UnpublishedChanges.vue'
+import { useActiveWebsite } from '@/composables/useActiveWebsite'
 import GlobalSearch from './GlobalSearch.vue'
 
 defineEmits<{ menu: [] }>()
@@ -14,6 +16,7 @@ defineEmits<{ menu: [] }>()
 const { getActivity } = useActivity()
 const { activity } = getActivity()
 const { notify } = useToast()
+const activeWebsite = useActiveWebsite().getActiveWebsite()
 
 const openMenu = ref<null | 'notifications' | 'account'>(null)
 const seenAt = ref(0)
@@ -33,6 +36,7 @@ const hasUnread = () => activity.value.some((a) => a.at > seenAt.value)
     <GlobalSearch />
 
     <div ref="root" class="ml-auto flex shrink-0 items-center gap-1 sm:gap-4">
+      <UnpublishedChanges v-if="activeWebsite?.id" :website-id="activeWebsite.id" />
       <FIconButton :icon="Moon" label="Dark mode (coming soon)" class="hidden sm:grid" @click="notify('Dark mode is coming soon')" />
 
       <div class="relative">

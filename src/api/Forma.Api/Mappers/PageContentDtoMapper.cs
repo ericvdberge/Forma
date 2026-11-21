@@ -9,7 +9,29 @@ namespace Forma.Api.Mappers;
 [Mapper]
 public static partial class PageContentDtoMapper
 {
-    public static partial PageContentDto ToDto(this PageContent content);
+    /// <summary>
+    /// The content in <paramref name="version"/>: the draft (or the live document without one), or the live document.
+    /// <c>null</c> when there is no document in that version.
+    /// </summary>
+    public static PageContentDto? ToDto(this PageContent content, ContentVersion version)
+    {
+        var (document, shown) = version == ContentVersion.Draft && content.DraftDocument is { } draft
+            ? (draft, ContentVersion.Draft)
+            : (content.IsLive ? content.Document : null, ContentVersion.Live);
+
+        if (document is null)
+            return null;
+
+        return new PageContentDto(
+            content.PageId,
+            document,
+            shown,
+            content.HasDraft,
+            content.DraftUpdatedAt,
+            content.PublishedAt,
+            content.CreatedAt,
+            content.UpdatedAt);
+    }
 
     [MapperIgnoreSource(nameof(ContentIssue.Location))]
     public static partial ContentIssueDto ToDto(this ContentIssue issue);

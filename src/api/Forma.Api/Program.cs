@@ -1,6 +1,7 @@
 using System.Reflection;
 using FluentValidation;
 using Forma.Api.Abstractions;
+using Forma.Api.Workers;
 using Forma.Application;
 using Forma.Application.Documents;
 using Forma.Application.Seeding;
@@ -37,6 +38,10 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// Runs scheduled publishes when they are due; registered once so tests can call RunDueAsync directly.
+builder.Services.AddSingleton<ScheduledPublishWorker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<ScheduledPublishWorker>());
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -56,6 +61,8 @@ if (Assembly.GetEntryAssembly()?.GetName().Name != "GetDocument.Insider")
         await app.Services.SeedPageContentAsync();
         await app.Services.SeedCollectionsAsync();
     }
+
+    await app.Services.RebuildPageBindingUsagesAsync();
 }
 
 app.UseHttpsRedirection();

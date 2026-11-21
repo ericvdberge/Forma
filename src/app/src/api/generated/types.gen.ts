@@ -293,7 +293,31 @@ export type CollectionCardsProps = {
 export type CollectionCardsSort = 'newest' | 'oldest';
 
 /**
- * A website's collection, such as <i>Blog posts</i>, with its fields.
+ * A collection's draft.
+ */
+export type CollectionDraftDto = {
+    /**
+     * The draft's slug.
+     */
+    slug: string;
+    /**
+     * The draft's fields, in display order.
+     */
+    fields: Array<CollectionFieldDto>;
+    /**
+     * Where the values of removed fields go when it is published: removed field id → field id, or `null` to remove them.
+     */
+    valueMoves: {
+        [key: string]: string;
+    };
+    /**
+     * When the draft was last saved (UTC).
+     */
+    updatedAt: null | string;
+};
+
+/**
+ * A website's collection, such as <i>Blog posts</i>: its live slug and fields, and its draft.
  */
 export type CollectionDto = {
     /**
@@ -313,7 +337,7 @@ export type CollectionDto = {
      */
     singularName: string;
     /**
-     * The first part of an item's address: `/{slug}/{item}`.
+     * The first part of a live item's address: `/{slug}/{item}`.
      */
     slug: string;
     /**
@@ -321,9 +345,10 @@ export type CollectionDto = {
      */
     icon: string;
     /**
-     * The fields every item has, in display order.
+     * The fields every live item has, in display order.
      */
     fields: Array<CollectionFieldDto>;
+    draft: null | CollectionDraftDto;
     /**
      * The page every item is shown with, designed in the studio.
      */
@@ -336,6 +361,10 @@ export type CollectionDto = {
      * When the collection last changed (UTC).
      */
     updatedAt: string;
+    /**
+     * When the collection was last published (UTC), or `null` while it never was.
+     */
+    publishedAt: null | string;
 };
 
 /**
@@ -365,7 +394,7 @@ export type CollectionFieldDto = {
  */
 export type CollectionFieldRequest = {
     /**
-     * The field's id; `null` for a new field, which is given one.
+     * The field's id; `null` for a new field, which is given one. The editor may also choose one (`fld_…`).
      */
     id: null | string;
     /**
@@ -385,7 +414,27 @@ export type CollectionFieldRequest = {
 export type CollectionFieldType = 'text' | 'richText' | 'image' | 'url' | 'number' | 'date' | 'boolean';
 
 /**
- * One item of a collection, e.g. one blog post.
+ * An item's draft.
+ */
+export type CollectionItemDraftDto = {
+    /**
+     * The draft's slug.
+     */
+    slug: string;
+    /**
+     * The draft's values keyed by field id.
+     */
+    values: {
+        [key: string]: unknown;
+    };
+    /**
+     * When the draft was last saved (UTC).
+     */
+    updatedAt: null | string;
+};
+
+/**
+ * One item of a collection, e.g. one blog post: its live version and its draft.
  */
 export type CollectionItemDto = {
     /**
@@ -397,19 +446,16 @@ export type CollectionItemDto = {
      */
     collectionId: string;
     /**
-     * The last part of the item's address: `/{collection}/{slug}`.
+     * The last part of the item's live address: `/{collection}/{slug}`.
      */
     slug: string;
     /**
-     * `published` once visitors see it.
-     */
-    status: CollectionItemStatus;
-    /**
-     * The item's values keyed by field id: a string, number or boolean depending on the field's type.
+     * The item's live values keyed by field id: a string, number or boolean depending on the field's type.
      */
     values: {
         [key: string]: unknown;
     };
+    draft: null | CollectionItemDraftDto;
     /**
      * When the item was created (UTC).
      */
@@ -419,51 +465,20 @@ export type CollectionItemDto = {
      */
     updatedAt: string;
     /**
-     * When the item was last published (UTC), or `null` when it never was.
+     * When the item was last published (UTC), or `null` while it never was: visitors don't see it yet.
      */
     publishedAt: null | string;
 };
 
-export type CollectionItemStatus = 'draft' | 'published';
-
 /**
- * A problem in a page's content that a person can fix.
+ * Which version of a page's content to read.
  */
-export type ContentIssueDto = {
-    /**
-     * `error` blocks publishing; `warning` doesn't.
-     */
-    severity: IssueSeverity;
-    /**
-     * Stable code, e.g. `image.missing` or `link.placeholder`.
-     */
-    code: string;
-    /**
-     * What is wrong, in plain language.
-     */
-    message: string;
-    /**
-     * The section it is in; null when it is about the whole page.
-     */
-    sectionId: null | string;
-    /**
-     * The block it is about; null when it is about a section or the page.
-     */
-    blockId: null | string;
-    /**
-     * The block prop or section setting, e.g. `href` or `background.image`.
-     */
-    field: null | string;
-    /**
-     * The item of a list prop (a gallery image, a menu link), when it is about one.
-     */
-    itemIndex: null | number;
-};
+export type ContentVersion = 'live' | 'draft';
 
 export type ContentWidth = 'narrow' | 'normal' | 'wide' | 'full';
 
 /**
- * Creates a collection, and the detail page its items are shown with.
+ * Creates a collection, and the detail page its items are shown with. It is a draft until it is published.
  */
 export type CreateCollectionRequest = {
     /**
@@ -499,6 +514,64 @@ export type DividerProps = {
 
 export type DividerStyle = 'solid' | 'dashed';
 
+/**
+ * A draft of a website, as the top bar and the publish dialog list it.
+ */
+export type DraftDto = {
+    /**
+     * What the draft is of.
+     */
+    entity: EntityRefDto;
+    /**
+     * What changed, e.g. `Removed Cover image, added Hero image`, `Edited` or `New page`.
+     */
+    summary: string;
+    /**
+     * More lines, e.g. `14 items: Cover image moves to Hero image`.
+     */
+    details: Array<string>;
+    /**
+     * Whether it was never published.
+     */
+    isNew: boolean;
+    /**
+     * When the draft was last saved (UTC).
+     */
+    updatedAt: null | string;
+    /**
+     * The pending scheduled publish it is in, if any.
+     */
+    scheduledPublishId: null | string;
+    /**
+     * When that publish runs (UTC).
+     */
+    scheduledAt: null | string;
+};
+
+export type DraftKind = 'collection' | 'page' | 'item';
+
+/**
+ * A collection, page or item, with the name the app shows it by.
+ */
+export type EntityRefDto = {
+    /**
+     * `collection`, `page` or `item`.
+     */
+    kind: DraftKind;
+    /**
+     * Its id.
+     */
+    id: string;
+    /**
+     * A collection's name, a page's title, or an item's title.
+     */
+    name: string;
+    /**
+     * The collection of an item; `null` otherwise.
+     */
+    collectionId: null | string;
+};
+
 export type EntranceAnimation = 'none' | 'fade' | 'fade-up' | 'zoom' | 'slide-left';
 
 export type FaqItem = {
@@ -520,6 +593,28 @@ export type FeaturesProps = {
     items: Array<FeatureItem>;
     columns: number;
     card: boolean;
+};
+
+/**
+ * A page whose live content shows a field of the collection.
+ */
+export type FieldUsageDto = {
+    /**
+     * The field.
+     */
+    fieldId: string;
+    /**
+     * The page.
+     */
+    pageId: string;
+    /**
+     * The page's title.
+     */
+    pageTitle: string;
+    /**
+     * `binding`: a block on the detail page is connected to it; `cards`: Collection cards show it.
+     */
+    kind: PageBindingUsageKind;
 };
 
 export type FormField = {
@@ -655,8 +750,10 @@ export type NavProps = {
     card: boolean;
 };
 
+export type PageBindingUsageKind = 'binding' | 'cards';
+
 /**
- * A page's Design Studio document.
+ * A page's Design Studio document: its live version or its draft.
  */
 export type PageContentDto = {
     /**
@@ -664,13 +761,25 @@ export type PageContentDto = {
      */
     pageId: string;
     /**
-     * The page's sections and blocks.
+     * The page's sections and blocks, in the Version that was read.
      */
     document: PageDocument;
     /**
-     * `published` once visitors see it; `draft` for sample content that was never published.
+     * Which version Document is: `draft` or `live`.
      */
-    status: PageContentStatus;
+    version: ContentVersion;
+    /**
+     * Whether there are changes that aren't live yet.
+     */
+    hasDraft: boolean;
+    /**
+     * When the draft was last saved (UTC), or `null` without a draft.
+     */
+    draftUpdatedAt: null | string;
+    /**
+     * When the page was last published (UTC), or `null` while it never was.
+     */
+    publishedAt: null | string;
     /**
      * When the content was first stored (UTC).
      */
@@ -680,8 +789,6 @@ export type PageContentDto = {
      */
     updatedAt: string;
 };
-
-export type PageContentStatus = 'draft' | 'published';
 
 export type PageDocument = {
     version: number;
@@ -743,27 +850,114 @@ export type ProblemDetails = {
 };
 
 /**
- * The result of publishing a page.
+ * The result of checking a publish against the site as it would be.
  */
-export type PublishedPageContentDto = {
+export type PublishCheckDto = {
     /**
-     * The page's content now.
+     * Whether nothing blocks it.
      */
-    content: PageContentDto;
+    canPublish: boolean;
     /**
-     * Things worth a look that didn't block publishing, in page order. Empty when there are none.
+     * The drafts in the publish, with what changed.
      */
-    warnings: Array<ContentIssueDto>;
+    entities: Array<DraftDto>;
+    /**
+     * Errors first, then warnings.
+     */
+    issues: Array<PublishIssueDto>;
+    /**
+     * Drafts to add to fix blocking issues; the publish dialog ticks them.
+     */
+    needs: Array<PublishNeedDto>;
 };
 
 /**
- * Publishes a page: the document replaces what visitors see.
+ * A problem the publish check found.
  */
-export type PublishPageContentRequest = {
+export type PublishIssueDto = {
     /**
-     * The complete document, as the studio normalised it.
+     * `error` blocks publishing; `warning` doesn't.
      */
-    document: PageDocument;
+    severity: IssueSeverity;
+    /**
+     * Stable code, e.g. `binding.field_missing` or `item.invalid`.
+     */
+    code: string;
+    /**
+     * What is wrong, in plain language.
+     */
+    message: string;
+    entity: null | EntityRefDto;
+    /**
+     * On a page: the section it is in.
+     */
+    sectionId: null | string;
+    /**
+     * On a page: the block it is about.
+     */
+    blockId: null | string;
+    /**
+     * The block prop, or on an item the value (`values.fld_…`).
+     */
+    field: null | string;
+    /**
+     * The item of a list prop, when it is about one.
+     */
+    itemIndex: null | number;
+};
+
+/**
+ * A draft that isn't in the publish but is needed to fix it.
+ */
+export type PublishNeedDto = {
+    /**
+     * The draft to add.
+     */
+    entity: EntityRefDto;
+    /**
+     * What in the publish needs it.
+     */
+    neededBy: Array<EntityRefDto>;
+};
+
+/**
+ * What to put live: drafts of one website.
+ */
+export type PublishRequest = {
+    /**
+     * The website; every id must be one of its.
+     */
+    websiteId: string;
+    /**
+     * Collections whose draft goes live.
+     */
+    collections: Array<string>;
+    /**
+     * Pages whose draft goes live.
+     */
+    pages: Array<string>;
+    /**
+     * Items whose draft goes live.
+     */
+    items: Array<string>;
+};
+
+/**
+ * What was published.
+ */
+export type PublishResultDto = {
+    /**
+     * When it went live (UTC).
+     */
+    publishedAt: string;
+    /**
+     * What went live.
+     */
+    entities: Array<EntityRefDto>;
+    /**
+     * Things worth a look that didn't block publishing.
+     */
+    warnings: Array<PublishIssueDto>;
 };
 
 export type ResponsiveSpacing = {
@@ -773,7 +967,27 @@ export type ResponsiveSpacing = {
 };
 
 /**
- * Creates or saves an item.
+ * Saves a collection's draft: its slug and fields, and where the values of removed fields go.
+ */
+export type SaveCollectionDraftRequest = {
+    /**
+     * Lowercase words separated by dashes, e.g. `blog`; unique within the website.
+     */
+    slug: string;
+    /**
+     * The complete list of fields, in display order.
+     */
+    fields: Array<CollectionFieldRequest>;
+    /**
+     * For live fields the draft removes: the field their values move to, or `null` to remove them.
+     */
+    valueMoves: {
+        [key: string]: string;
+    };
+};
+
+/**
+ * Creates an item (as a draft) or saves an item's draft.
  */
 export type SaveCollectionItemRequest = {
     /**
@@ -786,10 +1000,82 @@ export type SaveCollectionItemRequest = {
     values: {
         [key: string]: unknown;
     };
+};
+
+/**
+ * Saves a page's draft: nothing changes on the site until it is published.
+ */
+export type SavePageDraftRequest = {
     /**
-     * `published` to show the item to visitors, `draft` to keep it hidden.
+     * The complete document, as the studio normalised it.
      */
-    status: CollectionItemStatus;
+    document: PageDocument;
+};
+
+/**
+ * Drafts put live together at a set time.
+ */
+export type ScheduledPublishDto = {
+    /**
+     * The scheduled publish's id.
+     */
+    id: string;
+    /**
+     * The website.
+     */
+    websiteId: string;
+    /**
+     * When it runs (UTC).
+     */
+    publishAt: string;
+    /**
+     * `pending`, or `failed` when it didn't go live.
+     */
+    status: ScheduledPublishStatus;
+    /**
+     * What it puts live.
+     */
+    entries: Array<EntityRefDto>;
+    /**
+     * Why it didn't go live, when it failed.
+     */
+    issues: Array<PublishIssueDto>;
+    /**
+     * When it was scheduled (UTC).
+     */
+    createdAt: string;
+    /**
+     * When it ran (UTC).
+     */
+    completedAt: null | string;
+};
+
+export type ScheduledPublishStatus = 'pending' | 'published' | 'failed' | 'cancelled';
+
+/**
+ * Schedules drafts of a website to go live at a time.
+ */
+export type SchedulePublishRequest = {
+    /**
+     * The website.
+     */
+    websiteId: string;
+    /**
+     * When to publish; in the future. Sent with its offset or in UTC.
+     */
+    publishAt: string;
+    /**
+     * Collections whose draft goes live.
+     */
+    collections: Array<string>;
+    /**
+     * Pages whose draft goes live.
+     */
+    pages: Array<string>;
+    /**
+     * Items whose draft goes live.
+     */
+    items: Array<string>;
 };
 
 export type Section = {
@@ -874,7 +1160,7 @@ export type TextSize = 'lg' | 'md' | 'sm';
 export type TextTone = 'default' | 'muted';
 
 /**
- * Changes a collection: its names, slug and fields. Items keep their values for fields that stay.
+ * Changes what can't break anything and is saved directly: a collection's names and icon.
  */
 export type UpdateCollectionRequest = {
     /**
@@ -886,17 +1172,31 @@ export type UpdateCollectionRequest = {
      */
     singularName: string;
     /**
-     * Lowercase words separated by dashes, e.g. `blog`; unique within the website.
-     */
-    slug: string;
-    /**
      * The icon the app shows it with, e.g. `newspaper`.
      */
     icon: string;
+};
+
+/**
+ * Changes a scheduled publish: its time, and what is in it when the lists are given.
+ */
+export type UpdateScheduledPublishRequest = {
     /**
-     * The complete list of fields, in display order.
+     * The new time, or `null` to keep it.
      */
-    fields: Array<CollectionFieldRequest>;
+    publishAt: null | string;
+    /**
+     * The collections, or `null` to keep what is in it (all three lists go together).
+     */
+    collections: null | Array<string>;
+    /**
+     * The pages.
+     */
+    pages: null | Array<string>;
+    /**
+     * The items.
+     */
+    items: null | Array<string>;
 };
 
 /**
@@ -949,7 +1249,7 @@ export type GetCollectionsData = {
 
 export type GetCollectionsResponses = {
     /**
-     * The website's collections with their fields.
+     * The website's collections with their fields and drafts.
      */
     200: Array<CollectionDto>;
 };
@@ -1061,7 +1361,7 @@ export type UpdateCollectionData = {
 
 export type UpdateCollectionErrors = {
     /**
-     * The request is invalid, or another collection uses the slug.
+     * The request is invalid.
      */
     400: HttpValidationProblemDetails;
     /**
@@ -1080,6 +1380,105 @@ export type UpdateCollectionResponses = {
 };
 
 export type UpdateCollectionResponse = UpdateCollectionResponses[keyof UpdateCollectionResponses];
+
+export type GetCollectionFieldUsagesData = {
+    body?: never;
+    path: {
+        /**
+         * The collection's id.
+         */
+        collectionId: string;
+    };
+    query?: never;
+    url: '/collections/{collectionId}/usages';
+};
+
+export type GetCollectionFieldUsagesErrors = {
+    /**
+     * No collection exists with this id.
+     */
+    404: unknown;
+};
+
+export type GetCollectionFieldUsagesResponses = {
+    /**
+     * One entry per page and field it shows.
+     */
+    200: Array<FieldUsageDto>;
+};
+
+export type GetCollectionFieldUsagesResponse = GetCollectionFieldUsagesResponses[keyof GetCollectionFieldUsagesResponses];
+
+export type DiscardCollectionDraftData = {
+    body?: never;
+    path: {
+        /**
+         * The collection's id.
+         */
+        collectionId: string;
+    };
+    query?: never;
+    url: '/collections/{collectionId}/draft';
+};
+
+export type DiscardCollectionDraftErrors = {
+    /**
+     * The collection was never published, so there is no live version to go back to.
+     */
+    400: HttpValidationProblemDetails;
+    /**
+     * No collection exists with this id.
+     */
+    404: unknown;
+};
+
+export type DiscardCollectionDraftError = DiscardCollectionDraftErrors[keyof DiscardCollectionDraftErrors];
+
+export type DiscardCollectionDraftResponses = {
+    /**
+     * The draft is gone; the body is the collection.
+     */
+    200: CollectionDto;
+};
+
+export type DiscardCollectionDraftResponse = DiscardCollectionDraftResponses[keyof DiscardCollectionDraftResponses];
+
+export type SaveCollectionDraftData = {
+    /**
+     * Cancels the request.
+     */
+    body: SaveCollectionDraftRequest;
+    path: {
+        /**
+         * The collection's id.
+         */
+        collectionId: string;
+    };
+    query?: never;
+    url: '/collections/{collectionId}/draft';
+};
+
+export type SaveCollectionDraftErrors = {
+    /**
+     * The request is invalid, another collection uses the slug, or a move doesn't start at a removed field.
+     */
+    400: HttpValidationProblemDetails;
+    /**
+     * No collection exists with this id.
+     */
+    404: unknown;
+};
+
+export type SaveCollectionDraftError = SaveCollectionDraftErrors[keyof SaveCollectionDraftErrors];
+
+export type SaveCollectionDraftResponses = {
+    /**
+     * Saved; the body is the collection.
+     */
+    200: CollectionDto;
+};
+
+export type SaveCollectionDraftResponse = SaveCollectionDraftResponses[keyof SaveCollectionDraftResponses];
 
 export type GetCollectionItemsData = {
     body?: never;
@@ -1210,7 +1609,45 @@ export type GetCollectionItemResponses = {
 
 export type GetCollectionItemResponse = GetCollectionItemResponses[keyof GetCollectionItemResponses];
 
-export type SaveCollectionItemData = {
+export type DiscardCollectionItemDraftData = {
+    body?: never;
+    path: {
+        /**
+         * The collection's id.
+         */
+        collectionId: string;
+        /**
+         * The item's id.
+         */
+        itemId: string;
+    };
+    query?: never;
+    url: '/collections/{collectionId}/items/{itemId}/draft';
+};
+
+export type DiscardCollectionItemDraftErrors = {
+    /**
+     * The item was never published, so there is no live version to go back to.
+     */
+    400: HttpValidationProblemDetails;
+    /**
+     * The collection has no item with this id.
+     */
+    404: unknown;
+};
+
+export type DiscardCollectionItemDraftError = DiscardCollectionItemDraftErrors[keyof DiscardCollectionItemDraftErrors];
+
+export type DiscardCollectionItemDraftResponses = {
+    /**
+     * The draft is gone; the body is the item.
+     */
+    200: CollectionItemDto;
+};
+
+export type DiscardCollectionItemDraftResponse = DiscardCollectionItemDraftResponses[keyof DiscardCollectionItemDraftResponses];
+
+export type SaveCollectionItemDraftData = {
     /**
      * Cancels the request.
      */
@@ -1226,10 +1663,10 @@ export type SaveCollectionItemData = {
         itemId: string;
     };
     query?: never;
-    url: '/collections/{collectionId}/items/{itemId}';
+    url: '/collections/{collectionId}/items/{itemId}/draft';
 };
 
-export type SaveCollectionItemErrors = {
+export type SaveCollectionItemDraftErrors = {
     /**
      * The request is invalid; errors are keyed `slug` or `values.{fieldId}`.
      */
@@ -1240,16 +1677,16 @@ export type SaveCollectionItemErrors = {
     404: unknown;
 };
 
-export type SaveCollectionItemError = SaveCollectionItemErrors[keyof SaveCollectionItemErrors];
+export type SaveCollectionItemDraftError = SaveCollectionItemDraftErrors[keyof SaveCollectionItemDraftErrors];
 
-export type SaveCollectionItemResponses = {
+export type SaveCollectionItemDraftResponses = {
     /**
      * Saved; the body is the item.
      */
     200: CollectionItemDto;
 };
 
-export type SaveCollectionItemResponse = SaveCollectionItemResponses[keyof SaveCollectionItemResponses];
+export type SaveCollectionItemDraftResponse = SaveCollectionItemDraftResponses[keyof SaveCollectionItemDraftResponses];
 
 export type GetMediaItemsData = {
     body?: never;
@@ -1424,7 +1861,12 @@ export type GetPageContentData = {
          */
         pageId: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * `live` (the default) for what visitors see; `draft` for the draft, or the live version when there is none.
+         */
+        version?: string;
+    };
     url: '/pages/{pageId}/content';
 };
 
@@ -1441,18 +1883,15 @@ export type GetPageContentResponses = {
      */
     200: PageContentDto;
     /**
-     * The page exists but has no content yet.
+     * The page has no content in that version yet (never published, or no draft and nothing live).
      */
     204: void;
 };
 
 export type GetPageContentResponse = GetPageContentResponses[keyof GetPageContentResponses];
 
-export type PublishPageContentData = {
-    /**
-     * Cancels the request.
-     */
-    body: PublishPageContentRequest;
+export type DiscardPageDraftData = {
+    body?: never;
     path: {
         /**
          * The page's id.
@@ -1460,12 +1899,43 @@ export type PublishPageContentData = {
         pageId: string;
     };
     query?: never;
-    url: '/pages/{pageId}/content';
+    url: '/pages/{pageId}/content/draft';
 };
 
-export type PublishPageContentErrors = {
+export type DiscardPageDraftErrors = {
     /**
-     * The document is malformed or has errors to fix first.
+     * No page exists with this id.
+     */
+    404: unknown;
+};
+
+export type DiscardPageDraftResponses = {
+    /**
+     * The draft is gone (or there was none).
+     */
+    204: void;
+};
+
+export type DiscardPageDraftResponse = DiscardPageDraftResponses[keyof DiscardPageDraftResponses];
+
+export type SavePageDraftData = {
+    /**
+     * Cancels the request.
+     */
+    body: SavePageDraftRequest;
+    path: {
+        /**
+         * The page's id.
+         */
+        pageId: string;
+    };
+    query?: never;
+    url: '/pages/{pageId}/content/draft';
+};
+
+export type SavePageDraftErrors = {
+    /**
+     * The document is malformed.
      */
     400: HttpValidationProblemDetails;
     /**
@@ -1478,16 +1948,16 @@ export type PublishPageContentErrors = {
     413: ProblemDetails;
 };
 
-export type PublishPageContentError = PublishPageContentErrors[keyof PublishPageContentErrors];
+export type SavePageDraftError = SavePageDraftErrors[keyof SavePageDraftErrors];
 
-export type PublishPageContentResponses = {
+export type SavePageDraftResponses = {
     /**
-     * Published; the body is the content and any warnings.
+     * Saved; the body is the draft.
      */
-    200: PublishedPageContentDto;
+    200: PageContentDto;
 };
 
-export type PublishPageContentResponse = PublishPageContentResponses[keyof PublishPageContentResponses];
+export type SavePageDraftResponse = SavePageDraftResponses[keyof SavePageDraftResponses];
 
 export type GetPagesData = {
     body?: never;
@@ -1509,6 +1979,209 @@ export type GetPagesResponses = {
 };
 
 export type GetPagesResponse = GetPagesResponses[keyof GetPagesResponses];
+
+export type GetDraftsData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The website.
+         */
+        websiteId: string;
+    };
+    url: '/drafts';
+};
+
+export type GetDraftsResponses = {
+    /**
+     * The website's drafts; empty when everything is live.
+     */
+    200: Array<DraftDto>;
+};
+
+export type GetDraftsResponse = GetDraftsResponses[keyof GetDraftsResponses];
+
+export type CheckPublishData = {
+    /**
+     * Cancels the request.
+     */
+    body: PublishRequest;
+    path?: never;
+    query?: never;
+    url: '/publish/check';
+};
+
+export type CheckPublishErrors = {
+    /**
+     * The request is invalid.
+     */
+    400: HttpValidationProblemDetails;
+    /**
+     * A collection, page or item isn't one of the website's.
+     */
+    404: unknown;
+};
+
+export type CheckPublishError = CheckPublishErrors[keyof CheckPublishErrors];
+
+export type CheckPublishResponses = {
+    /**
+     * The check.
+     */
+    200: PublishCheckDto;
+};
+
+export type CheckPublishResponse = CheckPublishResponses[keyof CheckPublishResponses];
+
+export type PublishData = {
+    /**
+     * Cancels the request.
+     */
+    body: PublishRequest;
+    path?: never;
+    query?: never;
+    url: '/publish';
+};
+
+export type PublishErrors = {
+    /**
+     * Something blocks the publish; `issues` and `needs` say what. Nothing was published.
+     */
+    400: HttpValidationProblemDetails;
+    /**
+     * A collection, page or item isn't one of the website's.
+     */
+    404: unknown;
+};
+
+export type PublishError = PublishErrors[keyof PublishErrors];
+
+export type PublishResponses = {
+    /**
+     * Live; the body lists what went live and any warnings.
+     */
+    200: PublishResultDto;
+};
+
+export type PublishResponse = PublishResponses[keyof PublishResponses];
+
+export type GetScheduledPublishesData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * The website.
+         */
+        websiteId: string;
+    };
+    url: '/scheduled-publishes';
+};
+
+export type GetScheduledPublishesResponses = {
+    /**
+     * Pending and failed publishes.
+     */
+    200: Array<ScheduledPublishDto>;
+};
+
+export type GetScheduledPublishesResponse = GetScheduledPublishesResponses[keyof GetScheduledPublishesResponses];
+
+export type SchedulePublishData = {
+    /**
+     * Cancels the request.
+     */
+    body: SchedulePublishRequest;
+    path?: never;
+    query?: never;
+    url: '/scheduled-publishes';
+};
+
+export type SchedulePublishErrors = {
+    /**
+     * The time is in the past, a draft is already scheduled, or something blocks the publish.
+     */
+    400: HttpValidationProblemDetails;
+    /**
+     * A collection, page or item isn't one of the website's.
+     */
+    404: unknown;
+};
+
+export type SchedulePublishError = SchedulePublishErrors[keyof SchedulePublishErrors];
+
+export type SchedulePublishResponses = {
+    /**
+     * Scheduled.
+     */
+    201: ScheduledPublishDto;
+};
+
+export type SchedulePublishResponse = SchedulePublishResponses[keyof SchedulePublishResponses];
+
+export type CancelScheduledPublishData = {
+    body?: never;
+    path: {
+        /**
+         * The scheduled publish's id.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/scheduled-publishes/{id}';
+};
+
+export type CancelScheduledPublishErrors = {
+    /**
+     * No pending or failed publish with this id.
+     */
+    404: unknown;
+};
+
+export type CancelScheduledPublishResponses = {
+    /**
+     * Cancelled.
+     */
+    204: void;
+};
+
+export type CancelScheduledPublishResponse = CancelScheduledPublishResponses[keyof CancelScheduledPublishResponses];
+
+export type UpdateScheduledPublishData = {
+    /**
+     * Cancels the request.
+     */
+    body: UpdateScheduledPublishRequest;
+    path: {
+        /**
+         * The scheduled publish's id.
+         */
+        id: string;
+    };
+    query?: never;
+    url: '/scheduled-publishes/{id}';
+};
+
+export type UpdateScheduledPublishErrors = {
+    /**
+     * The time is in the past, a draft is already scheduled, or something blocks the publish.
+     */
+    400: HttpValidationProblemDetails;
+    /**
+     * No pending or failed publish with this id, or an id isn't one of its website's.
+     */
+    404: unknown;
+};
+
+export type UpdateScheduledPublishError = UpdateScheduledPublishErrors[keyof UpdateScheduledPublishErrors];
+
+export type UpdateScheduledPublishResponses = {
+    /**
+     * Changed.
+     */
+    200: ScheduledPublishDto;
+};
+
+export type UpdateScheduledPublishResponse = UpdateScheduledPublishResponses[keyof UpdateScheduledPublishResponses];
 
 export type GetWebsitesData = {
     body?: never;

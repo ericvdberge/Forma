@@ -17,9 +17,10 @@ export const router = createRouter({
       component: () => import('@/views/StudioView.vue'),
       meta: { title: 'Edit page' },
     },
-    // The website as visitors will see it, full-screen too: `/preview/{websiteId}/about`.
+    // The website as visitors will see it, full-screen too: `/preview/{websiteId}/about`, or an item of a
+    // collection on its detail page: `/preview/{websiteId}/blog/first-post`.
     {
-      path: '/preview/:websiteId/:slug?',
+      path: '/preview/:websiteId/:slug?/:item?',
       name: 'preview',
       component: () => import('@/views/WebsitePreviewView.vue'),
       meta: { title: 'Preview' },

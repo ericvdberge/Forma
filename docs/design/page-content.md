@@ -10,7 +10,7 @@ Related:
 ## 1. Goals
 
 1. The Design Studio (`/pages/:id/edit`) stores its work through the API.
-2. Edits stay in the browser until **Publish**, which sends the whole page with one `PUT`. There are no server-side drafts, autosave or revisions.
+2. Edits stay in the browser until **Save**, which stores the whole page as its draft on the server (`PUT /pages/{id}/content/draft`). **Publish** puts the draft live, alone or together with other drafts, now or at a set time ([drafts-and-publish.md](drafts-and-publish.md)). There is no autosave or revision history yet.
 3. Anything stored has passed validation: a broken or malicious document never reaches the database, and a page with fixable problems (an image without a file, a link to a deleted page) can't be published.
 4. The model can grow into collection pages (see [collections.md](collections.md)) without a rewrite.
 
