@@ -57,7 +57,7 @@ export function createStudio(
   const studioMedia = useStudioMedia(websiteId)
 
   const doc = computed(() => content.page.value?.draft)
-  const studioCollections = useStudioCollections(websiteId, pageCollectionId, doc)
+  const studioCollections = useStudioCollections(websiteId, pageCollectionId, doc, { drafts: true })
 
   /* ---------- Editor state ---------- */
   const selection = ref<Selection>(null)

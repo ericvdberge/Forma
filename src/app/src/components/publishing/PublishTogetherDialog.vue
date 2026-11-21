@@ -23,16 +23,22 @@ const open = computed({
 const prompt = computed(() => together.value)
 const all = computed(() => (prompt.value ? [prompt.value.entity, ...prompt.value.needs.map((n) => n.entity)] : []))
 const names = computed(() => all.value.map((e) => e.name))
+/** "Blog posts", "Blog posts and Home", "Blog posts, Home and About". */
+const others = computed(() => {
+  const rest = names.value.slice(1)
+  return rest.length > 1 ? `${rest.slice(0, -1).join(', ')} and ${rest.at(-1)}` : (rest[0] ?? '')
+})
 const primaryLabel = computed(() => (all.value.length === 2 ? 'Publish both' : `Publish all ${all.value.length}`))
 
 async function publishAll() {
   const p = prompt.value
   if (!p) return
+  const entities = all.value
   busy.value = true
   try {
-    const outcome = await publishing.publishNow(p.websiteId, all.value)
+    const outcome = await publishing.publishNow(p.websiteId, entities)
     together.value = null
-    if (outcome.kind === 'blocked') openDialog(p.websiteId, all.value)
+    if (outcome.kind === 'blocked') openDialog(p.websiteId, entities)
   } finally {
     busy.value = false
   }
@@ -41,8 +47,9 @@ async function publishAll() {
 function choose() {
   const p = prompt.value
   if (!p) return
+  const entities = all.value
   together.value = null
-  openDialog(p.websiteId, all.value)
+  openDialog(p.websiteId, entities)
 }
 </script>
 
@@ -61,7 +68,7 @@ function choose() {
         </ul>
         <p class="mt-3 text-sm text-muted">
           {{ prompt.entity.name }} can’t go live on its own. Publishing
-          {{ names.slice(1).join(', ') }} with it puts everything live at the same moment.
+          {{ others }} with it puts everything live at the same moment.
         </p>
       </div>
       <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
