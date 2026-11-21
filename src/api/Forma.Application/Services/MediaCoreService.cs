@@ -45,19 +45,22 @@ public class MediaCoreService(
 
     public async Task<MediaItem?> GetMediaItemAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var media = await mediaRepository.GetByIdAsync(id, cancellationToken);
+        var mediaItems = await mediaRepository.GetMediaItemsAsync(new MediaFilter { Id = id }, cancellationToken);
+        var media = mediaItems.FirstOrDefault();
         return media?.ToEntity();
     }
 
     public async Task<(Stream Content, string ContentType)?> GetImageAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var media = await mediaRepository.GetByIdAsync(id, cancellationToken);
+        var mediaItems = await mediaRepository.GetMediaItemsAsync(new MediaFilter { Id = id }, cancellationToken);
+        var media = mediaItems.FirstOrDefault();
         return media is null ? null : await OpenAsync(media.ImagePath, media.ContentType, cancellationToken);
     }
 
     public async Task<(Stream Content, string ContentType)?> GetThumbnailAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var media = await mediaRepository.GetByIdAsync(id, cancellationToken);
+        var mediaItems = await mediaRepository.GetMediaItemsAsync(new MediaFilter { Id = id }, cancellationToken);
+        var media = mediaItems.FirstOrDefault();
         return media is null ? null : await OpenAsync(media.ThumbnailPath, ProcessedImage.ThumbnailContentType, cancellationToken);
     }
 
@@ -67,10 +70,10 @@ public class MediaCoreService(
         Stream content,
         CancellationToken cancellationToken = default)
     {
-        if (!await websiteRepository.ExistsAsync(websiteId, cancellationToken))
-        {
+        var websites = await websiteRepository.GetWebsitesAsync(new WebsiteFilter { Id = websiteId }, cancellationToken);
+
+        if (websites.FirstOrDefault() is null)
             return new MediaUploadResult.WebsiteNotFound();
-        }
 
         // Buffer the upload once: it is decoded for validation and the thumbnail, then stored as-is.
         var bytes = await ReadAllBytesAsync(content, cancellationToken);
@@ -119,7 +122,8 @@ public class MediaCoreService(
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var media = await mediaRepository.GetByIdAsync(id, cancellationToken);
+        var mediaItems = await mediaRepository.GetMediaItemsAsync(new MediaFilter { Id = id }, cancellationToken);
+        var media = mediaItems.FirstOrDefault();
         if (media is null || !await mediaRepository.DeleteAsync(id, cancellationToken))
         {
             return false;

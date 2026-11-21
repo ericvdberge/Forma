@@ -4,7 +4,5 @@ namespace Forma.Infrastructure.Repositories.Websites;
 
 public interface IWebsiteRepository
 {
-    Task<IReadOnlyList<WebsiteDao>> GetAllAsync(CancellationToken cancellationToken = default);
-
-    Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<WebsiteDao>> GetWebsitesAsync(WebsiteFilter filter, CancellationToken cancellationToken = default);
 }
