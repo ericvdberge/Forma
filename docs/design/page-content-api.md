@@ -1,6 +1,6 @@
 # Page content API
 
-Status: **implemented** (content and publishing), saved items proposed. Design and rationale: [page-content.md](page-content.md).
+Status: **implemented** (content, drafts and publishing), saved items proposed. Design and rationale: [page-content.md](page-content.md); drafts and publishing: [drafts-and-publish.md](drafts-and-publish.md).
 
 Conventions (the same as the rest of the API):
 
@@ -11,15 +11,17 @@ Conventions (the same as the rest of the API):
 
 | Method | Route | Purpose |
 |---|---|---|
-| `GET` | `/pages/{pageId}/content` | A page's content |
-| `PUT` | `/pages/{pageId}/content` | Publish a page (the studio's **Publish** button) |
+| `GET` | `/pages/{pageId}/content?version=` | A page's live content, or its draft (`version=draft`) |
+| `PUT` | `/pages/{pageId}/content/draft` | Save the page's draft (the studio's **Save**) |
+| `DELETE` | `/pages/{pageId}/content/draft` | Discard the draft |
+| `POST` | `/publish` | Put drafts live, a page among them (the studio's **Publish**); see [drafts-and-publish.md § 7](drafts-and-publish.md#7-api) |
 | `GET` | `/saved-items?websiteId=` | The Saved tab (proposed) |
 | `POST` | `/saved-items` | Save a section or block (proposed) |
 | `PATCH` | `/saved-items/{id}` | Rename (proposed) |
 | `DELETE` | `/saved-items/{id}` | Delete (proposed) |
 | `DELETE` | `/media/{id}` (changed) | `409` when the image is used on a page (proposed) |
 
-The studio keeps edits in the browser and only sends a page when it is published: there are no drafts, autosave or revisions on the server.
+The studio keeps edits in the browser until **Save**, which stores them as the page's draft on the server. Visitors only ever see the live version; **Publish** saves the draft and puts it live with `POST /publish`, alone or together with other drafts. There is no autosave or revision history yet.
 
 ---
 
@@ -109,16 +111,21 @@ Documents are always sent **complete** (normalised by the studio). A missing req
 {
   "pageId": "0b6c…",
   "document": { "version": 1, "sections": [] },
-  "status": "published",
+  "version": "draft",
+  "hasDraft": true,
+  "draftUpdatedAt": "2026-11-21T09:12:40Z",
+  "publishedAt": "2026-11-17T19:02:11Z",
   "createdAt": "2026-11-15T08:30:00Z",
-  "updatedAt": "2026-11-17T19:02:11Z"
+  "updatedAt": "2026-11-21T09:12:40Z"
 }
 ```
 
 | Property | Notes |
 |---|---|
-| `status` | `published` once the page was published; `draft` only for seeded sample content that never was. |
-| `updatedAt` | When the content was last published (or seeded). |
+| `version` | Which version `document` is: `live` or `draft`. |
+| `hasDraft` | Whether there are saved changes that aren't live. |
+| `draftUpdatedAt` | When the draft was last saved; `null` without one. |
+| `publishedAt` | When the page was last published; `null` while it never was (then there is no live version). |
 
 ### `ContentIssue`
 
@@ -133,19 +140,19 @@ Documents are always sent **complete** (normalised by the studio). A missing req
 
 ## Endpoints
 
-### `GET /pages/{pageId}/content`
+### `GET /pages/{pageId}/content?version=live|draft`
 
-Loads a page's content. The studio calls it once when it opens a page.
+Loads a page's content. `live` (the default) is what visitors see; the website preview reads it. `draft` is the draft, or the live version when there is none; the studio reads it (and the live one) when it opens a page.
 
 | Status | Body | When |
 |---|---|---|
 | `200` | `PageContent` | |
-| `204` | | The page has no content yet; the studio starts from its starter page |
+| `204` | | The page has no content in that version yet: never published (`live`), or nothing at all; the studio starts from its starter page |
 | `404` | | No page with this id |
 
-### `PUT /pages/{pageId}/content`
+### `PUT /pages/{pageId}/content/draft`
 
-Publishes a page: stores the document and sets its status to `published`. The studio calls it when **Publish** is chosen.
+Saves the page's draft. Nothing changes on the site. The studio calls it on **Save** (and Ctrl+S), and before **Publish**.
 
 Request (max 1 MB):
 
@@ -155,25 +162,36 @@ Request (max 1 MB):
 
 | Status | Body | When |
 |---|---|---|
-| `200` | `{ "content": PageContent, "warnings": [ ContentIssue ] }` | Published. Warnings are worth a look but didn't block. |
-| `400` | `ValidationProblem` | The JSON doesn't match the schema, the document breaks a structural rule, or it has content errors |
+| `200` | `PageContent` (`version: draft`) | Saved |
+| `400` | `ValidationProblem` | The JSON doesn't match the schema, or the document breaks a structural rule (keyed by property path, e.g. `Document.Sections[0].Settings.SplitRatio`) |
 | `404` | | No page with this id |
 | `413` | | Body larger than 1 MB |
 
-Structural errors are keyed by the property path (`Document.Sections[0].Settings.SplitRatio`). Content errors are keyed by where they are (`sectionId.blockId.field`), and the problem's `issues` extension lists them in full so the studio can select the block:
+Content rules (missing images, links that go nowhere, fields that don't exist) are not checked here: a draft may be unfinished. They are checked when it is published.
+
+### `DELETE /pages/{pageId}/content/draft`
+
+Discards the draft: the page goes back to its live version, and it is taken out of any pending scheduled publish. `204`, or `404` when there is no such page.
+
+### Publishing a page
+
+`POST /publish` with `{ websiteId, collections: [], pages: [pageId], items: [] }` (see [drafts-and-publish.md § 6–7](drafts-and-publish.md#6-publishing)). The content rules run on the site as it would be. Errors are a `400` problem whose `issues` extension lists them, each with the `entity` it is on and, for pages, the section and block, so the studio can select it; `needs` lists drafts that would fix them:
 
 ```json
 {
-  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
-  "title": "The page has errors to fix before it can be published.",
+  "title": "Some changes need attention before they can go live.",
   "status": 400,
-  "errors": { "s_hero.b_img.src": ["This image has no picture yet."] },
+  "errors": { "About": ["This image has no picture yet."] },
   "issues": [
     { "severity": "error", "code": "image.missing", "message": "This image has no picture yet.",
+      "entity": { "kind": "page", "id": "0b6c…", "name": "About", "collectionId": null },
       "sectionId": "s_hero", "blockId": "b_img", "field": "src", "itemIndex": null }
-  ]
+  ],
+  "needs": []
 }
 ```
+
+`PUT /pages/{pageId}/content` (publish one page with its document) is gone: the studio saves the draft and publishes it.
 
 ---
 

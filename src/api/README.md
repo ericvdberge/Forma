@@ -23,16 +23,25 @@ A request goes endpoint → (supporting service) → core service → repository
 
 ## Data model
 
-The SQLite tables, from the EF Core model snapshot. Every table also has `CreatedAt` and `UpdatedAt`, and every foreign key cascades on delete.
+The SQLite tables, from the EF Core model snapshot. `Websites`, `Pages`, `PageContents`, `Media`, `Collections` and `CollectionItems` also have `CreatedAt` and `UpdatedAt`, and every foreign key cascades on delete.
+
+Collections, items and page content have a live version and a draft ([drafts-and-publish.md](../../docs/design/drafts-and-publish.md)): `Draft…` columns are `null` when there is no draft, and `PublishedAt IS NULL` means it was never published, so visitors don't see it.
 
 ```mermaid
 erDiagram
     Websites ||--o{ Pages : "has"
     Websites ||--o{ Media : "has"
     Websites ||--o{ Collections : "has"
+    Websites ||--o{ ScheduledPublishes : "has"
     Pages ||--|| PageContents : "has"
     Collections ||--o{ CollectionItems : "has"
-    Collections |o--o| Pages : "detail page"
+    Collections |o--o| Pages : "detail page (WebsiteId, CollectionId)"
+    Pages ||--o{ PageBindingUsages : "shows fields"
+    Collections ||--o{ PageBindingUsages : "fields shown"
+    ScheduledPublishes ||--o{ ScheduledPublishEntries : "publishes"
+    ScheduledPublishEntries }o--o| Collections : "collection"
+    ScheduledPublishEntries }o--o| Pages : "page"
+    ScheduledPublishEntries }o--o| CollectionItems : "item"
 
     Websites {
         Guid Id PK
@@ -47,14 +56,17 @@ erDiagram
         string Title
         string Slug "unique per website"
         string Status
-        string Kind "Static or CollectionTemplate"
-        Guid CollectionId FK "nullable, unique"
+        string Kind "CK_Pages_Kind: Static without CollectionId, CollectionTemplate with one"
+        Guid CollectionId FK "nullable, unique; FK (WebsiteId, CollectionId)"
     }
     PageContents {
         Guid PageId PK
-        string Content "JSON page document"
+        string Content "JSON page document, live; nullable"
         int SchemaVersion
-        string Status
+        string DraftContent "JSON, nullable"
+        int DraftSchemaVersion "nullable"
+        DateTime DraftUpdatedAt "nullable"
+        DateTime PublishedAt "nullable"
     }
     Media {
         Guid Id PK
@@ -69,20 +81,49 @@ erDiagram
     }
     Collections {
         Guid Id PK
-        Guid WebsiteId FK
+        Guid WebsiteId FK "AK (WebsiteId, Id)"
         string Name "e.g. Blog posts"
         string SingularName "e.g. Blog post"
-        string Slug "unique per website"
+        string Slug "live, unique per website"
         string Icon
-        string Fields "JSON list of fields"
+        string Fields "JSON list of fields, live"
+        string DraftSlug "nullable"
+        string DraftFields "JSON, nullable"
+        string DraftValueMoves "JSON removed field to field, nullable"
+        DateTime DraftUpdatedAt "nullable"
+        DateTime PublishedAt "nullable"
     }
     CollectionItems {
         Guid Id PK
         Guid CollectionId FK
-        string Slug "unique per collection"
-        string Status "Draft or Published"
-        string Values "JSON, keyed by field id"
+        string Slug "live, unique per collection"
+        string Values "JSON keyed by field id, live"
+        string DraftSlug "nullable"
+        string DraftValues "JSON, nullable"
+        DateTime DraftUpdatedAt "nullable"
         DateTime PublishedAt "nullable"
+    }
+    PageBindingUsages {
+        Guid PageId PK, FK
+        Guid CollectionId PK, FK
+        string FieldId PK
+        string Kind PK "Binding or Cards"
+    }
+    ScheduledPublishes {
+        Guid Id PK
+        Guid WebsiteId FK
+        DateTime PublishAt "UTC"
+        string Status "Pending, Published, Failed, Cancelled"
+        string Issues "JSON, when Failed"
+        DateTime CreatedAt
+        DateTime CompletedAt "nullable"
+    }
+    ScheduledPublishEntries {
+        Guid Id PK
+        Guid ScheduledPublishId FK
+        Guid CollectionId FK "nullable"
+        Guid PageId FK "nullable"
+        Guid CollectionItemId FK "nullable; CK exactly one of the three"
     }
 ```
 

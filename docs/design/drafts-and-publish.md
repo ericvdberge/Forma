@@ -1,6 +1,21 @@
 # Drafts and publishing
 
-Status: **proposed**. To be built in its own PR. Changes goal 2 of [page-content.md](page-content.md#1-goals): pages get drafts on the server.
+Status: **implemented** (branch `feature/drafts-and-publish`). Changes goal 2 of [page-content.md](page-content.md#1-goals): pages get drafts on the server.
+
+## 0. What was built, and where it differs
+
+Everything in § 4–7 is built: draft columns, `PublishCheckService` and `PublishService` (`Forma.Application/Publishing`), `ITransactionRunner`, `ScheduledPublishWorker` (`Publishing:WorkerInterval`, one minute by default), the endpoints of § 7, and in the app the shared editor controls, the publish dialog, "Publish together?" and scheduling. Where it differs:
+
+- **New collections and items keep live columns from the start.** `Collections.Slug`/`Fields` and `CollectionItems.Slug`/`Values` stay non-nullable (unique indexes and every reader rely on them): a new one gets its first values both live and as the draft, and `PublishedAt IS NULL` keeps it off the site until it is published. `PageContents.Content` is nullable as designed.
+- **`PageContents.DraftSchemaVersion`** is added next to `DraftContent`, because a draft is read with its own schema version.
+- **Clearing a draft** is `ClearDraft = true` on `{Entity}Update`, since `null` means "leave as it is".
+- **`PageContents.Status` and `CollectionItems.Status` are removed**; existing rows were converted by the migrations `AddDrafts` and `ClearUnpublishedContent` (SQLite rebuilds `PageContents` after the data SQL of the first, so clearing the live content of never-published pages runs in the second).
+- **`needs`** is found by trying each other draft with the publish and keeping those that remove an error, for a few rounds, so a draft that needs another brings that one too ("Publish all 3").
+- **Discarding** something that was never published is refused (`400`): there is no live version to go back to; delete it instead.
+- **Extra endpoint** `GET /collections/{id}/usages` serves "Used by…" from `PageBindingUsages`, which is filled from live content at start-up when empty.
+- **The studio shows collections as drafted**: a collection's draft fields can be bound, and items show their moved values, so pages can be fixed before the collection is published. The website preview shows only what is live.
+- **Try again** on a failed scheduled publish publishes its drafts now (and cancels the failed one); **Publish now** on a pending one publishes them, which takes them out of it.
+- **Item drafts** are checked for types and unknown fields when saved; required fields are checked when they are published.
 
 ## 1. The problem
 
