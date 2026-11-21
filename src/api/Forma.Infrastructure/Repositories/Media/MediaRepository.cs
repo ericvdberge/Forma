@@ -13,12 +13,6 @@ public class MediaRepository(FormaDbContext db) : IMediaRepository
             .OrderByDescending(m => m.CreatedAt)
             .ToListAsync(cancellationToken);
 
-    public async Task<MediaItemDao?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-        await db.Media
-            .AsNoTracking()
-            .ApplyFilter(new MediaFilter { Id = id })
-            .FirstOrDefaultAsync(cancellationToken);
-
     public async Task AddAsync(MediaItemDao media, CancellationToken cancellationToken = default)
     {
         db.Media.Add(media);

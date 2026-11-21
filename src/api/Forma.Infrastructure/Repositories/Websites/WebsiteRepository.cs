@@ -12,9 +12,4 @@ public class WebsiteRepository(FormaDbContext db) : IWebsiteRepository
             .ApplyFilter(filter)
             .OrderByDescending(w => w.UpdatedAt)
             .ToListAsync(cancellationToken);
-
-    public async Task<bool> ExistsAsync(WebsiteFilter filter, CancellationToken cancellationToken = default) =>
-        await db.Websites
-            .ApplyFilter(filter)
-            .AnyAsync(cancellationToken);
 }

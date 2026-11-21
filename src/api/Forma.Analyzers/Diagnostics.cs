@@ -26,4 +26,14 @@ public static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
         description: "Every query a repository runs on a DbSet (ToListAsync, FirstOrDefaultAsync, AnyAsync, ExecuteDeleteAsync, Find…) is narrowed with ApplyFilter first, so an id from a request can't reach another website's data (CLAUDE.md, \"Filters guard against IDOR\"). Pass an empty filter to read everything.");
+
+    /// <summary>A repository has a method that isn't CRUD: a single-row read, an exists check, a special-purpose query.</summary>
+    public static readonly DiagnosticDescriptor RepositoryIsCrudOnly = new(
+        id: "FORMA003",
+        title: "Repositories are CRUD only",
+        messageFormat: "Repository method '{0}' {1}",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A repository only has Get{Entities}Async({Entity}Filter) returning a list, and Add…, Update… and Delete… methods (CLAUDE.md, \"Repositories are CRUD only\"). A single item (by id, by slug) or an exists check is the core service's job: it calls the plural read with a filter and takes the first match.");
 }
