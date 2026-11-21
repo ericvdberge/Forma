@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
-import { ArrowLeft, ArrowRight, ChevronDown, Database, Eye, EyeOff, Monitor, PanelRight, Plus, Redo2, Smartphone, Tablet, Undo2 } from 'lucide-vue-next'
+import { ArrowLeft, ArrowRight, ChevronDown, Database, ExternalLink, Eye, EyeOff, Monitor, PanelRight, Plus, Redo2, Smartphone, Tablet, Undo2 } from 'lucide-vue-next'
 import { FButton, FLogo, cn } from '@forma/design-system'
 import { useStudio, type StudioMode } from '@/composables/useStudio'
 import type { Breakpoint } from '@/studio/types'
@@ -11,7 +11,13 @@ import { itemTitle } from '@/utils/collections'
  * The editor's top bar: back to Pages (or to the collection, for its detail page), the page, view controls and
  * publishing. A detail page also picks the item it is previewed with.
  */
-defineProps<{ pageTitle: string; pagePath: string; back?: { to: RouteLocationRaw; label: string } }>()
+defineProps<{
+  pageTitle: string
+  pagePath: string
+  back?: { to: RouteLocationRaw; label: string }
+  /** The page in the website preview, shown once it is published. Detail pages have none: the preview shows pages only. */
+  liveLink?: RouteLocationRaw
+}>()
 const emit = defineEmits<{ library: []; inspector: [] }>()
 const studio = useStudio()
 
@@ -150,6 +156,17 @@ const textBtn =
         <span class="hidden sm:inline">{{ studio.preview.value ? 'Back to editing' : 'Preview' }}</span>
         <span class="sr-only sm:hidden">{{ studio.preview.value ? 'Back to editing' : 'Preview' }}</span>
       </button>
+      <RouterLink
+        v-if="liveLink && studio.isPublished.value"
+        :to="liveLink"
+        target="_blank"
+        :class="textBtn"
+        title="Open the published website in a new tab"
+      >
+        <ExternalLink class="size-[18px]" :stroke-width="1.6" aria-hidden="true" />
+        <span class="hidden 2xl:inline">View site</span>
+        <span class="sr-only 2xl:hidden">View site</span>
+      </RouterLink>
       <FButton size="sm" variant="secondary" :disabled="!studio.hasChanges.value" @click="discard">Discard</FButton>
       <FButton size="sm" :disabled="!canPublish || studio.publishing.value" @click="studio.publish()">
         {{ studio.publishing.value ? 'Publishing…' : 'Publish' }} <ArrowRight class="size-4" aria-hidden="true" />

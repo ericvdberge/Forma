@@ -24,7 +24,7 @@ public class PageContentApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var contactContent = await _client.GetAsync<PageContentDto>($"/pages/{contact.Id}/content");
 
         Assert.Equal(PageContentStatus.Published, aboutContent.Status);
-        Assert.Equal(PageContentStatus.Draft, contactContent.Status);
+        Assert.Equal(PageContentStatus.Published, contactContent.Status);
         Assert.NotEmpty(contactContent.Document.Sections);
         Assert.DoesNotContain("{{title}}", PageDocumentSerializer.Serialize(contactContent.Document));
     }

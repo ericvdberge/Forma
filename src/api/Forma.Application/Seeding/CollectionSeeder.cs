@@ -63,7 +63,7 @@ public static class CollectionSeeder
         var pageContentCoreService = scope.ServiceProvider.GetRequiredService<IPageContentCoreService>();
         var websites = scope.ServiceProvider.GetRequiredService<IWebsiteRepository>();
 
-        foreach (var website in await websites.GetAllAsync(cancellationToken))
+        foreach (var website in await websites.GetWebsitesAsync(new WebsiteFilter(), cancellationToken))
         {
             if (await IsSeededAsync(website.Id, collectionCoreService, pageCoreService, cancellationToken))
                 continue;

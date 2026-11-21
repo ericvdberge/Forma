@@ -16,7 +16,7 @@ function listedCollections(doc: PageDocument | undefined) {
 }
 
 /**
- * The collections the studio shows: the website's collections, the items of every collection the page lists, and on a
+ * The collections the studio (and the website preview) shows: the website's collections, the items of every collection the page lists, and on a
  * collection's detail page the item it is previewed with. Items load as soon as a list or the detail page needs them.
  */
 export function useStudioCollections(

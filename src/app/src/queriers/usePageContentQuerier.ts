@@ -9,6 +9,7 @@ import { normalizeDocument, type PageDocumentJson } from '@/studio/sections'
 import type { PageDocument, StudioPage } from '@/studio/types'
 
 export const pageContentQueryKey = (pageId: string) => ['page-content', pageId] as const
+export const publishedContentQueryKey = (pageId: string) => ['published-page-content', pageId] as const
 
 /** What a new page's starter content is filled in with. */
 export interface StudioPageSeed {
@@ -84,6 +85,30 @@ export function usePageContentQuerier() {
     )
   }
 
+  /**
+   * GET /pages/{pageId}/content, only what is published: what visitors see, `null` when the page has none yet.
+   * Kept apart from the editor's working copy and refetched each time, so it shows the latest publish.
+   */
+  function getPublishedContent(pageId: MaybeRefOrGetter<string | undefined>) {
+    return useQuery(
+      computed(() => ({
+        queryKey: publishedContentQueryKey(toValue(pageId) ?? ''),
+        queryFn: async ({ signal }: { signal: AbortSignal }): Promise<PageDocument | null> => {
+          const { data, response } = await getPageContent({ path: { pageId: toValue(pageId)! }, signal })
+
+          if (response?.status === 204 || response?.status === 404) return null
+
+          if (!response?.ok) throw new Error(`Loading the page failed (${response?.status}).`)
+
+          const dto = data as PageContentDto
+          return dto.status === 'published' ? fromApiDocument(dto.document) : null
+        },
+        enabled: !!toValue(pageId),
+        staleTime: 0,
+      })),
+    )
+  }
+
   /** PUT /pages/{pageId}/content */
   async function publish(pageId: string, document: PageDocument): Promise<PublishOutcome> {
     try {
@@ -102,6 +127,7 @@ export function usePageContentQuerier() {
 
   return {
     getPageContent: getPageContent$,
+    getPublishedContent,
     publish,
   }
 }

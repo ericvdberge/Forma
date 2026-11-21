@@ -3,7 +3,8 @@ import { imageUrl } from '@/studio/media'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { EyeOff, Plus } from 'lucide-vue-next'
 import { cn } from '@forma/design-system'
-import { useStudio, type DropTarget } from '@/composables/useStudio'
+import type { DropTarget } from '@/composables/useStudio'
+import { useCanvas } from '@/studio/canvas'
 import { resolve } from '@/studio/responsive'
 import { tone, type RenderContext } from '@/studio/render'
 import { sectionTypeLabels } from '@/studio/sections'
@@ -12,7 +13,7 @@ import CanvasBlock from './CanvasBlock.vue'
 import SelectionToolbar from './SelectionToolbar.vue'
 
 const props = defineProps<{ section: Section; bp: Breakpoint; editing: boolean }>()
-const studio = useStudio()
+const studio = useCanvas()
 
 const s = computed(() => props.section.settings)
 const selected = computed(() => studio.selection.value?.kind === 'section' && studio.selection.value.sectionId === props.section.id)

@@ -30,6 +30,7 @@ var content = await pageContentCoreService.GetPageContentAsync(new PageContentFi
 
 - Keep the database layer thin so it can be reused for many use cases: `Get…Async(filter)`, `AddAsync`, `UpdateAsync`, `DeleteAsync`. No business logic, no multi-step workflows, no special-purpose queries like `SaveDraftAsync`.
 - Every repository has a `{Entity}Filter` (all properties optional) and a `{Entity}QueryExtensions.ApplyFilter` that chains one small `With…` method per property using `WhereIf`. Reuse `ApplyFilter`; don't write ad-hoc `Where` clauses in the repository methods.
+- The build enforces this (`Forma.Analyzers`, errors in `Forma.Infrastructure`): **FORMA001** no `Where` or predicate overload (`AnyAsync(x => …)`, `FirstOrDefaultAsync(x => …)`…) on a query outside the `*QueryExtensions` classes; **FORMA002** every query a `*Repository` runs on a `DbSet` (and `Find`) goes through `ApplyFilter`, with an empty filter to read everything. Add a filter property instead of suppressing them.
 
 ### Validation
 

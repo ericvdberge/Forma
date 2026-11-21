@@ -159,6 +159,7 @@ const notOnServer = computed(() => studio.query.error.value instanceof StudioPag
       :page-title="page?.title ?? ''"
       :page-path="page ? `${activeWebsite.domain}/${page.slug}` : ''"
       :back="pageCollection ? { to: { name: 'collection', params: { collectionId: pageCollection.id } }, label: pageCollection.name } : undefined"
+      :live-link="page && !pageCollectionId ? { name: 'preview', params: { websiteId: activeWebsite.id, slug: page.slug } } : undefined"
       @library="openAdd"
       @inspector="drawer = 'inspector'"
     />

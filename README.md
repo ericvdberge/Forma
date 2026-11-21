@@ -93,6 +93,7 @@ The Forma CMS, where you manage your websites, their pages and their media.
 | `/media`         | Media library of the active website: stats, upload (button, drag & drop or paste), grid or list, preview, delete |
 | `/websites/:id?` | Switch the active website and edit its details                  |
 | `/pages/:id/edit` | Design Studio: drag & drop editor for one page (mock content for now) |
+| `/preview/:websiteId/:slug?` | Website preview: the published pages as visitors see them, with links between pages working, on a computer, tablet or phone |
 | everything else  | Sections that are designed but not built yet show "coming soon" |
 
 Websites, pages and media load from the API through a typed client generated from its OpenAPI document (`@hey-api/openapi-ts` + TanStack Vue Query). Recent activity is still seed data. Media uploads and deletes go to the API; other edits only update the query cache until their write endpoints exist. In development Vite proxies `/api/*` to the API. Set `FORMA_API_URL` to proxy somewhere else, or `VITE_API_URL` to call a different base URL directly.

@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 import { Database, EyeOff } from 'lucide-vue-next'
 import { cn } from '@forma/design-system'
-import { useStudio } from '@/composables/useStudio'
+import { useCanvas } from '@/studio/canvas'
 import { blockDefinition } from '@/studio/blocks'
 import { boundFieldLabels, resolveBindings } from '@/studio/bindings'
+import { collectionDataKey } from '@/studio/inject'
 import type { RenderContext } from '@/studio/render'
 import type { Block, Section } from '@/studio/types'
 import { blockComponents } from './blocks'
@@ -18,7 +19,7 @@ const props = defineProps<{
   indicator: 'before' | 'after' | null
 }>()
 
-const studio = useStudio()
+const studio = useCanvas()
 const def = computed(() => blockDefinition(props.block.type))
 const selected = computed(() => studio.selection.value?.kind === 'block' && studio.selection.value.blockId === props.block.id)
 const hidden = computed(() => !props.block.style.visibility[props.ctx.bp])
@@ -26,9 +27,11 @@ const hidden = computed(() => !props.block.style.visibility[props.ctx.bp])
 const boundText = computed(() => !!props.block.bindings?.html)
 const ctx = computed<RenderContext>(() => ({ ...props.ctx, selected: selected.value && !boundText.value }))
 
-/* On a collection's detail page, bound props show the preview item's values. */
-const shown = computed(() => resolveBindings(props.block, studio.pageCollection.value, studio.previewItem.value))
-const fieldLabels = computed(() => boundFieldLabels(props.block, studio.pageCollection.value))
+/* On a collection's detail page, bound props show the preview item's values. Only the studio provides collection
+   data; elsewhere (the website preview) blocks show their own values. */
+const collectionData = inject(collectionDataKey, null)
+const shown = computed(() => resolveBindings(props.block, collectionData?.pageCollection.value, collectionData?.previewItem.value))
+const fieldLabels = computed(() => boundFieldLabels(props.block, collectionData?.pageCollection.value))
 
 const maxWidths = { none: undefined, sm: '520px', md: '760px', lg: '960px' }
 /** The wrapper always takes a full row (except inline blocks); the content inside can be narrower. */

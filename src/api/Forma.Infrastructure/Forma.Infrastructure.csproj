@@ -13,4 +13,9 @@
       <PackageReference Include="NetVips.Native" Version="8.18.7" />
     </ItemGroup>
 
+    <ItemGroup>
+      <!-- Queries go through ApplyFilter, never their own Where (FORMA001, FORMA002). -->
+      <ProjectReference Include="..\Forma.Analyzers\Forma.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
 </Project>

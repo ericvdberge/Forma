@@ -24,7 +24,7 @@ public static class PageContentSeeder
         var pageContentCoreService = scope.ServiceProvider.GetRequiredService<IPageContentCoreService>();
         var websites = scope.ServiceProvider.GetRequiredService<IWebsiteRepository>();
 
-        var websiteNames = (await websites.GetAllAsync(cancellationToken)).ToDictionary(w => w.Id, w => w.Name);
+        var websiteNames = (await websites.GetWebsitesAsync(new WebsiteFilter(), cancellationToken)).ToDictionary(w => w.Id, w => w.Name);
         var pages = await pageCoreService.GetPagesAsync(new PageFilter(), cancellationToken);
 
         foreach (var page in pages.Where(p => SampleSlugs.Contains(p.Slug)))

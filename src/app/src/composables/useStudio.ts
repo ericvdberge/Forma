@@ -8,6 +8,7 @@ import { useStudioCollections } from '@/composables/useStudioCollections'
 import { useStudioMedia } from '@/composables/useStudioMedia'
 import { useStudioPublishing } from '@/composables/useStudioPublishing'
 import type { StudioPageSeed } from '@/queriers/usePageContentQuerier'
+import { provideCanvas } from '@/studio/canvas'
 import { collectionDataKey, textEditorKey, textPointerKey } from '@/studio/inject'
 import type { Breakpoint, Selection } from '@/studio/types'
 
@@ -158,6 +159,7 @@ const StudioKey: InjectionKey<Studio> = Symbol('studio')
 
 export function provideStudio(studio: Studio) {
   provide(StudioKey, studio)
+  provideCanvas(studio)
   provide(textEditorKey, studio.textEditor)
   provide(textPointerKey, studio.textPointer)
   provide(collectionDataKey, studio.collectionData)
